@@ -8,6 +8,8 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 
 1. `supabase/migrations/202609230001_profiles_and_admin_invites.sql` (se ainda não executou).
 2. `supabase/migrations/202609240001_shared_app_data.sql`.
+3. `supabase/migrations/202609240002_player_shirt_number.sql` (se ainda nÃ£o executou).
+4. `supabase/migrations/202609240003_gallery.sql` (cria o bucket pÃºblico de leitura; envio e exclusÃ£o ficam restritos a ADM pela API).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 

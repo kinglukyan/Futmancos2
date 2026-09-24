@@ -110,6 +110,8 @@
         <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
         <button id="nav-desk-eafc" onclick="navigate('eafc')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Cartinhas</button>
         <button id="nav-desk-financeiro" onclick="navigate('financeiro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Mensalidades</button>
+        <button id="nav-desk-custos" onclick="navigate('custos')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Custos</button>
+        <button id="nav-desk-ajuda" onclick="navigate('ajuda')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Ajuda</button>
         <button id="admNavBtn" onclick="navigate('adm')" class="nav-btn-desk text-amber-400 hover:text-amber-300 px-3 py-1.5 rounded-lg transition hidden">Painel ADM</button>
       </nav>
 
@@ -144,6 +146,7 @@
             ACESSAR CONTA
           </button>
         </form>
+        <button type="button" onclick="sendPasswordRecovery()" class="w-full text-emerald-300 text-xs font-semibold py-1">Esqueci minha senha</button>
         <button id="passkeyLoginBtn" type="button" onclick="handlePasskeyLogin()" class="hidden w-full bg-emerald-700/40 border border-emerald-500/40 text-emerald-200 font-bold py-2.5 rounded-xl text-xs">ENTRAR COM BIOMETRIA / CHAVE DE ACESSO</button>
         <button type="button" onclick="openLoginModal('admin')" class="w-full text-amber-300 text-xs font-semibold py-2">Entrar como administrador</button>
       </div>
@@ -323,6 +326,20 @@
           </div>
         </div>
       </div>
+
+      <div class="bg-brand-cardBg border border-emerald-500/30 p-5 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-emerald-300">PIX PARA CONVIDADOS</h3>
+        <p class="text-xs text-gray-300">Faça o Pix da diária e envie o comprovante para a administração pelo WhatsApp.</p>
+        <img id="guestPixQr" alt="QR Code Pix da associação" class="hidden mx-auto w-44 h-44 object-contain bg-white p-2 rounded-xl">
+        <div id="guestPixKeyBox" class="hidden text-center space-y-2"><code id="guestPixKey" class="block text-sm break-all"></code><button onclick="copyPixKey()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold">Copiar chave Pix</button></div>
+        <p id="guestPixEmpty" class="text-xs text-amber-200">A administração ainda não cadastrou o Pix.</p>
+        <a id="guestPixWhatsapp" target="_blank" rel="noopener" class="inline-flex bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl">Paguei — enviar comprovante pelo WhatsApp</a>
+      </div>
+
+      <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-white">GALERIA DA ASSOCIAÇÃO</h3>
+        <div id="resenhaGallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+      </div>
     </section>
 
     <!-- TELA INICIAL (GUEST) -->
@@ -460,6 +477,15 @@
         <p id="passkeyStatus" class="text-xs text-gray-400" aria-live="polite"></p>
         <div id="passkeyList" class="space-y-2"></div>
       </div>
+      <form onsubmit="handleChangePassword(event)" class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-white">TROCAR MINHA SENHA</h3>
+        <p class="text-xs text-gray-400">Confirme sua senha atual para definir uma nova.</p>
+        <input id="currentPassword" type="password" autocomplete="current-password" required placeholder="Senha atual" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+        <input id="newPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Nova senha (mínimo 10 caracteres)" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+        <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Confirme a nova senha" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+        <button class="bg-gray-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Atualizar senha</button>
+        <p id="changePasswordStatus" class="text-xs text-gray-400" aria-live="polite"></p>
+      </form>
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div class="bg-brand-cardBg border border-gray-800 p-3 rounded-xl text-center">
@@ -487,6 +513,8 @@
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
         <h3 class="font-teko text-2xl text-white">MEU HISTÓRICO DE JOGOS</h3>
         <div id="playerMatchHistory" class="space-y-2 max-h-48 overflow-y-auto no-scrollbar"></div>
+        <h3 class="font-teko text-2xl text-white">AVALIAÇÕES RECEBIDAS</h3>
+        <div id="playerRatingHistory" class="space-y-2"></div>
       </div>
     </section>
 
@@ -556,6 +584,31 @@
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="sec-custos" class="hidden space-y-4">
+      <div class="bg-brand-cardBg border border-amber-500/30 p-5 rounded-2xl space-y-3 max-w-3xl mx-auto">
+        <h2 class="font-teko text-4xl text-amber-300">CUSTOS DE CHURRASCOS E CONFRA</h2>
+        <p class="text-xs text-gray-300">A conta de goleiro é isenta da mensalidade. Aqui ficam apenas contribuições opcionais para churrascos e confraternizações.</p>
+        <div id="keeperCostsList" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <section id="sec-ajuda" class="hidden space-y-4 max-w-3xl mx-auto">
+      <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-4">
+        <h2 class="font-teko text-4xl text-brand-lightGreen">AJUDA E NOTIFICAÇÕES</h2>
+        <p class="text-sm text-gray-300">Instale a Futmancos na tela inicial pelo menu Compartilhar do Safari (iPhone) ou pelo menu do navegador (Android/Chrome).</p>
+        <p class="text-sm text-gray-300">Para entrar com Face ID, digital ou PIN, entre na conta, abra Perfil e toque em “Ativar biometria neste aparelho”. O aparelho guarda a biometria; o site usa uma chave de acesso.</p>
+        <p class="text-xs text-gray-400">Lembretes dentro do site aparecem enquanto ele estiver aberto. Notificações push mesmo com o site fechado precisam de configuração adicional de servidor e permissões do aparelho.</p>
+        <button id="enableNotificationsBtn" onclick="enableFutmancosNotifications()" class="bg-sky-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar avisos neste aparelho</button>
+        <p id="notificationStatus" class="text-xs text-gray-400"></p>
+        <form id="recoveryPasswordForm" onsubmit="finishPasswordRecovery(event)" class="hidden border-t border-gray-800 pt-4 space-y-2">
+          <h3 class="font-teko text-2xl text-emerald-300">CRIAR NOVA SENHA</h3>
+          <input id="recoveryNewPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Nova senha (mínimo 10 caracteres)" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+          <button class="bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Salvar nova senha</button>
+          <p id="recoveryPasswordStatus" class="text-xs text-gray-400"></p>
+        </form>
       </div>
     </section>
 
@@ -654,14 +707,36 @@
             <label class="text-[10px] text-gray-400 block mb-1">Link do Instagram da Associação</label>
             <input type="url" id="admInstaLink" placeholder="https://instagram.com/seuperfil" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
           </div>
+          <div class="sm:col-span-2">
+            <label class="text-[10px] text-gray-400 block mb-1">Links de publicações públicas do Instagram (um por linha)</label>
+            <textarea id="admInstaPosts" rows="3" placeholder="https://www.instagram.com/p/.../" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
+          </div>
           <div>
-            <label class="text-[10px] text-gray-400 block mb-1">Link do Canal / Vídeo do YouTube (Destaque)</label>
-            <input type="url" id="admYtLink" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+            <label class="text-[10px] text-gray-400 block mb-1">Links de vídeos públicos do YouTube (um por linha, até 4)</label>
+            <textarea id="admYtLink" rows="3" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
           </div>
           <button type="submit" class="sm:col-span-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs p-2.5 rounded-xl transition">
             Salvar Links da Resenha
           </button>
         </form>
+      </div>
+
+      <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-emerald-300">GALERIA DE FOTOS DA RESENHA</h3>
+        <label class="text-xs text-gray-300 block">Adicionar imagens (até 5 MB cada)<input id="admGalleryUpload" type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="uploadGalleryImages(event)" class="mt-2 block w-full text-xs"></label>
+        <p id="galleryUploadStatus" class="text-xs text-gray-400"></p>
+        <div id="adminGalleryList" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+      </div>
+
+      <div class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-amber-300">CUSTOS DE CHURRASCO / CONFRA PARA GOLEIROS</h3>
+        <form onsubmit="addKeeperCost(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input id="keeperCostTitle" required maxlength="70" placeholder="Ex.: Churrasco de outubro" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <input id="keeperCostAmount" required type="number" min="0" step="0.01" placeholder="Valor sugerido (R$)" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <input id="keeperCostDate" type="date" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <button class="sm:col-span-3 bg-amber-500 text-black font-bold text-xs p-2.5 rounded-xl">Publicar custo para goleiros</button>
+        </form>
+        <div id="adminKeeperCostsList" class="space-y-2"></div>
       </div>
 
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -906,10 +981,12 @@
         <i data-lucide="user" class="w-5 h-5"></i>
         <span class="text-[10px]">Perfil</span>
       </button>
-      <button id="nav-mob-financeiro" onclick="navigate('financeiro')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
+        <button id="nav-mob-financeiro" onclick="navigate('financeiro')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
         <i data-lucide="wallet" class="w-5 h-5"></i>
         <span class="text-[10px]">Mensal.</span>
-      </button>
+        </button>
+        <button id="nav-mob-custos" onclick="navigate('custos')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden"><i data-lucide="piggy-bank" class="w-5 h-5"></i><span class="text-[10px]">Custos</span></button>
+        <button id="nav-mob-ajuda" onclick="navigate('ajuda')" class="mobile-nav-btn flex flex-col items-center gap-0.5"><i data-lucide="circle-help" class="w-5 h-5"></i><span class="text-[10px]">Ajuda</span></button>
       <button id="nav-mob-adm" onclick="navigate('adm')" class="mobile-nav-btn text-amber-400 flex flex-col items-center gap-0.5 hidden">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span class="text-[10px]">ADM</span>
@@ -935,8 +1012,14 @@
 
     let mediaLinks = JSON.parse(localStorage.getItem('futmancos_media_links')) || {
       instagram: '',
+      instagramPost: '',
       youtube: ''
     };
+    let associationGallery = JSON.parse(localStorage.getItem('futmancos_gallery') || '[]');
+    let keeperCosts = JSON.parse(localStorage.getItem('futmancos_keeper_costs') || '[]');
+    let lastSharedGameSnapshot = null;
+    let sharedMatchesInitialized = false;
+    let sharedAttendanceInitialized = false;
 
     let currentActiveTab = 'resenha';
     let myChartInstance = null;
@@ -1021,6 +1104,8 @@
       localStorage.setItem('futmancos_loggedUser', JSON.stringify(loggedUser));
       localStorage.setItem('futmancos_monthly_fee', globalMonthlyFee);
       localStorage.setItem('futmancos_media_links', JSON.stringify(mediaLinks));
+      localStorage.setItem('futmancos_gallery', JSON.stringify(associationGallery));
+      localStorage.setItem('futmancos_keeper_costs', JSON.stringify(keeperCosts));
       localStorage.setItem('futmancos_baba_date', activeBabaDate);
       if (!applyingSharedState && sharedStateReady && loggedUser?.isAdmin) { sharedStateDirty = true; localStorage.setItem('futmancos_shared_state_pending', '1'); scheduleSharedStateSave(); }
     }
@@ -1029,7 +1114,8 @@
       return {
         players: players.map(({ pass, password, ...player }) => player), arenas, transactions,
         presentPlayers, checkedInPlayers, matchHistory, mediaLinks, monthlyFee: globalMonthlyFee,
-        nextGame: JSON.parse(localStorage.getItem('futmancos_next_game') || 'null')
+        nextGame: JSON.parse(localStorage.getItem('futmancos_next_game') || 'null'),
+        associationGallery, keeperCosts
       };
     }
     function scheduleSharedStateSave() {
@@ -1052,6 +1138,8 @@
       if (Array.isArray(state.presentPlayers)) presentPlayers = state.presentPlayers;
       if (Array.isArray(state.checkedInPlayers)) checkedInPlayers = state.checkedInPlayers;
       if (state.mediaLinks && typeof state.mediaLinks === 'object') mediaLinks = state.mediaLinks;
+      if (Array.isArray(state.associationGallery)) associationGallery = state.associationGallery;
+      if (Array.isArray(state.keeperCosts)) keeperCosts = state.keeperCosts;
       if (Number(state.monthlyFee) > 0) globalMonthlyFee = Number(state.monthlyFee);
       if (state.nextGame) {
         activeBabaDate = state.nextGame.date || activeBabaDate;
@@ -1059,6 +1147,7 @@
         renderNextGameInfo(state.nextGame);
       }
       saveState();
+      renderAssociationGallery(); renderKeeperCosts(); renderGuestPix();
       applyingSharedState = false;
     }
     async function loadSharedAppState(seedIfEmpty = false) {
@@ -1068,6 +1157,11 @@
           await apiRequest('/shared-state', { method: 'PUT', body: JSON.stringify({ state: buildSharedAppState() }) });
           sharedStateDirty = false; localStorage.removeItem('futmancos_shared_state_pending');
         } else if (result.state) {
+          const nextSnapshot = JSON.stringify(result.state.nextGame || null);
+          if (lastSharedGameSnapshot !== null && nextSnapshot !== lastSharedGameSnapshot && result.state.nextGame && !loggedUser?.isAdmin) {
+            showFutmancosNotice('Baba atualizado', `Novo local ou horário: ${result.state.nextGame.title || result.state.nextGame.name || result.state.nextGame.date || 'confira a Central Baba'}.`);
+          }
+          lastSharedGameSnapshot = nextSnapshot;
           const sanitizedState = removeDemoPlayersFromState(result.state);
           const demosWereRemoved = (result.state.players || []).length !== sanitizedState.players.length;
           applySharedAppState(sanitizedState);
@@ -1096,8 +1190,17 @@
           else if (attendee.userId) player.serverId = attendee.userId;
           return player.id;
         };
+        const previousPresence = new Set(presentPlayers.map(String));
+        const previousCheckins = new Set(checkedInPlayers.map(String));
         presentPlayers = attendees.filter(item => item.kind === 'presence').map(toLocalId);
         checkedInPlayers = attendees.filter(item => item.kind === 'checkin').map(toLocalId);
+        if (sharedAttendanceInitialized && loggedUser?.isAdmin) {
+          const addedPresence = presentPlayers.filter(id => !previousPresence.has(String(id)));
+          const addedCheckins = checkedInPlayers.filter(id => !previousCheckins.has(String(id)));
+          if (addedPresence.length) { const player = players.find(item => String(item.id) === String(addedPresence[0])); showFutmancosNotice('Nova presença confirmada', `${player?.name || 'Um jogador'} confirmou presença no próximo baba.`); }
+          else if (addedCheckins.length) { const player = players.find(item => String(item.id) === String(addedCheckins[0])); showFutmancosNotice('Check-in registrado', `${player?.name || 'Um jogador'} chegou à arena.`); }
+        }
+        sharedAttendanceInitialized = true;
         saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton(); renderResenhaTab();
       } catch (error) { console.warn('Presença compartilhada indisponível.', error); }
     }
@@ -1219,9 +1322,11 @@
       document.getElementById('admGlobalFeeInput').value = globalMonthlyFee;
 
       if (mediaLinks.instagram) document.getElementById('admInstaLink').value = mediaLinks.instagram;
-      if (mediaLinks.youtube) document.getElementById('admYtLink').value = mediaLinks.youtube;
+      if (document.getElementById('admYtLink')) document.getElementById('admYtLink').value = (mediaLinks.youtubeVideos || (mediaLinks.youtube ? [mediaLinks.youtube] : [])).join('\n');
+      if (document.getElementById('admInstaPosts')) document.getElementById('admInstaPosts').value = (mediaLinks.instagramPosts || []).join('\n');
 
       navigate('resenha');
+      renderGalleryAdmin(); renderKeeperCosts(); setupRecoveryFlow();
       lucide.createIcons();
       startSharedSyncLoop();
     }
@@ -1478,6 +1583,8 @@
         const keyInput = document.getElementById('admPixKey'); if (keyInput) keyInput.value = associationPixKey;
         const preview = document.getElementById('admPixQrPreview'); if (preview && associationPixQrDataUrl) { preview.src = associationPixQrDataUrl; preview.classList.remove('hidden'); }
         renderPixPaymentDetails();
+        renderGuestPix();
+        try { associationGallery = (await apiRequest('/gallery')).images || []; renderAssociationGallery(); } catch { /* Galeria vazia enquanto a API não responde. */ }
         const display = document.getElementById('displayMonthlyFee');
         if (display) display.innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
       } catch { /* A API ainda não está conectada. */ }
@@ -1504,6 +1611,16 @@
       if (keyBox) keyBox.classList.toggle('hidden', !associationPixKey);
       if (key) key.innerText = associationPixKey;
       if (empty) empty.classList.toggle('hidden', !!(associationPixKey || associationPixQrDataUrl));
+    }
+    function renderGuestPix() {
+      const qr = document.getElementById('guestPixQr'), keyBox = document.getElementById('guestPixKeyBox');
+      const key = document.getElementById('guestPixKey'), empty = document.getElementById('guestPixEmpty');
+      if (qr) { qr.src = associationPixQrDataUrl || ''; qr.classList.toggle('hidden', !associationPixQrDataUrl); }
+      if (keyBox) keyBox.classList.toggle('hidden', !associationPixKey);
+      if (key) key.textContent = associationPixKey;
+      if (empty) empty.classList.toggle('hidden', !!(associationPixKey || associationPixQrDataUrl));
+      const text = encodeURIComponent('Olá! Sou convidado da Futmancos, fiz o Pix da diária e vou enviar o comprovante.');
+      const link = document.getElementById('guestPixWhatsapp'); if (link) link.href = `https://wa.me/${adminWhatsapp}?text=${text}`;
     }
     async function copyPixKey() {
       if (!associationPixKey) return alert('A chave Pix ainda não foi cadastrada pela administração.');
@@ -1597,17 +1714,22 @@
           const feeText = `R$ ${globalMonthlyFee.toFixed(2)}`;
           const feeDisplay = document.getElementById('displayMonthlyFee'); if (feeDisplay) feeDisplay.innerText = feeText;
         }
+        const exempt = status.status === 'exempt';
         const paid = status.status === 'paid';
         const late = status.status === 'overdue';
-        const label = paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
-        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
-        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        const label = exempt ? 'ISENTO — GOLEIRO' : paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
+        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
         const [year, month] = status.month.split('-');
-        if (line) line.innerText = paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
-        if (profileCycle) profileCycle.innerText = paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
-        if (payBox) payBox.classList.toggle('hidden', paid);
-        if (profilePay) profilePay.classList.toggle('hidden', paid);
-        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late); } });
+        if (line) line.innerText = exempt ? 'Goleiros são isentos da mensalidade. Os custos de confraternização ficam na tela Custos.' : paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
+        if (profileCycle) profileCycle.innerText = exempt ? 'Sem cobrança mensal.' : paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
+        if (payBox) payBox.classList.toggle('hidden', paid || exempt);
+        if (profilePay) profilePay.classList.toggle('hidden', paid || exempt);
+        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late || exempt); } });
+        if (!paid && !late && !exempt && Number(new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date())) >= 9) {
+          const reminderKey = `futmancos-fee-reminder-${status.month}`;
+          if (!localStorage.getItem(reminderKey)) { localStorage.setItem(reminderKey, '1'); showFutmancosNotice('Mensalidade próxima do vencimento', `O prazo para pagar termina no dia 12/${month}.`); }
+        }
         if (redirectIfLate && late) {
           const key = `futmancos-late-${status.month}`;
           if (!sessionStorage.getItem(key)) { sessionStorage.setItem(key, '1'); window.location.href = buildLateWhatsAppUrl(); }
@@ -1627,6 +1749,7 @@
 
     function requestPixPayment() {
       if (!loggedUser) return openLoginModal();
+      if (isGoalkeeper(loggedUser)) return alert('Goleiros são isentos da mensalidade. Confira a tela Custos para confraternizações.');
       if (loggedUser.paymentStatus === 'paid') return alert('A mensalidade deste mês já consta como paga.');
       const date = new Date();
       const month = new Intl.DateTimeFormat('pt-BR', { month: '2-digit', timeZone: 'America/Sao_Paulo' }).format(date);
@@ -1689,6 +1812,7 @@
       loggedUser = null; saveState(); updateAuthUI(); updatePresenceButton(); navigate('resenha');
     }
 
+    function isGoalkeeper(user) { return String(user?.pos || user?.position || '').toLowerCase().includes('goleiro'); }
     function updateAuthUI() {
       const authBtn = document.getElementById('authActionBtn');
 
@@ -1700,6 +1824,10 @@
         document.querySelectorAll('.admin-stats-controls, .admin-results').forEach(el => el.classList.toggle('hidden', !loggedUser.isAdmin));
         document.querySelectorAll('.logged-only').forEach(el => el.classList.remove('hidden'));
         document.querySelectorAll('.guest-only').forEach(el => el.classList.add('hidden'));
+        document.getElementById('nav-desk-financeiro').classList.toggle('hidden', isGoalkeeper(loggedUser));
+        document.getElementById('nav-mob-financeiro').classList.toggle('hidden', isGoalkeeper(loggedUser));
+        document.getElementById('nav-desk-custos').classList.toggle('hidden', !isGoalkeeper(loggedUser));
+        document.getElementById('nav-mob-custos').classList.toggle('hidden', !isGoalkeeper(loggedUser));
 
         if (loggedUser.isAdmin) {
           document.getElementById('admNavBtn').classList.remove('hidden');
@@ -1723,12 +1851,14 @@
     }
 
     function navigate(secId) {
-      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro'].includes(secId)) {
+      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custos'].includes(secId)) {
         openLoginModal();
         return;
       }
 
       if (secId === 'adm' && !loggedUser?.isAdmin) { alert('Acesso restrito à administração.'); return; }
+      if (secId === 'custos' && !isGoalkeeper(loggedUser)) { alert('A área Custos é exclusiva para goleiros.'); return; }
+      if (secId === 'financeiro' && isGoalkeeper(loggedUser)) { navigate('custos'); return; }
       currentActiveTab = secId;
       document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
       document.getElementById(`sec-${secId}`).classList.remove('hidden');
@@ -1741,6 +1871,7 @@
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); }
       if (secId === 'financeiro') refreshPaymentStatus();
+      if (secId === 'custos') renderKeeperCosts();
     }
 
     function updateNavHighlight(secId) {
@@ -1771,7 +1902,8 @@
       try {
         await apiRequest('/baba/attendance', { method: 'POST', body: JSON.stringify({ date: activeBabaDate, kind: 'presence' }) });
         await refreshSharedAttendance();
-        alert(wasPresent ? 'Presença desmarcada em todos os dispositivos.' : 'Presença confirmada e compartilhada com o grupo!');
+        if (wasPresent) alert('Presença desmarcada em todos os dispositivos.');
+        else showFutmancosNotice('Presença confirmada', 'Sua confirmação foi compartilhada com o grupo em todos os dispositivos.');
       } catch (error) { alert(error.message); }
     }
 
@@ -1782,7 +1914,7 @@
       try {
         await apiRequest('/baba/attendance', { method: 'POST', body: JSON.stringify({ date: activeBabaDate, kind: 'checkin' }) });
         await refreshSharedAttendance();
-        alert('Check-in realizado e compartilhado com o grupo.');
+        showFutmancosNotice('Check-in confirmado', 'Seu check-in na arena foi compartilhado com o grupo.');
       } catch (error) { alert(error.message); }
     }
 
@@ -1920,11 +2052,64 @@
       }
     }
 
+    function showFutmancosNotice(title, body) {
+      let toast = document.getElementById('futmancosNotice');
+      if (!toast) { toast = document.createElement('div'); toast.id = 'futmancosNotice'; toast.className = 'fixed top-20 left-3 right-3 z-[90] mx-auto max-w-lg rounded-xl border border-emerald-500/40 bg-gray-950 p-3 text-sm text-white shadow-2xl'; document.body.append(toast); }
+      const escape = value => String(value).replace(/[&<>]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[char]));
+      toast.innerHTML = `<strong class="block text-emerald-300">${escape(title)}</strong><span class="text-xs text-gray-300">${escape(body)}</span>`;
+      toast.classList.remove('hidden'); clearTimeout(toast._timer); toast._timer = setTimeout(() => toast.classList.add('hidden'), 6000);
+      if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState === 'hidden') new Notification(title, { body, icon: '/assets/app-icon-192.png' });
+    }
+    async function enableFutmancosNotifications() {
+      const status = document.getElementById('notificationStatus');
+      if (!('Notification' in window)) { status.innerText = 'Este navegador não oferece notificações. Os avisos continuam dentro do site.'; return; }
+      const permission = await Notification.requestPermission();
+      status.innerText = permission === 'granted' ? 'Avisos ativados neste aparelho enquanto o site estiver aberto.' : 'Permissão não concedida. Você pode ativá-la nas configurações do navegador.';
+      if (permission === 'granted') showFutmancosNotice('Avisos ativados', 'Você receberá alertas de alterações enquanto usar o site.');
+    }
+    async function sendPasswordRecovery() {
+      const email = document.getElementById('loginUsername').value.trim();
+      if (!email) return alert('Digite seu e-mail no campo de entrada para receber o link de recuperação.');
+      try { const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); if (error) throw error;
+        alert('Se o e-mail estiver cadastrado, o Supabase enviará um link seguro para redefinir a senha. Confira também o spam.');
+      } catch (error) { alert(`Não foi possível solicitar a recuperação: ${error.message}`); }
+    }
+    function setupRecoveryFlow() {
+      if (!/type=recovery/.test(location.hash)) return;
+      document.getElementById('recoveryPasswordForm')?.classList.remove('hidden');
+      currentActiveTab = 'ajuda'; document.querySelectorAll('main > section').forEach(section => section.classList.add('hidden'));
+      document.getElementById('sec-ajuda')?.classList.remove('hidden'); updateNavHighlight('ajuda');
+    }
+    async function finishPasswordRecovery(event) {
+      event.preventDefault(); const status = document.getElementById('recoveryPasswordStatus');
+      try { const { error } = await supabaseClient.auth.updateUser({ password: document.getElementById('recoveryNewPassword').value }); if (error) throw error;
+        status.innerText = 'Senha alterada. Entre novamente com sua nova senha.'; document.getElementById('recoveryPasswordForm').classList.add('hidden'); history.replaceState(null, '', location.pathname + location.search); await supabaseClient.auth.signOut();
+      } catch (error) { status.innerText = error.message || 'O link expirou. Solicite outro link de recuperação.'; }
+    }
+    async function handleChangePassword(event) {
+      event.preventDefault();
+      const current = document.getElementById('currentPassword').value;
+      const next = document.getElementById('newPassword').value;
+      const confirmNext = document.getElementById('confirmNewPassword').value;
+      const status = document.getElementById('changePasswordStatus');
+      if (next !== confirmNext) { status.innerText = 'A confirmação não corresponde à nova senha.'; return; }
+      try {
+        const { error: authError } = await supabaseClient.auth.signInWithPassword({ email: loggedUser.email, password: current });
+        if (authError) throw new Error('A senha atual não confere. Se você a esqueceu, use “Esqueci minha senha” na tela de entrada.');
+        const { error } = await supabaseClient.auth.updateUser({ password: next }); if (error) throw error;
+        event.target.reset(); status.innerText = 'Senha atualizada com segurança.';
+      } catch (error) { status.innerText = error.message || 'Não foi possível trocar a senha.'; }
+    }
+
     function handleMediaConfig(e) {
       e.preventDefault();
       mediaLinks.instagram = document.getElementById('admInstaLink').value.trim();
-      mediaLinks.youtube = document.getElementById('admYtLink').value.trim();
-      
+      mediaLinks.instagramPosts = document.getElementById('admInstaPosts').value.split(/\r?\n/).map(url => url.trim()).filter(url => /^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[\w-]+\/?(?:\?.*)?$/i.test(url)).slice(0, 8);
+      const youtubeInput = document.getElementById('admYtLink').value.split(/\r?\n/).map(url => url.trim()).filter(Boolean);
+      mediaLinks.youtubeVideos = youtubeInput.map(extractYouTubeEmbedUrl).filter(Boolean).map(embed => embed.replace('https://www.youtube.com/embed/', 'https://www.youtube.com/watch?v=').slice(0, 43));
+      mediaLinks.youtube = mediaLinks.youtubeVideos[0] || '';
+      if (mediaLinks.instagramPosts.length !== document.getElementById('admInstaPosts').value.split(/\r?\n/).filter(line => line.trim()).length) return alert('Confira os links do Instagram: use links públicos de post, Reel ou vídeo, um por linha.');
+      if (mediaLinks.youtubeVideos.length !== youtubeInput.length || youtubeInput.length > 4) return alert('Informe até quatro links válidos de vídeos públicos do YouTube, um por linha.');
       saveState();
       renderResenhaTab();
       alert('Links das mídias salvos com sucesso!');
@@ -1940,7 +2125,47 @@
       } else if (url.includes('embed/')) {
         videoId = url.split('embed/')[1].split('?')[0];
       }
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+      return /^[\w-]{11}$/.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : '';
+    }
+
+    function renderAssociationGallery() {
+      const box = document.getElementById('resenhaGallery'); if (!box) return;
+      box.replaceChildren();
+      (associationGallery || []).forEach(item => {
+        if (!item?.url || !String(item.url).startsWith('https://')) return;
+        const image = document.createElement('img'); image.src = item.url; image.alt = 'Foto da associação Futmancos'; image.loading = 'lazy';
+        image.className = 'w-full aspect-square object-cover rounded-xl border border-gray-800'; box.append(image);
+      });
+      if (!box.children.length) box.innerHTML = '<p class="col-span-full text-xs text-gray-500">As fotos da resenha aparecerão aqui.</p>';
+    }
+    function renderGalleryAdmin() {
+      const box = document.getElementById('adminGalleryList'); if (!box) return;
+      box.replaceChildren();
+      (associationGallery || []).forEach(item => {
+        const wrap = document.createElement('div'); wrap.className = 'relative';
+        const image = document.createElement('img'); image.src = item.url; image.alt = 'Foto da galeria'; image.className = 'w-full aspect-square object-cover rounded-lg';
+        const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Excluir'; remove.className = 'absolute bottom-1 right-1 bg-rose-800 text-white text-[10px] px-2 py-1 rounded';
+        remove.onclick = () => deleteGalleryImage(item.id); wrap.append(image, remove); box.append(wrap);
+      });
+    }
+    async function uploadGalleryImages(event) {
+      if (!loggedUser?.isAdmin) return alert('Somente ADM pode enviar fotos.');
+      const files = [...(event.target.files || [])]; const status = document.getElementById('galleryUploadStatus');
+      for (const file of files) {
+        if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { status.innerText = `${file.name}: use JPG, PNG ou WebP de até 5 MB.`; continue; }
+        status.innerText = `Enviando ${file.name}...`;
+        try {
+          const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+          const result = await apiRequest('/admin/gallery', { method: 'POST', body: JSON.stringify({ dataUrl }) });
+          associationGallery = result.images || [result.image, ...associationGallery]; saveState(); renderAssociationGallery(); renderGalleryAdmin(); status.innerText = 'Imagem publicada para todos os dispositivos.';
+        } catch (error) { status.innerText = error.message; break; }
+      }
+      event.target.value = '';
+    }
+    async function deleteGalleryImage(id) {
+      if (!loggedUser?.isAdmin || !confirm('Remover esta foto da galeria?')) return;
+      try { const result = await apiRequest(`/admin/gallery/${encodeURIComponent(id)}`, { method: 'DELETE' }); associationGallery = result.images || []; saveState(); renderGalleryAdmin(); renderAssociationGallery(); }
+      catch (error) { alert(error.message); }
     }
 
     function renderResenhaTab() {
@@ -2000,16 +2225,36 @@
       });
 
       const instaBtn = document.getElementById('resenhaInstaBtn');
-      if (mediaLinks.instagram) instaBtn.href = mediaLinks.instagram;
+      if (instaBtn) instaBtn.href = /^https:\/\/(www\.)?instagram\.com\//i.test(mediaLinks.instagram || '') ? mediaLinks.instagram : 'https://instagram.com';
+      const instaBox = document.getElementById('instaFeedBox');
+      const instagramPosts = Array.isArray(mediaLinks.instagramPosts) ? mediaLinks.instagramPosts.filter(url => /^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[\w-]+\/?(?:\?.*)?$/i.test(url)) : [];
+      if (instaBox && instagramPosts.length) {
+        instaBox.className = 'bg-black/60 border border-gray-800 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3';
+        instaBox.replaceChildren();
+        instagramPosts.slice(0, 4).forEach(url => {
+          const block = document.createElement('blockquote'); block.className = 'instagram-media'; block.setAttribute('data-instgrm-permalink', url); block.setAttribute('data-instgrm-version', '14');
+          const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Ver publicação no Instagram'; block.append(link); instaBox.append(block);
+        });
+        if (!document.querySelector('script[data-instagram-embed]')) { const script = document.createElement('script'); script.async = true; script.src = 'https://www.instagram.com/embed.js'; script.dataset.instagramEmbed = 'true'; document.body.append(script); }
+        else window.instgrm?.Embeds?.process?.();
+      } else if (instaBox) {
+        instaBox.className = 'bg-black/60 border border-gray-800 rounded-xl p-4 text-center text-xs text-gray-400 min-h-[220px] flex flex-col items-center justify-center space-y-2';
+        instaBox.innerHTML = '<i data-lucide="instagram" class="w-12 h-12 text-gray-600"></i><p id="instaFeedText">Cadastre links públicos das publicações no Painel ADM para exibi-las aqui.</p>';
+      }
 
       const ytBox = document.getElementById('youtubeVideoBox');
-      const embedUrl = extractYouTubeEmbedUrl(mediaLinks.youtube);
-      if (embedUrl) {
-        ytBox.innerHTML = `<iframe class="w-full h-full" src="${embedUrl}" title="Vídeo Recente Futmancos" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      const videoLinks = Array.isArray(mediaLinks.youtubeVideos) ? mediaLinks.youtubeVideos : (mediaLinks.youtube ? [mediaLinks.youtube] : []);
+      const embedUrls = videoLinks.map(extractYouTubeEmbedUrl).filter(Boolean).slice(0, 4);
+      if (embedUrls.length) {
+        ytBox.className = 'w-full bg-black rounded-xl border border-gray-800 overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-2 p-2';
+        ytBox.innerHTML = embedUrls.map((url, index) => `<iframe class="w-full aspect-video rounded-lg" src="${url}" title="Vídeo Futmancos ${index + 1}" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`).join('');
       } else {
+        ytBox.className = 'w-full aspect-video bg-black rounded-xl border border-gray-800 overflow-hidden flex items-center justify-center';
         ytBox.innerHTML = `<p class="text-xs text-gray-500 italic">Nenhum vídeo publicado ainda. Adicione o link no Painel ADM.</p>`;
       }
 
+      renderAssociationGallery(); renderGuestPix();
+      window.instgrm?.Embeds?.process?.();
       lucide.createIcons();
     }
 
@@ -2018,6 +2263,8 @@
       try {
         const result = await apiRequest('/baba/matches');
         const remote = Array.isArray(result.matches) ? result.matches : [];
+        const knownBefore = new Set(matchHistory.map(match => String(match.id)));
+        const newlyAdded = remote.filter(match => !knownBefore.has(String(match.id)));
         const known = new Set(remote.map(match => String(match.id)));
         if (loggedUser?.isAdmin) {
           for (const local of matchHistory) if (!known.has(String(local.id))) {
@@ -2027,6 +2274,8 @@
         }
         const combined = new Map([...matchHistory, ...remote].map(match => [String(match.id), match]));
         matchHistory = [...combined.values()].sort((a, b) => String(b.gameDay || '').localeCompare(String(a.gameDay || '')) || Number(b.id) - Number(a.id));
+        if (sharedMatchesInitialized && newlyAdded.length && !loggedUser?.isAdmin) showFutmancosNotice('Novo resultado publicado', `${newlyAdded.length} partida(s) foram adicionadas ao histórico.`);
+        sharedMatchesInitialized = true;
         saveState();
       } catch (error) { console.warn('Resultados compartilhados indisponíveis; mostrando os dados salvos neste navegador.', error); }
     }
@@ -2266,24 +2515,44 @@
       const historyContainer = document.getElementById('playerMatchHistory');
       historyContainer.innerHTML = '';
 
-      const myMatches = matchHistory.filter(m => m.teamA.includes(loggedUser.name) || m.teamB.includes(loggedUser.name));
+      const myMatches = matchHistory.filter(m => (m.teamA || []).includes(loggedUser.name) || (m.teamB || []).includes(loggedUser.name) || (m.stats || []).some(stat => String(stat.email || '').toLowerCase() === String(loggedUser.email || '').toLowerCase()));
       if (myMatches.length === 0) {
         historyContainer.innerHTML = '<p class="text-xs text-gray-500 italic">Você ainda não disputou partidas no sistema.</p>';
       } else {
         myMatches.forEach(m => {
           historyContainer.innerHTML += `
-            <div class="bg-black/50 border border-gray-800 p-2.5 rounded-xl flex justify-between items-center text-xs">
+          <div class="bg-black/50 border border-gray-800 p-2.5 rounded-xl flex justify-between items-center text-xs">
               <div>
                 <span class="text-[10px] text-gray-400 block">${m.date}</span>
                 <p class="font-bold text-gray-200">Verde ${m.scoreA} x ${m.scoreB} Preto</p>
+                <p class="text-[10px] text-gray-400">${(() => { const stat = (m.stats || []).find(x => String(x.email || '').toLowerCase() === String(loggedUser.email || '').toLowerCase() || x.name === loggedUser.name); return stat ? `${stat.goals || 0} gols · ${stat.assists || 0} assistências · ${stat.saves || 0} defesas` : 'Participação registrada'; })()}</p>
               </div>
               <span class="text-brand-lightGreen font-bold">Participou</span>
             </div>
           `;
         });
       }
+      loadProfileVoteHistory();
 
       lucide.createIcons();
+    }
+
+    const profileVoteHistoryCache = new Map();
+    async function loadProfileVoteHistory() {
+      const box = document.getElementById('playerRatingHistory'); if (!box || !loggedUser?.email) return;
+      const days = [...new Set(matchHistory.map(match => match.gameDay).filter(Boolean))].slice(0, 12);
+      if (!days.length) { box.innerHTML = '<p class="text-xs text-gray-500">As avaliações dos babas aparecerão aqui quando forem liberadas.</p>'; return; }
+      try {
+        const rows = await Promise.all(days.map(async day => {
+          let cached = profileVoteHistoryCache.get(day);
+          if (!cached || Date.now() - cached.at > 60_000) { cached = { at: Date.now(), values: (await apiRequest(`/baba/votes?date=${encodeURIComponent(day)}`)).votes || [] }; profileVoteHistoryCache.set(day, cached); }
+          const values = cached.values;
+          const mine = values.filter(vote => String(vote.playerEmail || '').toLowerCase() === loggedUser.email.toLowerCase());
+          return mine.length ? { day, count: mine.length, average: mine.reduce((sum, vote) => sum + Number(vote.stars), 0) / mine.length } : null;
+        }));
+        const received = rows.filter(Boolean);
+        box.innerHTML = received.length ? received.map(row => `<div class="bg-black/40 border border-gray-800 p-2.5 rounded-lg flex justify-between text-xs"><span>${new Date(`${row.day}T12:00:00`).toLocaleDateString('pt-BR')} · ${row.count} avaliação(ões)</span><strong class="text-amber-300">★ ${row.average.toFixed(1)} / 5</strong></div>`).join('') : '<p class="text-xs text-gray-500">Você ainda não recebeu avaliações nos babas encerrados.</p>';
+      } catch { box.innerHTML = '<p class="text-xs text-gray-500">As avaliações serão carregadas quando houver conexão com o servidor.</p>'; }
     }
 
     function renderRanking() {
@@ -2435,7 +2704,7 @@
 
       document.getElementById('memberCount').innerText = players.length;
       document.getElementById('countPaid').innerText = players.filter(x => x.paid).length;
-      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid).length;
+      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid && !isGoalkeeper(x)).length;
 
       if (tbody) tbody.innerHTML = '';
       if (mobileCards) mobileCards.innerHTML = '';
@@ -2443,7 +2712,9 @@
         const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
         const memberKey = escape(p.id);
         const editable = Boolean(loggedUser?.isAdmin) || String(p.id) === String(loggedUser?.id);
-        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid;
+        const exempt = isGoalkeeper(p);
+        const paymentText = exempt ? 'ISENTO' : p.paid ? 'PAGO' : 'PENDENTE';
+        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid && !exempt;
         const deleteAction = loggedUser?.isAdmin;
         const deletionKey = escape(p.serverId || p.authUserId || p.id);
         if (tbody) tbody.innerHTML += `
@@ -2451,7 +2722,7 @@
             <td class="p-2.5 font-bold text-white">${p.name} (#${p.shirt})</td>
             <td class="p-2.5 text-gray-300">${p.age} anos</td>
             <td class="p-2.5 text-gray-300">${p.pos}</td>
-            <td class="p-2.5 font-bold ${p.paid ? 'text-emerald-400' : 'text-rose-400'}">${p.paid ? 'PAGO' : 'PENDENTE'}</td>
+            <td class="p-2.5 font-bold ${exempt || p.paid ? 'text-emerald-400' : 'text-rose-400'}">${paymentText}</td>
             <td class="p-2.5 text-center">
               <button onclick="openMemberDetailModal('${memberKey}')" class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold">
                 Inspecionar
@@ -2466,7 +2737,7 @@
         `;
         if (mobileCards) mobileCards.innerHTML += `
           <article class="bg-black/35 border border-gray-800 rounded-xl p-3 space-y-2">
-            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${p.paid ? 'text-emerald-300' : 'text-rose-300'}">${p.paid ? 'PAGO' : 'PENDENTE'}</span></div>
+            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${exempt || p.paid ? 'text-emerald-300' : 'text-rose-300'}">${paymentText}</span></div>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" data-member-inspect="${memberKey}" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Inspecionar</button>
               ${editable ? `<button type="button" data-member-edit="${memberKey}" class="bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Editar dados</button>` : ''}
@@ -2684,6 +2955,20 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
     }
+
+    function renderKeeperCosts() {
+      const list = document.getElementById('keeperCostsList'), admin = document.getElementById('adminKeeperCostsList');
+      const fmt = amount => `R$ ${Number(amount || 0).toFixed(2).replace('.', ',')}`;
+      const card = item => `<div class="bg-black/40 border border-gray-800 p-3 rounded-xl flex justify-between gap-3 items-center"><div><strong class="text-sm">${String(item.title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</strong><p class="text-[10px] text-gray-400">${item.date ? new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR') : 'Data a confirmar'}</p></div><strong class="text-amber-300 text-sm">${fmt(item.amount)}</strong></div>`;
+      if (list) list.innerHTML = keeperCosts.length ? keeperCosts.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum custo de confraternização foi publicado.</p>';
+      if (admin) admin.innerHTML = keeperCosts.map(item => `<div class="flex justify-between items-center gap-2 bg-black/30 p-2 rounded-lg text-xs">${card(item)}<button onclick="deleteKeeperCost('${String(item.id).replace(/[^\w-]/g, '')}')" class="text-rose-300">Excluir</button></div>`).join('');
+    }
+    function addKeeperCost(event) {
+      event.preventDefault(); if (!loggedUser?.isAdmin) return alert('Apenas ADM pode publicar custos.');
+      keeperCosts.unshift({ id: crypto.randomUUID?.() || String(Date.now()), title: document.getElementById('keeperCostTitle').value.trim(), amount: Number(document.getElementById('keeperCostAmount').value), date: document.getElementById('keeperCostDate').value || '' });
+      event.target.reset(); saveState(); renderKeeperCosts(); showFutmancosNotice('Novo custo publicado', 'O valor da confraternização já está disponível para goleiros.');
+    }
+    function deleteKeeperCost(id) { if (!loggedUser?.isAdmin || !confirm('Remover este custo?')) return; keeperCosts = keeperCosts.filter(item => String(item.id) !== String(id)); saveState(); renderKeeperCosts(); }
 
     function updateFinanceCategories() {
       const type = document.getElementById('finType').value;

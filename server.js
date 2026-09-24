@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, randomUUID } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import { createClient } from '@supabase/supabase-js';
@@ -19,7 +19,7 @@ const supabase = supabaseUrl && supabaseServiceKey
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '8mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const monthKey = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
@@ -54,6 +54,7 @@ async function getFee() {
   return Number(await setting('monthly_fee')) || Number(env('MONTHLY_FEE', '50.00'));
 }
 function billingStatus(row, fee, now = new Date()) {
+  if (String(row?.position || '').toLowerCase().includes('goleiro')) return { status: 'exempt', month: monthKey(now), paidMonth: row.paid_month || '', dueDay: 12, fee: 0 };
   const month = monthKey(now), day = saoPauloDay(now);
   if (row.paid_month === month) return { status: 'paid', month, paidMonth: row.paid_month, dueDay: 12, fee };
   return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month || '', dueDay: 12, fee };
@@ -135,7 +136,9 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     checkedInPlayers: Array.isArray(incoming.checkedInPlayers) ? incoming.checkedInPlayers.filter(id => !(incoming.players || []).some(player => isDemoMember(player) && String(player.id) === String(id))) : [],
     mediaLinks: incoming.mediaLinks && typeof incoming.mediaLinks === 'object' ? incoming.mediaLinks : {},
     monthlyFee: Number(incoming.monthlyFee) || await getFee(),
-    nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null
+    nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null,
+    associationGallery: Array.isArray(incoming.associationGallery) ? incoming.associationGallery.slice(0, 100).filter(item => item && typeof item.url === 'string' && item.url.startsWith('https://')) : [],
+    keeperCosts: Array.isArray(incoming.keeperCosts) ? incoming.keeperCosts.slice(0, 100).filter(item => item && typeof item.title === 'string') : []
   };
   try {
     const updatedAt = new Date().toISOString();
@@ -180,6 +183,50 @@ app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res,
       if (error) throw error;
     }
     res.json({ attendees: await attendanceRows(day) });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/gallery', requireDatabase, async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    res.json({ images: Array.isArray(data?.state_json?.associationGallery) ? data.state_json.associationGallery : [] });
+  } catch (error) { next(error); }
+});
+app.post('/api/admin/gallery', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const dataUrl = String(req.body?.dataUrl || '');
+  const match = dataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if (!match || dataUrl.length > 7_000_000) return res.status(400).json({ error: 'Escolha uma imagem JPG, PNG ou WebP de até 5 MB.' });
+  try {
+    const mime = `image/${match[1]}`;
+    const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+    const path = `${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('association-gallery').upload(path, Buffer.from(match[2], 'base64'), { contentType: mime, cacheControl: '31536000', upsert: false });
+    if (uploadError) throw uploadError;
+    const { data: publicData } = supabase.storage.from('association-gallery').getPublicUrl(path);
+    const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (readError) throw readError;
+    const state = row?.state_json || {};
+    const image = { id: randomUUID(), path, url: publicData.publicUrl, createdAt: new Date().toISOString() };
+    state.associationGallery = [image, ...(Array.isArray(state.associationGallery) ? state.associationGallery : [])].slice(0, 100);
+    const { error: saveError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (saveError) throw saveError;
+    res.json({ image, images: state.associationGallery });
+  } catch (error) { next(error); }
+});
+app.delete('/api/admin/gallery/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (readError) throw readError;
+    const state = row?.state_json || {};
+    const images = Array.isArray(state.associationGallery) ? state.associationGallery : [];
+    const removed = images.find(item => String(item.id) === String(req.params.id));
+    if (!removed) return res.status(404).json({ error: 'Imagem não encontrada.' });
+    if (removed.path) { const { error } = await supabase.storage.from('association-gallery').remove([removed.path]); if (error) throw error; }
+    state.associationGallery = images.filter(item => String(item.id) !== String(req.params.id));
+    const { error: saveError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (saveError) throw saveError;
+    res.json({ images: state.associationGallery });
   } catch (error) { next(error); }
 });
 app.post('/api/admin/baba/checkin', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -328,9 +375,10 @@ app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatab
   const photo = String(req.body?.photo || '');
   if (!validatePhoto(photo)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,position').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const { error } = await supabase.from('profiles').update({ photo }).eq('id', member.id);
     if (error) throw error;
     res.json({ ok: true });
