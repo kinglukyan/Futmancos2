@@ -182,6 +182,20 @@ app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res,
     res.json({ attendees: await attendanceRows(day) });
   } catch (error) { next(error); }
 });
+app.post('/api/admin/baba/checkin', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const day = String(req.body?.date || ''), userId = String(req.body?.userId || '');
+  if (!validDate(day) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+    return res.status(400).json({ error: 'Informe uma data e um associado válidos.' });
+  }
+  try {
+    const { data: presence, error: presenceError } = await supabase.from('baba_attendance').select('id').eq('game_day', day).eq('user_id', userId).eq('kind', 'presence').maybeSingle();
+    if (presenceError) throw presenceError;
+    if (!presence) return res.status(409).json({ error: 'O associado precisa ter confirmado presença antes do check-in.' });
+    const { error } = await supabase.from('baba_attendance').upsert({ game_day: day, user_id: userId, kind: 'checkin' }, { onConflict: 'game_day,user_id,kind', ignoreDuplicates: true });
+    if (error) throw error;
+    res.json({ attendees: await attendanceRows(day) });
+  } catch (error) { next(error); }
+});
 
 app.get('/api/baba/votes', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');

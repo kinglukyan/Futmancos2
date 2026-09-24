@@ -9,8 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Futmancos">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/app-icon-192.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/assets/app-icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -263,8 +264,9 @@
         <p class="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto -mt-1">
           Fique por dentro das novidades, assista aos últimos vídeos e veja quem está dominando as quadras!
         </p>
-        <button id="installAppBtn" type="button" onclick="installFutmancosApp()" class="hidden mt-4 mx-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Instalar aplicativo</button>
-        <p id="iosInstallHint" class="hidden mt-3 text-[11px] text-gray-400">No iPhone: toque em Compartilhar e escolha “Adicionar à Tela de Início”.</p>
+        <button id="installAppBtn" type="button" onclick="installFutmancosApp()" class="inline-flex mt-4 mx-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Instalar aplicativo</button>
+        <p id="installAppStatus" class="mt-2 text-[11px] text-gray-400">Adicione a Futmancos à tela inicial do seu aparelho.</p>
+        <p id="iosInstallHint" class="hidden mt-3 text-[11px] text-gray-400">No iPhone/iPad: toque em Compartilhar e escolha “Adicionar à Tela de Início”.</p>
       </div>
 
       <!-- INFORMAÇÃO DO BABA MARCADO -->
@@ -373,6 +375,14 @@
           <button onclick="togglePresence()" id="btnTogglePresence" class="bg-emerald-600 active:bg-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition">Marcar Presença</button>
           <button onclick="doCheckIn()" id="btnCheckIn" class="bg-brand-green active:bg-brand-lightGreen text-black font-bold py-2.5 px-4 rounded-xl text-xs transition">Check-in na Arena</button>
         </div>
+      </div>
+
+      <div class="bg-brand-cardBg border border-sky-500/30 p-3 rounded-2xl space-y-2">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+          <div><h3 class="font-teko text-lg text-sky-300">CHECK-IN POR PROXIMIDADE</h3><p id="autoCheckinStatus" class="text-[11px] text-gray-400">Ative para permitir que este aparelho confirme sua chegada à arena.</p></div>
+          <button type="button" id="btnAutoCheckin" onclick="toggleLocationAutoCheckin()" class="bg-sky-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl">Ativar localização</button>
+        </div>
+        <p class="text-[10px] text-gray-500">A localização só é verificada após sua autorização e enquanto esta página estiver aberta. O site não guarda suas coordenadas; o check-in só é enviado ao entrar no raio configurado.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -749,6 +759,12 @@
               <label class="text-[10px] text-gray-400">Endereço Completo</label>
               <input type="text" id="arenaAddress" placeholder="Ex: Rua dos Atletas, 100" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
             </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-[10px] text-gray-400">Latitude<input type="number" step="any" id="arenaLatitude" placeholder="-12.25" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+              <label class="text-[10px] text-gray-400">Longitude<input type="number" step="any" id="arenaLongitude" placeholder="-38.96" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+              <label class="text-[10px] text-gray-400 col-span-2">Raio do check-in automático (metros)<input type="number" min="25" max="500" step="5" id="arenaRadius" value="100" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+            </div>
+            <button type="button" onclick="captureArenaLocation()" class="w-full bg-gray-800 text-gray-100 font-semibold text-xs p-2 rounded-xl">Usar a localização atual para esta arena</button>
             <button type="submit" id="btnSaveArena" class="w-full bg-brand-green active:bg-brand-lightGreen text-black font-bold text-xs p-2.5 rounded-xl">
               Salvar Arena
             </button>
@@ -861,7 +877,7 @@
   </main>
 
   <!-- Navegação Mobile Inferior -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-brand-cardBg/95 backdrop-blur border-t border-gray-800 z-50 px-2 py-2">
+  <nav id="mainNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-brand-cardBg/95 backdrop-blur border-t border-gray-800 z-50 px-2 py-2">
     <div class="flex justify-around items-center">
       <button id="nav-mob-resenha" onclick="navigate('resenha')" class="mobile-nav-btn flex flex-col items-center gap-0.5">
         <i data-lucide="sparkles" class="w-5 h-5"></i>
@@ -887,6 +903,10 @@
         <i data-lucide="user" class="w-5 h-5"></i>
         <span class="text-[10px]">Perfil</span>
       </button>
+      <button id="nav-mob-financeiro" onclick="navigate('financeiro')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
+        <i data-lucide="wallet" class="w-5 h-5"></i>
+        <span class="text-[10px]">Mensal.</span>
+      </button>
       <button id="nav-mob-adm" onclick="navigate('adm')" class="mobile-nav-btn text-amber-400 flex flex-col items-center gap-0.5 hidden">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span class="text-[10px]">ADM</span>
@@ -907,6 +927,7 @@
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
     let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
     let sharedVotesByPlayer = {}, sharedMyVotes = [];
+    let locationWatchId = null, locationAutoCheckinBusy = false;
     
 
     let mediaLinks = JSON.parse(localStorage.getItem('futmancos_media_links')) || {
@@ -1118,27 +1139,47 @@
     let deferredInstallPrompt = null;
     function configureFutmancosPWA() {
       if ('serviceWorker' in navigator && window.isSecureContext) {
-        navigator.serviceWorker.register('/service-worker.js').catch(error => console.warn('Não foi possível preparar o app para instalação.', error));
+        navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(registration => registration.update()).catch(error => {
+          console.warn('Não foi possível preparar o app para instalação.', error);
+          const status = document.getElementById('installAppStatus');
+          if (status) status.innerText = 'Não foi possível ativar o modo web app neste navegador. Atualize o site e tente novamente.';
+        });
       }
-      const iosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+      const iosDevice = (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.navigator.standalone;
       document.getElementById('iosInstallHint')?.classList.toggle('hidden', !iosDevice);
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        const button = document.getElementById('installAppBtn');
+        if (button) button.classList.add('hidden');
+        const status = document.getElementById('installAppStatus');
+        if (status) status.innerText = 'Futmancos já está instalada neste aparelho.';
+      }
       window.addEventListener('beforeinstallprompt', event => {
         event.preventDefault(); deferredInstallPrompt = event;
-        const button = document.getElementById('installAppBtn');
-        if (button) { button.classList.remove('hidden'); button.classList.add('inline-flex'); }
+        const status = document.getElementById('installAppStatus');
+        if (status) status.innerText = 'Toque no botão para instalar a Futmancos.';
       });
       window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
         const button = document.getElementById('installAppBtn');
         if (button) button.classList.add('hidden');
+        const status = document.getElementById('installAppStatus');
+        if (status) status.innerText = 'Futmancos instalada neste aparelho.';
       });
     }
     async function installFutmancosApp() {
-      if (!deferredInstallPrompt) return;
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
+      if (!deferredInstallPrompt) {
+        const iosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        alert(iosDevice
+          ? 'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.'
+          : 'No Chrome ou Edge, abra o menu do navegador e escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.');
+        return;
+      }
+      try {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice?.outcome === 'accepted') document.getElementById('installAppStatus').innerText = 'Instalação iniciada.';
+      } catch (error) { console.warn('O navegador não concluiu a instalação.', error); }
       deferredInstallPrompt = null;
-      document.getElementById('installAppBtn')?.classList.add('hidden');
     }
 
     async function init() {
@@ -1735,6 +1776,76 @@
       } catch (error) { alert(error.message); }
     }
 
+    function currentArenaGeofence() {
+      let nextGame = {};
+      try { nextGame = JSON.parse(localStorage.getItem('futmancos_next_game') || '{}') || {}; } catch {}
+      const arena = arenas.find(item => String(item.id) === String(nextGame.arenaId)) || {};
+      const latitude = Number(nextGame.latitude ?? arena.latitude), longitude = Number(nextGame.longitude ?? arena.longitude);
+      const radius = Number(nextGame.radius ?? arena.radius) || 100;
+      return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+        ? { latitude, longitude, radius: Math.min(500, Math.max(25, radius)) }
+        : null;
+    }
+    function distanceBetweenMeters(lat1, lon1, lat2, lon2) {
+      const radians = value => value * Math.PI / 180, earthRadius = 6371000;
+      const dLat = radians(lat2 - lat1), dLon = radians(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+    function stopLocationAutoCheckin(message = 'Check-in automático pausado.') {
+      if (locationWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId);
+      locationWatchId = null; locationAutoCheckinBusy = false;
+      const button = document.getElementById('btnAutoCheckin');
+      if (button) button.innerText = 'Ativar localização';
+      const status = document.getElementById('autoCheckinStatus');
+      if (status) status.innerText = message;
+    }
+    function toggleLocationAutoCheckin() {
+      if (locationWatchId !== null) return stopLocationAutoCheckin();
+      if (!loggedUser) return openLoginModal();
+      if (!presentPlayers.some(id => String(id) === String(loggedUser.id))) return alert('Confirme presença no grupo antes de ativar o check-in automático.');
+      if (checkedInPlayers.some(id => String(id) === String(loggedUser.id))) return alert('Seu check-in já está registrado neste baba.');
+      const geofence = currentArenaGeofence();
+      if (!geofence) return alert('A administração precisa cadastrar as coordenadas da arena e salvar o próximo baba para ativar o check-in por proximidade.');
+      if (!window.isSecureContext || !navigator.geolocation) return alert('A localização exige HTTPS e um navegador compatível.');
+      const status = document.getElementById('autoCheckinStatus'), button = document.getElementById('btnAutoCheckin');
+      if (status) status.innerText = 'Aguardando sua localização. O check-in será feito ao entrar no raio de ' + geofence.radius + ' m.';
+      if (button) button.innerText = 'Parar localização';
+      locationWatchId = navigator.geolocation.watchPosition(async position => {
+        if (locationAutoCheckinBusy) return;
+        const { latitude, longitude, accuracy } = position.coords;
+        const maxAccuracy = Math.max(75, Math.min(150, geofence.radius));
+        if (accuracy > maxAccuracy) {
+          if (status) status.innerText = `Localização imprecisa (±${Math.round(accuracy)} m). Tentando novamente…`;
+          return;
+        }
+        const distance = distanceBetweenMeters(latitude, longitude, geofence.latitude, geofence.longitude);
+        if (distance > geofence.radius) {
+          if (status) status.innerText = `Você está a aproximadamente ${Math.round(distance)} m da arena. O raio é ${geofence.radius} m.`;
+          return;
+        }
+        locationAutoCheckinBusy = true;
+        try {
+          await apiRequest('/baba/attendance', { method: 'POST', body: JSON.stringify({ date: activeBabaDate, kind: 'checkin' }) });
+          stopLocationAutoCheckin('Chegada confirmada: check-in registrado automaticamente.');
+          await refreshSharedAttendance();
+        } catch (error) {
+          stopLocationAutoCheckin(error.message || 'Não foi possível registrar o check-in.');
+        }
+      }, error => {
+        const message = error.code === 1 ? 'Permita o acesso à localização para usar o check-in automático.' : 'Não foi possível obter a localização. Confira o GPS do aparelho e tente novamente.';
+        stopLocationAutoCheckin(message);
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+    }
+
+    async function adminConfirmCheckIn(userId) {
+      if (!loggedUser?.isAdmin) return alert('Apenas administradores podem confirmar check-in.');
+      try {
+        await apiRequest('/admin/baba/checkin', { method: 'POST', body: JSON.stringify({ date: activeBabaDate, userId }) });
+        await refreshSharedAttendance();
+      } catch (error) { alert(error.message || 'Não foi possível registrar o check-in.'); }
+    }
+
     function renderPresence() {
       const container = document.getElementById('presenceList');
       const countEl = document.getElementById('countPresence');
@@ -1746,13 +1857,18 @@
       presentPlayers.forEach(id => {
         const p = players.find(x => String(x.id) === String(id));
         if (p) {
+          const escapedName = String(p.name || 'Jogador').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+          const adminCheckin = loggedUser?.isAdmin && p.serverId && !checkedInPlayers.some(checkinId => String(checkinId) === String(id))
+            ? `<button type="button" data-admin-checkin="${String(p.serverId).replace(/[^0-9a-f-]/gi, '')}" class="ml-1 bg-emerald-700/40 text-emerald-200 px-2 py-1 rounded-lg text-[10px] font-bold">ADM: check-in</button>`
+            : '';
           container.innerHTML += `
-            <span class="bg-black/60 text-gray-200 border border-gray-800 px-2.5 py-1 rounded-xl text-xs font-semibold">
-              ${p.name} (#${p.shirt})
-            </span>
+            <div class="inline-flex items-center bg-black/60 text-gray-200 border border-gray-800 px-2.5 py-1 rounded-xl text-xs font-semibold">
+              ${escapedName} (#${Number(p.shirt) || 0}) ${adminCheckin}
+            </div>
           `;
         }
       });
+      container.querySelectorAll('[data-admin-checkin]').forEach(button => button.onclick = () => adminConfirmCheckIn(button.dataset.adminCheckin));
     }
 
     function renderCheckInList() {
@@ -2610,17 +2726,33 @@
       });
     }
 
+    function captureArenaLocation() {
+      if (!navigator.geolocation || !window.isSecureContext) return alert('Use o site por HTTPS em um aparelho com localização disponível.');
+      navigator.geolocation.getCurrentPosition(position => {
+        document.getElementById('arenaLatitude').value = position.coords.latitude.toFixed(7);
+        document.getElementById('arenaLongitude').value = position.coords.longitude.toFixed(7);
+        alert('Coordenadas preenchidas. Confira se você está dentro da arena e salve o cadastro.');
+      }, error => alert(error.code === 1 ? 'Permita a localização nas configurações do navegador.' : 'Não foi possível obter a localização atual.'), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    }
+
     function handleArenaRegister(e) {
       e.preventDefault();
       const id = document.getElementById('arenaEditId').value;
       const name = document.getElementById('arenaName').value.trim();
       const address = document.getElementById('arenaAddress').value.trim();
+      const latitudeText = document.getElementById('arenaLatitude').value.trim();
+      const longitudeText = document.getElementById('arenaLongitude').value.trim();
+      const latitude = latitudeText ? Number(latitudeText) : null;
+      const longitude = longitudeText ? Number(longitudeText) : null;
+      const radius = Number(document.getElementById('arenaRadius').value) || 100;
+      if ((latitude === null) !== (longitude === null) || (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180))) return alert('Informe latitude e longitude válidas juntas, ou deixe ambas em branco.');
+      if (!Number.isFinite(radius) || radius < 25 || radius > 500) return alert('O raio precisa estar entre 25 e 500 metros.');
 
       if (id) {
         const a = arenas.find(x => x.id === parseInt(id));
-        if (a) { a.name = name; a.address = address; }
+        if (a) { a.name = name; a.address = address; a.latitude = latitude; a.longitude = longitude; a.radius = radius; }
       } else {
-        arenas.push({ id: Date.now(), name, address });
+        arenas.push({ id: Date.now(), name, address, latitude, longitude, radius });
       }
 
       saveState();
@@ -2635,6 +2767,9 @@
         document.getElementById('arenaEditId').value = a.id;
         document.getElementById('arenaName').value = a.name;
         document.getElementById('arenaAddress').value = a.address;
+        document.getElementById('arenaLatitude').value = a.latitude ?? '';
+        document.getElementById('arenaLongitude').value = a.longitude ?? '';
+        document.getElementById('arenaRadius').value = a.radius || 100;
       }
     }
 
@@ -2657,7 +2792,7 @@
 
       const a = arenas.find(x => x.id === arenaId);
       if (a) {
-        const game = { arenaId, name: a.name, address: a.address, date, time };
+        const game = { arenaId, name: a.name, address: a.address, date, time, latitude: a.latitude ?? null, longitude: a.longitude ?? null, radius: a.radius || 100 };
         activeBabaDate = date; localStorage.setItem('futmancos_next_game', JSON.stringify(game));
         renderNextGameInfo(game); saveState(); refreshSharedAttendance();
         alert('Próximo baba agendado com sucesso!');
