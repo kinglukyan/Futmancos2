@@ -191,9 +191,10 @@ app.post('/api/guests', requireDatabase, async (req, res, next) => {
   const age = Number(req.body?.age), invitedBy = String(req.body?.invitedBy || ''), honeypot = String(req.body?.website || '');
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (honeypot) return res.status(400).json({ error: 'Cadastro inválido.' });
-  if (name.length < 2 || name.length > 80 || !isValidCpf(cpf) || !Number.isInteger(age) || age < 1 || age > 120 || !uuidPattern.test(invitedBy)) {
-    return res.status(400).json({ error: 'Confira nome, CPF, idade e selecione quem convidou.' });
-  }
+  if (name.length < 2 || name.length > 80) return res.status(400).json({ error: 'Informe o nome completo do convidado.' });
+  if (!isValidCpf(cpf)) return res.status(400).json({ error: 'O CPF informado é inválido. Confira os 11 dígitos.' });
+  if (!Number.isInteger(age) || age < 1 || age > 120) return res.status(400).json({ error: 'Informe uma idade válida entre 1 e 120 anos.' });
+  if (!uuidPattern.test(invitedBy)) return res.status(400).json({ error: 'Selecione na lista quem convidou.' });
   try {
     const { data: inviter, error: inviterError } = await supabase.from('profiles').select('id,name').eq('id', invitedBy).maybeSingle();
     if (inviterError) throw inviterError;

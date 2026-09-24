@@ -41,9 +41,11 @@
   <style>
     html, body { overflow-x: hidden; touch-action: manipulation; }
     body { padding-bottom: env(safe-area-inset-bottom); }
+    .instagram-media { width: 100% !important; max-width: 540px !important; min-width: 0 !important; margin: 0 auto 12px !important; }
+    #youtubeVideoBox iframe { width: 100%; height: 100%; }
     @media (max-width: 767px) {
-      body { padding-top: env(safe-area-inset-top, 0px); }
-      header { top: env(safe-area-inset-top, 0px) !important; }
+      body { padding-top: 0; }
+      header { top: 0 !important; padding-top: env(safe-area-inset-top, 0px); }
       #adminLoginHeaderBtn { display: none !important; }
       input, select, button { min-height: 42px; }
       .mobile-nav-btn { flex: 1; min-width: 0; }
@@ -322,20 +324,12 @@
             </h3>
             <span class="text-[10px] bg-red-500/10 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-bold">YouTube</span>
           </div>
-          <div id="youtubeVideoBox" class="w-full aspect-video bg-black rounded-xl border border-gray-800 overflow-hidden flex items-center justify-center">
+          <div id="youtubeVideoBox" class="w-full min-h-[180px] bg-black rounded-xl border border-gray-800 overflow-hidden flex items-center justify-center">
             <p class="text-xs text-gray-500 italic">Nenhum vídeo publicado ainda.</p>
           </div>
         </div>
       </div>
 
-      <div class="bg-brand-cardBg border border-emerald-500/30 p-5 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-emerald-300">PIX PARA CONVIDADOS</h3>
-        <p class="text-xs text-gray-300">Diária do convidado: <strong id="guestDailyFee" class="text-emerald-300">R$ 0,00</strong>. Faça o Pix e envie o comprovante à administração.</p>
-        <img id="guestPixQr" alt="QR Code Pix da associação" class="hidden mx-auto w-44 h-44 object-contain bg-white p-2 rounded-xl">
-        <div id="guestPixKeyBox" class="hidden text-center space-y-2"><code id="guestPixKey" class="block text-sm break-all"></code><button onclick="copyPixKey()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold">Copiar chave Pix</button></div>
-        <p id="guestPixEmpty" class="text-xs text-amber-200">A administração ainda não cadastrou o Pix.</p>
-        <a id="guestPixWhatsapp" target="_blank" rel="noopener" class="inline-flex bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl">Paguei — enviar comprovante pelo WhatsApp</a>
-      </div>
 
       <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-3">
         <h3 class="font-teko text-2xl text-white">GALERIA DA ASSOCIAÇÃO</h3>
@@ -396,6 +390,16 @@
         <button type="submit" class="sm:col-span-2 bg-emerald-700 text-white font-bold py-3 rounded-xl">Cadastrar como convidado</button>
       </form>
       <p id="guestRegistrationStatus" class="text-xs text-gray-300" aria-live="polite"></p>
+    </section>
+
+    <section id="sec-convidado-pix" class="hidden max-w-2xl mx-auto bg-brand-cardBg border border-emerald-500/30 p-5 sm:p-7 rounded-2xl space-y-4">
+      <div><h2 class="font-teko text-4xl text-emerald-300">PAGAMENTO DO CONVIDADO</h2><p id="guestPaymentWelcome" class="text-sm text-gray-300">Cadastro concluído. Faça o Pix da diária e envie o comprovante à administração.</p></div>
+      <p class="text-sm text-gray-300">Diária do convidado: <strong id="guestDailyFee" class="text-emerald-300">R$ 0,00</strong></p>
+      <img id="guestPixQr" alt="QR Code Pix da associação" class="hidden mx-auto w-56 h-56 object-contain bg-white p-2 rounded-xl">
+      <div id="guestPixKeyBox" class="hidden text-center space-y-2"><code id="guestPixKey" class="block text-sm break-all"></code><button onclick="copyPixKey()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold">Copiar chave Pix</button></div>
+      <p id="guestPixEmpty" class="text-xs text-amber-200">A administração ainda não cadastrou o Pix. Avise a associação para receber os dados.</p>
+      <a id="guestPixWhatsapp" target="_blank" rel="noopener" class="inline-flex bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-xl">Paguei — enviar comprovante pelo WhatsApp</a>
+      <button type="button" onclick="navigate('convidado')" class="block text-xs text-gray-400 underline">Voltar ao cadastro de convidado</button>
     </section>
 
     <!-- CENTRAL DO BABA -->
@@ -1035,6 +1039,7 @@
     let loggedUser = JSON.parse(localStorage.getItem('futmancos_loggedUser')) || null;
     let globalMonthlyFee = parseFloat(localStorage.getItem('futmancos_monthly_fee')) || 50.00;
     let globalGuestFee = 0, globalKeeperFee = 0, guestAttendance = [];
+    let currentGuestCheckoutName = '';
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
     let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
@@ -1255,8 +1260,12 @@
       const submit = form.querySelector('button[type="submit"]'); if (submit) submit.disabled = true;
       if (status) status.textContent = 'Enviando cadastro…';
       try {
-        await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name: document.getElementById('guestName').value, cpf: document.getElementById('guestCpf').value, age: Number(document.getElementById('guestAge').value), invitedBy: document.getElementById('guestInviter').value, website: document.getElementById('guestWebsite').value }) });
-        form.reset(); if (status) status.textContent = 'Convidado cadastrado. Quem convidou ou um ADM pode marcar a presença no Central Baba.';
+        const name = document.getElementById('guestName').value.trim();
+        const result = await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name, cpf: document.getElementById('guestCpf').value, age: Number(document.getElementById('guestAge').value), invitedBy: document.getElementById('guestInviter').value, website: document.getElementById('guestWebsite').value }) });
+        currentGuestCheckoutName = result.guest?.name || name;
+        form.reset(); if (status) status.textContent = 'Cadastro concluído. Abrindo os dados para pagamento…';
+        const welcome = document.getElementById('guestPaymentWelcome'); if (welcome) welcome.textContent = `Cadastro de ${currentGuestCheckoutName} concluído. Faça o Pix da diária e envie o comprovante à administração.`;
+        renderGuestPix(); navigate('convidado-pix');
         await refreshGuestAttendance();
       } catch (error) { if (status) status.textContent = error.message; }
       finally { if (submit) submit.disabled = false; }
@@ -1715,7 +1724,8 @@
       if (key) key.textContent = associationPixKey;
       if (empty) empty.classList.toggle('hidden', !!(associationPixKey || associationPixQrDataUrl));
       const fee = globalGuestFee.toFixed(2).replace('.', ',');
-      const text = encodeURIComponent(`Olá! Sou convidado da Futmancos. Fiz o Pix da diária de R$ ${fee} e vou enviar o comprovante.`);
+      const guestName = currentGuestCheckoutName ? ` Sou ${currentGuestCheckoutName}.` : '';
+      const text = encodeURIComponent(`Olá!${guestName} Fiz o Pix da diária de convidado de R$ ${fee} e vou enviar o comprovante.`);
       const link = document.getElementById('guestPixWhatsapp'); if (link) link.href = `https://wa.me/${adminWhatsapp}?text=${text}`;
     }
     async function copyPixKey() {
@@ -2325,10 +2335,10 @@
       const instaBox = document.getElementById('instaFeedBox');
       const instagramPosts = Array.isArray(mediaLinks.instagramPosts) ? mediaLinks.instagramPosts.filter(url => /^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[\w-]+\/?(?:\?.*)?$/i.test(url)) : [];
       if (instaBox && instagramPosts.length) {
-        instaBox.className = 'bg-black/60 border border-gray-800 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3';
+        instaBox.className = 'bg-black/60 border border-gray-800 rounded-xl p-3 flex flex-col items-center gap-3';
         instaBox.replaceChildren();
         instagramPosts.slice(0, 4).forEach(url => {
-          const block = document.createElement('blockquote'); block.className = 'instagram-media'; block.setAttribute('data-instgrm-permalink', url); block.setAttribute('data-instgrm-version', '14');
+          const block = document.createElement('blockquote'); block.className = 'instagram-media w-full max-w-[540px]'; block.setAttribute('data-instgrm-permalink', url); block.setAttribute('data-instgrm-version', '14');
           const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Ver publicação no Instagram'; block.append(link); instaBox.append(block);
         });
         if (!document.querySelector('script[data-instagram-embed]')) { const script = document.createElement('script'); script.async = true; script.src = 'https://www.instagram.com/embed.js'; script.dataset.instagramEmbed = 'true'; document.body.append(script); }
@@ -2342,14 +2352,14 @@
       const videoLinks = Array.isArray(mediaLinks.youtubeVideos) ? mediaLinks.youtubeVideos : (mediaLinks.youtube ? [mediaLinks.youtube] : []);
       const embedUrls = videoLinks.map(extractYouTubeEmbedUrl).filter(Boolean).slice(0, 4);
       if (embedUrls.length) {
-        ytBox.className = 'w-full bg-black rounded-xl border border-gray-800 overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-2 p-2';
-        ytBox.innerHTML = embedUrls.map((url, index) => `<iframe class="w-full aspect-video rounded-lg" src="${url}" title="Vídeo Futmancos ${index + 1}" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`).join('');
+        ytBox.className = 'w-full bg-black rounded-xl border border-gray-800 overflow-hidden flex flex-col items-center gap-3 p-2';
+        ytBox.innerHTML = embedUrls.map((url, index) => `<div class="w-full max-w-3xl aspect-video"><iframe class="w-full h-full rounded-lg" src="${url}" title="Vídeo Futmancos ${index + 1}" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`).join('');
       } else {
-        ytBox.className = 'w-full aspect-video bg-black rounded-xl border border-gray-800 overflow-hidden flex items-center justify-center';
+        ytBox.className = 'w-full min-h-[180px] bg-black rounded-xl border border-gray-800 overflow-hidden flex items-center justify-center';
         ytBox.innerHTML = `<p class="text-xs text-gray-500 italic">Nenhum vídeo publicado ainda. Adicione o link no Painel ADM.</p>`;
       }
 
-      renderAssociationGallery(); renderGuestPix();
+      renderAssociationGallery();
       window.instgrm?.Embeds?.process?.();
       lucide.createIcons();
     }
