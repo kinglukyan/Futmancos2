@@ -1,68 +1,23 @@
-﻿import 'dotenv/config';
-import fs from 'node:fs';
+import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import helmet from 'helmet';
-import session from 'express-session';
-import connectSqlite3 from 'connect-sqlite3';
-import Database from 'better-sqlite3';
 import { createClient } from '@supabase/supabase-js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = (name, fallback = '') => process.env[name] ?? fallback;
 const port = Number(env('PORT', '3000'));
-const appOrigin = env('APP_ORIGIN', `http://localhost:${port}`);
-const dbFile = path.resolve(__dirname, env('DATABASE_FILE', './data/futmancos.sqlite'));
-fs.mkdirSync(path.dirname(dbFile), { recursive: true });
-const db = new Database(dbFile);
-db.pragma('journal_mode = WAL');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL, is_admin INTEGER NOT NULL DEFAULT 0,
-    auth_user_id TEXT UNIQUE,
-    phone TEXT NOT NULL DEFAULT '', age INTEGER NOT NULL DEFAULT 0,
-    position TEXT NOT NULL DEFAULT 'Meio-Campo', foot TEXT NOT NULL DEFAULT 'Direita',
-    height REAL NOT NULL DEFAULT 1.7, paid_month TEXT NOT NULL DEFAULT '',
-    photo TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-  CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY CHECK (id=1), state_json TEXT NOT NULL, updated_at TEXT NOT NULL);
-  CREATE TABLE IF NOT EXISTS baba_attendance (
-    game_day TEXT NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kind TEXT NOT NULL CHECK (kind IN ('presence','checkin')), created_at TEXT NOT NULL,
-    PRIMARY KEY (game_day,user_id,kind)
-  );
-  CREATE TABLE IF NOT EXISTS baba_votes (
-    game_day TEXT NOT NULL, voter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    player_email TEXT NOT NULL, attr_key TEXT NOT NULL, stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5),
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (game_day,voter_id,player_email,attr_key)
-  );
-  CREATE TABLE IF NOT EXISTS baba_matches (
-    id TEXT PRIMARY KEY, game_day TEXT NOT NULL, game_data TEXT NOT NULL,
-    voting_open INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
-  );
-`);
-if (!db.prepare('PRAGMA table_info(users)').all().some(column => column.name === 'auth_user_id')) {
-  db.exec('ALTER TABLE users ADD COLUMN auth_user_id TEXT');
-  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_unique ON users(auth_user_id)');
-}
-if (!db.prepare('PRAGMA table_info(users)').all().some(column => column.name === 'photo')) db.exec("ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
+const supabaseUrl = env('SUPABASE_URL');
+const supabaseServiceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
 const app = express();
-const SQLiteStore = connectSqlite3(session);
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '5mb' }));
-app.use(session({
-  store: new SQLiteStore({ db: path.basename(dbFile), dir: path.dirname(dbFile) }),
-  name: 'futmancos.sid', secret: env('SESSION_SECRET', 'development-only-change-me'),
-  resave: false, saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax', secure: env('NODE_ENV') === 'production', maxAge: 1000 * 60 * 60 * 24 * 14 }
-}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const monthKey = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
@@ -71,67 +26,90 @@ const monthKey = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
 const saoPauloDay = (date = new Date()) => Number(new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Sao_Paulo', day: '2-digit'
 }).format(date));
-let fee = Number(db.prepare('SELECT value FROM settings WHERE key=?').get('monthly_fee')?.value || env('MONTHLY_FEE', '50.00'));
-const supabaseUrl = env('SUPABASE_URL');
-const supabaseAnonKey = env('SUPABASE_ANON_KEY');
-
-const userPublic = row => ({ id: row.id, name: row.name, email: row.email, phone: row.phone, age: row.age, pos: row.position, foot: row.foot, height: row.height, photo: row.photo || '', isAdmin: !!row.is_admin, paidMonth: row.paid_month });
-const currentUser = req => req.session.userId ? db.prepare('SELECT * FROM users WHERE id=?').get(req.session.userId) : null;
-const requireUser = (req, res, next) => { req.user = currentUser(req); if (!req.user) return res.status(401).json({ error: 'Entre na sua conta para continuar.' }); next(); };
-const requireAdmin = (req, res, next) => { if (!req.user?.is_admin) return res.status(403).json({ error: 'Acesso restrito à administração.' }); next(); };
-
-app.get('/api/auth/me', (req, res) => {
-  const row = currentUser(req);
-  res.json({ user: row ? userPublic(row) : null });
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+const userPublic = row => ({
+  id: row.id, name: row.name, email: row.email, phone: row.phone, age: row.age,
+  pos: row.position, foot: row.foot, height: row.height, photo: row.photo || '',
+  isAdmin: !!row.is_admin, paidMonth: row.paid_month || ''
 });
-app.post('/api/auth/logout', (req, res) => req.session.destroy(() => res.json({ ok: true })));
 
-app.post('/api/auth/sync', async (req, res) => {
-  if (!supabaseUrl || !supabaseAnonKey) return res.status(503).json({ error: 'Configure a URL do Supabase e a chave anon no servidor.' });
+async function setting(key) {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from('settings').select('value').eq('key', key).maybeSingle();
+  if (error) throw error;
+  return data?.value ?? null;
+}
+async function saveSetting(key, value) {
+  const { error } = await supabase.from('settings').upsert({ key, value: String(value) }, { onConflict: 'key' });
+  if (error) throw error;
+}
+async function getFee() {
+  return Number(await setting('monthly_fee')) || Number(env('MONTHLY_FEE', '50.00'));
+}
+function billingStatus(row, fee, now = new Date()) {
+  const month = monthKey(now), day = saoPauloDay(now);
+  if (row.paid_month === month) return { status: 'paid', month, paidMonth: row.paid_month, dueDay: 12, fee };
+  return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month || '', dueDay: 12, fee };
+}
+
+// Every API request is authorized with the Supabase access token. No local
+// session or database file is required, so Render's free filesystem is safe.
+async function authenticate(req, res, next) {
+  if (!supabase) return res.status(503).json({ error: 'O servidor precisa da URL do Supabase e da chave secreta de servidor.' });
+  const token = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return res.status(401).json({ error: 'Entre na sua conta para continuar.' });
+  try {
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData.user) return res.status(401).json({ error: 'Sua sessão expirou. Entre novamente.' });
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile) return res.status(409).json({ error: 'Perfil não encontrado no Supabase. Confira a configuração do cadastro.' });
+    req.user = profile;
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+function requireAdmin(req, res, next) {
+  if (!req.user?.is_admin) return res.status(403).json({ error: 'Acesso restrito à administração.' });
+  next();
+}
+function requireDatabase(req, res, next) {
+  if (!supabase) return res.status(503).json({ error: 'Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no servidor.' });
+  next();
+}
+
+app.get('/api/health', (_req, res) => res.status(supabase ? 200 : 503).json({ ok: !!supabase }));
+app.get('/api/auth/me', authenticate, (_req, res) => res.json({ user: userPublic(_req.user) }));
+app.post('/api/auth/logout', (_req, res) => res.json({ ok: true }));
+
+app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
   const token = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Entre na conta do Supabase para continuar.' });
   try {
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: authData, error: authError } = await supabaseUser.auth.getUser(token);
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData.user?.email) return res.status(401).json({ error: 'Sessão Supabase inválida ou expirada.' });
-    const authUser = authData.user;
-    const { data: profile, error: profileError } = await supabaseUser.from('profiles')
-      .select('id,email,name,phone,age,position,foot,height,is_admin').eq('id', authUser.id).single();
-    if (profileError || !profile) return res.status(409).json({ error: 'Perfil não encontrado. Verifique se a tabela e o gatilho do Supabase foram instalados.' });
-    const email = authUser.email.toLowerCase();
-    let local = db.prepare('SELECT * FROM users WHERE auth_user_id=?').get(authUser.id)
-      || db.prepare('SELECT * FROM users WHERE lower(email)=?').get(email);
-    if (local) {
-      db.prepare('UPDATE users SET auth_user_id=?,name=?,email=?,is_admin=?,phone=?,age=?,position=?,foot=?,height=? WHERE id=?')
-        .run(authUser.id, profile.name, email, profile.is_admin ? 1 : 0, profile.phone || '', profile.age || 0, profile.position || 'Meio-Campo', profile.foot || 'Direita', profile.height || 1.7, local.id);
-    } else {
-      const inserted = db.prepare('INSERT INTO users (auth_user_id,name,email,password_hash,is_admin,phone,age,position,foot,height,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-        .run(authUser.id, profile.name, email, '', profile.is_admin ? 1 : 0, profile.phone || '', profile.age || 0, profile.position || 'Meio-Campo', profile.foot || 'Direita', profile.height || 1.7, new Date().toISOString());
-      local = db.prepare('SELECT * FROM users WHERE id=?').get(Number(inserted.lastInsertRowid));
-    }
-    req.session.userId = local.id;
-    res.json({ user: userPublic(db.prepare('SELECT * FROM users WHERE id=?').get(local.id)) });
-  } catch {
-    res.status(502).json({ error: 'Não foi possível sincronizar sua conta do Supabase.' });
-  }
+    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+    if (error) throw error;
+    if (!profile) return res.status(409).json({ error: 'Perfil não encontrado. Verifique se a migração de perfis foi executada no Supabase.' });
+    res.json({ user: userPublic(profile) });
+  } catch (error) { next(error); }
 });
 
-function billingStatus(row, now = new Date()) {
-  const month = monthKey(now), day = saoPauloDay(now);
-  if (row.paid_month === month) return { status: 'paid', month, paidMonth: row.paid_month, dueDay: 12, fee };
-  return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month, dueDay: 12, fee };
-}
-app.get('/api/payments/status', requireUser, (req, res) => res.json(billingStatus(req.user)));
-app.get('/api/shared-state', requireUser, (req, res) => {
-  const row = db.prepare('SELECT state_json,updated_at FROM app_state WHERE id=1').get();
-  const state = row ? JSON.parse(row.state_json) : null;
-  if (state && !req.user.is_admin) state.players = state.players.map(({ phone, paid, paidMonth, paymentStatus, ...player }) => player);
-  res.json({ state, updatedAt: row?.updated_at || null });
+app.get('/api/payments/status', authenticate, requireDatabase, async (req, res, next) => {
+  try { res.json(billingStatus(req.user, await getFee())); } catch (error) { next(error); }
 });
-app.put('/api/shared-state', requireUser, requireAdmin, (req, res) => {
+
+app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: row, error } = await supabase.from('app_state').select('state_json,updated_at').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    const state = row?.state_json || null;
+    if (state && !req.user.is_admin) state.players = state.players.map(({ phone, paid, paidMonth, paymentStatus, ...player }) => player);
+    res.json({ state, updatedAt: row?.updated_at || null });
+  } catch (error) { next(error); }
+});
+app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const incoming = req.body?.state;
   if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return res.status(400).json({ error: 'Os dados compartilhados enviados não são válidos.' });
   const state = {
@@ -142,137 +120,187 @@ app.put('/api/shared-state', requireUser, requireAdmin, (req, res) => {
     presentPlayers: Array.isArray(incoming.presentPlayers) ? incoming.presentPlayers : [],
     checkedInPlayers: Array.isArray(incoming.checkedInPlayers) ? incoming.checkedInPlayers : [],
     mediaLinks: incoming.mediaLinks && typeof incoming.mediaLinks === 'object' ? incoming.mediaLinks : {},
-    monthlyFee: Number(incoming.monthlyFee) || fee,
+    monthlyFee: Number(incoming.monthlyFee) || await getFee(),
     nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null
   };
-  const updatedAt = new Date().toISOString();
-  db.prepare('INSERT INTO app_state (id,state_json,updated_at) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET state_json=excluded.state_json,updated_at=excluded.updated_at')
-    .run(JSON.stringify(state), updatedAt);
-  res.json({ ok: true, updatedAt });
+  try {
+    const updatedAt = new Date().toISOString();
+    const { error } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: updatedAt }, { onConflict: 'id' });
+    if (error) throw error;
+    res.json({ ok: true, updatedAt });
+  } catch (error) { next(error); }
 });
-app.get('/api/baba/attendance', requireUser, (req, res) => {
+
+async function attendanceRows(day) {
+  const { data: rows, error } = await supabase.from('baba_attendance').select('kind,user_id,created_at').eq('game_day', day).order('created_at');
+  if (error) throw error;
+  if (!rows.length) return [];
+  const ids = [...new Set(rows.map(row => row.user_id))];
+  const { data: profiles, error: profileError } = await supabase.from('profiles').select('id,email,name,position').in('id', ids);
+  if (profileError) throw profileError;
+  const byId = new Map(profiles.map(profile => [profile.id, profile]));
+  return rows.map(row => ({ row, profile: byId.get(row.user_id) })).filter(item => item.profile)
+    .sort((a, b) => a.row.created_at.localeCompare(b.row.created_at) || a.profile.name.localeCompare(b.profile.name))
+    .map(({ row, profile }) => ({ kind: row.kind, userId: profile.id, email: profile.email, name: profile.name, position: profile.position }));
+}
+app.get('/api/baba/attendance', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
-  const rows = db.prepare('SELECT a.kind,u.id,u.email,u.name,u.position FROM baba_attendance a JOIN users u ON u.id=a.user_id WHERE a.game_day=? ORDER BY a.created_at,u.name').all(day);
-  res.json({ attendees: rows.map(row => ({ kind: row.kind, userId: row.id, email: row.email, name: row.name, position: row.position })) });
+  if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
+  try { res.json({ attendees: await attendanceRows(day) }); } catch (error) { next(error); }
 });
-app.post('/api/baba/attendance', requireUser, (req, res) => {
+app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), kind = String(req.body?.kind || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !['presence','checkin'].includes(kind)) return res.status(400).json({ error: 'Informe o baba e a ação de presença corretamente.' });
-  const now = new Date().toISOString();
-  if (kind === 'presence') {
-    const existing = db.prepare('SELECT 1 FROM baba_attendance WHERE game_day=? AND user_id=? AND kind=?').get(day, req.user.id, 'presence');
-    db.transaction(() => {
-      if (existing) db.prepare('DELETE FROM baba_attendance WHERE game_day=? AND user_id=?').run(day, req.user.id);
-      else db.prepare('INSERT OR IGNORE INTO baba_attendance (game_day,user_id,kind,created_at) VALUES (?,?,?,?)').run(day, req.user.id, kind, now);
-    })();
-  } else {
-    const present = db.prepare('SELECT 1 FROM baba_attendance WHERE game_day=? AND user_id=? AND kind=?').get(day, req.user.id, 'presence');
-    if (!present) return res.status(409).json({ error: 'Marque presença no grupo antes de fazer o check-in.' });
-    db.prepare('INSERT OR IGNORE INTO baba_attendance (game_day,user_id,kind,created_at) VALUES (?,?,?,?)').run(day, req.user.id, kind, now);
-  }
-  const rows = db.prepare('SELECT a.kind,u.id,u.email,u.name,u.position FROM baba_attendance a JOIN users u ON u.id=a.user_id WHERE a.game_day=? ORDER BY a.created_at,u.name').all(day);
-  res.json({ attendees: rows.map(row => ({ kind: row.kind, userId: row.id, email: row.email, name: row.name, position: row.position })) });
+  if (!validDate(day) || !['presence', 'checkin'].includes(kind)) return res.status(400).json({ error: 'Informe o baba e a ação de presença corretamente.' });
+  try {
+    const { data: existing, error: existingError } = await supabase.from('baba_attendance').select('id').eq('game_day', day).eq('user_id', req.user.id).eq('kind', 'presence').maybeSingle();
+    if (existingError) throw existingError;
+    if (kind === 'presence' && existing) {
+      const { error } = await supabase.from('baba_attendance').delete().eq('game_day', day).eq('user_id', req.user.id);
+      if (error) throw error;
+    } else if (kind === 'checkin') {
+      if (!existing) return res.status(409).json({ error: 'Marque presença no grupo antes de fazer o check-in.' });
+      const { error } = await supabase.from('baba_attendance').upsert({ game_day: day, user_id: req.user.id, kind }, { onConflict: 'game_day,user_id,kind', ignoreDuplicates: true });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('baba_attendance').upsert({ game_day: day, user_id: req.user.id, kind }, { onConflict: 'game_day,user_id,kind', ignoreDuplicates: true });
+      if (error) throw error;
+    }
+    res.json({ attendees: await attendanceRows(day) });
+  } catch (error) { next(error); }
 });
-app.get('/api/baba/votes', requireUser, (req, res) => {
+
+app.get('/api/baba/votes', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: 'Informe a data da votação.' });
-  const rows = db.prepare('SELECT player_email,attr_key,stars,voter_id FROM baba_votes WHERE game_day=?').all(day);
-  res.json({ votes: rows.map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })), myVotes: rows.filter(row => row.voter_id === req.user.id).map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })) });
+  if (!validDate(day)) return res.status(400).json({ error: 'Informe a data da votação.' });
+  try {
+    const { data: rows, error } = await supabase.from('baba_votes').select('player_email,attr_key,stars,voter_id').eq('game_day', day);
+    if (error) throw error;
+    res.json({ votes: rows.map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })), myVotes: rows.filter(row => row.voter_id === req.user.id).map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })) });
+  } catch (error) { next(error); }
 });
-app.post('/api/baba/votes', requireUser, (req, res) => {
+app.post('/api/baba/votes', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), playerEmail = String(req.body?.playerEmail || '').trim().toLowerCase();
   const attrKey = String(req.body?.attrKey || ''), stars = Number(req.body?.stars);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !playerEmail || !['rit','dri','chu','def','pas','fis'].includes(attrKey) || !Number.isInteger(stars) || stars < 1 || stars > 5) return res.status(400).json({ error: 'Os dados do voto não são válidos.' });
-  const closedGames = db.prepare('SELECT game_data FROM baba_matches WHERE game_day=? AND voting_open=1').all(day);
-  if (!closedGames.length) return res.status(409).json({ error: 'O ADM ainda não encerrou os jogos desse dia.' });
-  const attended = db.prepare('SELECT 1 FROM baba_attendance WHERE game_day=? AND user_id=? AND kind="checkin"').get(day, req.user.id);
-  const wasCheckedIn = closedGames.some(row => { try { return (JSON.parse(row.game_data).checkedInEmails || []).map(email => String(email).toLowerCase()).includes(req.user.email.toLowerCase()); } catch { return false; } });
-  if (!attended && !wasCheckedIn) return res.status(403).json({ error: 'Somente jogadores com check-in neste baba podem votar.' });
-  if (playerEmail === req.user.email.toLowerCase()) return res.status(400).json({ error: 'Você não pode votar na sua própria cartinha.' });
-  const targetCheckedIn = closedGames.some(row => { try { return (JSON.parse(row.game_data).checkedInEmails || []).map(email => String(email).toLowerCase()).includes(playerEmail); } catch { return false; } });
-  if (!targetCheckedIn) return res.status(404).json({ error: 'O jogador avaliado não está na lista de check-in deste baba.' });
+  if (!validDate(day) || !playerEmail || !['rit', 'dri', 'chu', 'def', 'pas', 'fis'].includes(attrKey) || !Number.isInteger(stars) || stars < 1 || stars > 5) return res.status(400).json({ error: 'Os dados do voto não são válidos.' });
   try {
-    db.prepare('INSERT INTO baba_votes (game_day,voter_id,player_email,attr_key,stars,created_at) VALUES (?,?,?,?,?,?)').run(day, req.user.id, playerEmail, attrKey, stars, new Date().toISOString());
-  } catch (error) {
-    if (String(error.code || '').startsWith('SQLITE_CONSTRAINT')) return res.status(409).json({ error: 'Você já votou neste atributo para esse jogador neste baba.' });
-    throw error;
-  }
-  res.json({ ok: true });
+    const { data: closedGames, error: gamesError } = await supabase.from('baba_matches').select('game_data').eq('game_day', day).eq('voting_open', true);
+    if (gamesError) throw gamesError;
+    if (!closedGames.length) return res.status(409).json({ error: 'O ADM ainda não encerrou os jogos desse dia.' });
+    const { data: attendance, error: attendanceError } = await supabase.from('baba_attendance').select('id').eq('game_day', day).eq('user_id', req.user.id).eq('kind', 'checkin').maybeSingle();
+    if (attendanceError) throw attendanceError;
+    const emailsInGame = email => closedGames.some(row => (row.game_data?.checkedInEmails || []).some(item => String(item).toLowerCase() === email));
+    if (!attendance && !emailsInGame(req.user.email.toLowerCase())) return res.status(403).json({ error: 'Somente jogadores com check-in neste baba podem votar.' });
+    if (playerEmail === req.user.email.toLowerCase()) return res.status(400).json({ error: 'Você não pode votar na sua própria cartinha.' });
+    if (!emailsInGame(playerEmail)) return res.status(404).json({ error: 'O jogador avaliado não está na lista de check-in deste baba.' });
+    const { error } = await supabase.from('baba_votes').insert({ game_day: day, voter_id: req.user.id, player_email: playerEmail, attr_key: attrKey, stars });
+    if (error?.code === '23505') return res.status(409).json({ error: 'Você já votou neste atributo para esse jogador neste baba.' });
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) { next(error); }
 });
-app.get('/api/baba/matches', requireUser, (req, res) => {
-  const rows = db.prepare('SELECT game_data,voting_open FROM baba_matches ORDER BY game_day DESC, created_at DESC').all();
-  res.json({ matches: rows.map(row => ({ ...JSON.parse(row.game_data), votingOpen: !!row.voting_open })) });
+
+app.get('/api/baba/matches', authenticate, requireDatabase, async (_req, res, next) => {
+  try {
+    const { data: rows, error } = await supabase.from('baba_matches').select('game_data,voting_open').order('game_day', { ascending: false }).order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ matches: rows.map(row => ({ ...row.game_data, votingOpen: row.voting_open })) });
+  } catch (error) { next(error); }
 });
-app.post('/api/admin/baba/matches', requireUser, requireAdmin, (req, res) => {
+app.post('/api/admin/baba/matches', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const match = req.body?.match;
-  if (!match || !match.id || !/^\d{4}-\d{2}-\d{2}$/.test(String(match.gameDay || ''))) return res.status(400).json({ error: 'Informe uma partida e uma data válidas.' });
-  const id = String(match.id), gameDay = String(match.gameDay), now = new Date().toISOString();
-  db.prepare('INSERT INTO baba_matches (id,game_day,game_data,voting_open,created_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET game_data=excluded.game_data')
-    .run(id, gameDay, JSON.stringify(match), match.votingOpen ? 1 : 0, now);
-  res.json({ ok: true, id });
+  if (!match || !match.id || !validDate(match.gameDay)) return res.status(400).json({ error: 'Informe uma partida e uma data válidas.' });
+  try {
+    const { data: existing, error: findError } = await supabase.from('baba_matches').select('voting_open').eq('id', String(match.id)).maybeSingle();
+    if (findError) throw findError;
+    const { error } = await supabase.from('baba_matches').upsert({ id: String(match.id), game_day: match.gameDay, game_data: match, voting_open: existing?.voting_open || false }, { onConflict: 'id' });
+    if (error) throw error;
+    res.json({ ok: true, id: String(match.id) });
+  } catch (error) { next(error); }
 });
-app.put('/api/admin/baba/matches/:date/close', requireUser, requireAdmin, (req, res) => {
+app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const date = String(req.params.date || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
-  const result = db.prepare('UPDATE baba_matches SET voting_open=1 WHERE game_day=?').run(date);
-  if (!result.changes) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
-  res.json({ ok: true, games: result.changes });
+  if (!validDate(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
+  try {
+    const { data, error } = await supabase.from('baba_matches').update({ voting_open: true }).eq('game_day', date).select('id');
+    if (error) throw error;
+    if (!data.length) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
+    res.json({ ok: true, games: data.length });
+  } catch (error) { next(error); }
 });
 
-app.get('/api/admin/members', requireUser, requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT id,name,email,phone,is_admin,paid_month,created_at FROM users ORDER BY name').all();
-  res.json({ members: rows.map(row => ({ ...userPublic(row), paymentStatus: billingStatus(row).status })) });
+app.get('/api/admin/members', authenticate, requireAdmin, requireDatabase, async (_req, res, next) => {
+  try {
+    const [{ data: rows, error }, fee] = await Promise.all([supabase.from('profiles').select('*').order('name'), getFee()]);
+    if (error) throw error;
+    res.json({ members: rows.map(row => ({ ...userPublic(row), paymentStatus: billingStatus(row, fee).status })) });
+  } catch (error) { next(error); }
 });
-app.put('/api/profile/photo', requireUser, (req, res) => {
+function validatePhoto(photo) {
+  return !photo || (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) && photo.length <= 500_000);
+}
+app.put('/api/profile/photo', authenticate, requireDatabase, async (req, res, next) => {
   const photo = String(req.body?.photo || '');
-  if (photo && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) || photo.length > 500_000)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
-  db.prepare('UPDATE users SET photo=? WHERE id=?').run(photo, req.user.id);
-  res.json({ ok: true });
+  if (!validatePhoto(photo)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
+  try {
+    const { error } = await supabase.from('profiles').update({ photo }).eq('id', req.user.id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) { next(error); }
 });
-app.put('/api/admin/members/:id/photo', requireUser, requireAdmin, (req, res) => {
+app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const photo = String(req.body?.photo || '');
-  const member = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
-  if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
-  if (photo && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) || photo.length > 500_000)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
-  db.prepare('UPDATE users SET photo=? WHERE id=?').run(photo, member.id);
-  res.json({ ok: true });
+  if (!validatePhoto(photo)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
+  try {
+    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
+    if (findError) throw findError;
+    if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    const { error } = await supabase.from('profiles').update({ photo }).eq('id', member.id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) { next(error); }
 });
 
-app.put('/api/admin/members/:id/payment', requireUser, requireAdmin, (req, res) => {
-  const member = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
-  if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
-  const month = monthKey();
-  db.prepare('UPDATE users SET paid_month=? WHERE id=?').run(month, member.id);
-  res.json({ ok: true, month, status: 'paid' });
+app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
+    if (findError) throw findError;
+    if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    const month = monthKey();
+    const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
+    if (error) throw error;
+    res.json({ ok: true, month, status: 'paid' });
+  } catch (error) { next(error); }
 });
-
-app.put('/api/admin/monthly-fee', requireUser, requireAdmin, (req, res) => {
+app.put('/api/admin/monthly-fee', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const amount = Number(req.body?.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000) return res.status(400).json({ error: 'Informe um valor mensal válido.' });
-  fee = Math.round(amount * 100) / 100;
-  db.prepare('INSERT INTO settings (key,value) VALUES ("monthly_fee",?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(String(fee));
-  res.json({ monthlyFee: fee });
+  try {
+    const fee = Math.round(amount * 100) / 100;
+    await saveSetting('monthly_fee', fee);
+    res.json({ monthlyFee: fee });
+  } catch (error) { next(error); }
 });
-
-app.put('/api/admin/payment-info', requireUser, requireAdmin, (req, res) => {
+app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const pixKey = String(req.body?.pixKey || '').trim();
   const qrDataUrl = String(req.body?.qrDataUrl || '');
   if (pixKey.length > 200) return res.status(400).json({ error: 'A chave Pix deve ter no máximo 200 caracteres.' });
-  if (qrDataUrl && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(qrDataUrl) || qrDataUrl.length > 900_000)) {
-    return res.status(400).json({ error: 'O QR Code deve ser uma imagem PNG, JPG ou WebP com até aproximadamente 650 KB.' });
-  }
-  db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('pix_key', pixKey);
-  db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('pix_qr_data_url', qrDataUrl);
-  res.json({ ok: true, pixKey, hasQr: !!qrDataUrl });
+  if (qrDataUrl && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(qrDataUrl) || qrDataUrl.length > 900_000)) return res.status(400).json({ error: 'O QR Code deve ser uma imagem PNG, JPG ou WebP com até aproximadamente 650 KB.' });
+  try {
+    const { error } = await supabase.from('settings').upsert([{ key: 'pix_key', value: pixKey }, { key: 'pix_qr_data_url', value: qrDataUrl }], { onConflict: 'key' });
+    if (error) throw error;
+    res.json({ ok: true, pixKey, hasQr: !!qrDataUrl });
+  } catch (error) { next(error); }
+});
+app.get('/api/config', requireDatabase, async (_req, res, next) => {
+  try {
+    const [monthlyFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('pix_key'), setting('pix_qr_data_url')]);
+    res.json({ monthlyFee, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
+  } catch (error) { next(error); }
 });
 
-app.get('/api/config', (req, res) => res.json({
-  monthlyFee: fee,
-  whatsapp: env('WHATSAPP_ADMIN', '5575998572594'),
-  pixKey: db.prepare('SELECT value FROM settings WHERE key=?').get('pix_key')?.value || '',
-  pixQrDataUrl: db.prepare('SELECT value FROM settings WHERE key=?').get('pix_qr_data_url')?.value || ''
-}));
-app.listen(port, () => console.log(`Futmancos API listening on ${port}`));
+app.use((error, _req, res, _next) => {
+  console.error('Futmancos API error:', error);
+  res.status(500).json({ error: 'O servidor não conseguiu concluir a solicitação. Confira as tabelas e as variáveis do Supabase.' });
+});
 
-
+app.listen(port, '0.0.0.0', () => console.log(`Futmancos API listening on ${port}`));
