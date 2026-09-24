@@ -42,6 +42,8 @@
     html, body { overflow-x: hidden; touch-action: manipulation; }
     body { padding-bottom: env(safe-area-inset-bottom); }
     @media (max-width: 767px) {
+      body { padding-top: env(safe-area-inset-top, 0px); }
+      header { top: env(safe-area-inset-top, 0px) !important; }
       #adminLoginHeaderBtn { display: none !important; }
       input, select, button { min-height: 42px; }
       .mobile-nav-btn { flex: 1; min-width: 0; }
@@ -454,6 +456,7 @@
       <div id="passkeySettings" class="hidden bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
         <div><h3 class="font-teko text-2xl text-emerald-300">ENTRADA COM BIOMETRIA</h3><p class="text-xs text-gray-400">Cadastre uma chave de acesso neste aparelho para entrar com digital, Face ID, PIN ou bloqueio de tela. A associação não recebe nem guarda sua biometria.</p></div>
         <button id="registerPasskeyBtn" type="button" onclick="registerDevicePasskey()" class="w-full sm:w-auto bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar biometria neste aparelho</button>
+        <p class="text-xs text-gray-500">Se aparecer “Passkeys are disabled”, o administrador do projeto precisa ativar Passkeys em Authentication → Passkeys no Supabase.</p>
         <p id="passkeyStatus" class="text-xs text-gray-400" aria-live="polite"></p>
         <div id="passkeyList" class="space-y-2"></div>
       </div>
@@ -1269,6 +1272,13 @@
         typeof supabaseClient.auth.registerPasskey === 'function' &&
         typeof supabaseClient.auth.signInWithPasskey === 'function';
     }
+    function passkeySetupErrorMessage(error) {
+      const details = `${error?.code || ''} ${error?.message || ''}`;
+      if (/passkey_disabled|passkeys?\s+(?:are\s+)?disabled/i.test(details)) {
+        return 'Passkeys está desativado no Supabase. No Dashboard, abra Authentication → Passkeys, habilite Enable Passkey authentication e configure RP ID futmancos.vercel.app e origin https://futmancos.vercel.app.';
+      }
+      return error?.message || 'Não foi possível concluir a operação com biometria.';
+    }
     function updatePasskeyControls() {
       const loginButton = document.getElementById('passkeyLoginBtn');
       const settings = document.getElementById('passkeySettings');
@@ -1280,7 +1290,7 @@
       const list = document.getElementById('passkeyList');
       if (!list || !loggedUser) return;
       const { data, error } = await supabaseClient.auth.passkey.list();
-      if (error) { document.getElementById('passkeyStatus').innerText = error.message; return; }
+      if (error) { document.getElementById('passkeyStatus').innerText = passkeySetupErrorMessage(error); return; }
       list.replaceChildren();
       (data || []).forEach(passkey => {
         const row = document.createElement('div');
@@ -1305,8 +1315,8 @@
         status.innerText = 'Chave de acesso cadastrada neste aparelho.';
         await refreshDevicePasskeys();
       } catch (error) {
-        status.innerText = error.message || 'Não foi possível cadastrar a biometria.';
-        alert(`Não foi possível cadastrar a chave de acesso. Confira se Passkeys está ativado no Supabase. ${error.message || ''}`);
+        status.innerText = passkeySetupErrorMessage(error);
+        alert(`Não foi possível cadastrar a chave de acesso. ${passkeySetupErrorMessage(error)}`);
       }
     }
     async function deleteDevicePasskey(passkeyId) {
@@ -1338,7 +1348,7 @@
         navigate('resenha'); alert(`Bem-vindo, ${loggedUser.name}!`);
       } catch (error) {
         const message = error.message || 'Falha ao entrar com chave de acesso.';
-        alert(message.includes('passkey_disabled') ? 'Ative Passkeys em Supabase > Authentication > Passkeys para usar a biometria.' : `Não foi possível entrar com biometria: ${message}`);
+        alert(`Não foi possível entrar com biometria: ${passkeySetupErrorMessage(error)}`);
       }
     }
 
