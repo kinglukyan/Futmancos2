@@ -255,13 +255,15 @@ app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase
   const expectedCodeBuffer = Buffer.from(adminDeleteCode);
   const validAdminCode = submittedCodeBuffer.length === expectedCodeBuffer.length && timingSafeEqual(submittedCodeBuffer, expectedCodeBuffer);
   if (!validAdminCode) return res.status(403).json({ error: 'Código de administração incorreto.' });
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberId)) {
-    return res.status(400).json({ error: 'Identificador de associado invÃ¡lido.' });
-  }
+  if (!memberId || memberId.length > 128) return res.status(400).json({ error: 'Identificador invÃ¡lido.' });
   try {
-    const { data: member, error: memberError } = await supabase.from('profiles').select('id,name,email,is_admin').eq('id', memberId).maybeSingle();
-    if (memberError) throw memberError;
-    if (!member) return res.status(404).json({ error: 'Associado nÃ£o encontrado.' });
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberId);
+    let member = null;
+    if (isUuid) {
+      const { data, error: memberError } = await supabase.from('profiles').select('id,name,email,is_admin').eq('id', memberId).maybeSingle();
+      if (memberError) throw memberError;
+      member = data;
+    }
 
 
     // Remove the account's cached roster and attendance references before the
@@ -273,8 +275,8 @@ app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase
     if (stateRow?.state_json) {
       previousState = stateRow.state_json;
       const players = Array.isArray(previousState.players) ? previousState.players : [];
-      const email = String(member.email || '').toLowerCase();
-      const belongsToMember = player => String(player.serverId || player.authUserId || '') === memberId || (!!email && String(player.email || '').toLowerCase() === email);
+      const email = String(member?.email || '').toLowerCase();
+      const belongsToMember = player => [player.serverId, player.authUserId, player.id].some(id => id != null && String(id) === memberId) || (!!email && String(player.email || '').toLowerCase() === email);
       const localIds = new Set(players.filter(belongsToMember).map(player => String(player.id)));
       cleanedState = {
         ...previousState,
@@ -286,12 +288,14 @@ app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase
       if (stateWriteError) throw stateWriteError;
     }
 
+    if (member) {
     const { error: deleteError } = await supabase.auth.admin.deleteUser(memberId);
     if (deleteError) {
       if (previousState) await supabase.from('app_state').update({ state_json: previousState, updated_at: stateRow.updated_at }).eq('id', 1);
       throw deleteError;
     }
-    res.json({ ok: true, id: memberId, name: member.name, deletedSelf: memberId === req.user.id });
+    }
+    res.json({ ok: true, id: memberId, name: member?.name || "", deletedAccount: !!member, deletedSelf: memberId === req.user.id });
   } catch (error) { next(error); }
 });
 function validatePhoto(photo) {

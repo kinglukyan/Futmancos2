@@ -2268,11 +2268,12 @@
       if (!confirm(`Excluir a conta de ${targetLabel}, mesmo que seja administrador? A pessoa perderá o acesso e os dados cadastrais e de presença serão removidos. O histórico dos jogos já realizados será mantido. Esta ação não pode ser desfeita.`)) return;
       const adminCode = prompt('Digite o código de administração para confirmar a exclusão:');
       if (adminCode === null) return;
-      const member = players.find(player => String(player.serverId || player.authUserId || '') === String(memberId));
+      const playerKey = player => String(player.serverId || player.authUserId || player.id || '');
+      const member = players.find(player => playerKey(player) === String(memberId));
       try {
         const result = await apiRequest(`/admin/members/${encodeURIComponent(memberId)}`, { method: 'DELETE', body: JSON.stringify({ adminCode }) });
-        const removedIds = new Set(players.filter(player => String(player.serverId || player.authUserId || '') === String(memberId)).map(player => String(player.id)));
-        players = players.filter(player => String(player.serverId || player.authUserId || '') !== String(memberId));
+        const removedIds = new Set(players.filter(player => playerKey(player) === String(memberId)).map(player => String(player.id)));
+        players = players.filter(player => playerKey(player) !== String(memberId));
         presentPlayers = presentPlayers.filter(id => !removedIds.has(String(id)));
         checkedInPlayers = checkedInPlayers.filter(id => !removedIds.has(String(id)));
         if (result.deletedSelf || isSelf) { await handleLogout(); window.location.reload(); return; }
@@ -2317,7 +2318,8 @@
         const memberKey = escape(p.id);
         const editable = Boolean(loggedUser?.isAdmin) || String(p.id) === String(loggedUser?.id);
         const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid;
-        const deleteAction = loggedUser?.isAdmin && p.serverId;
+        const deleteAction = loggedUser?.isAdmin;
+        const deletionKey = escape(p.serverId || p.authUserId || p.id);
         if (tbody) tbody.innerHTML += `
           <tr class="hover:bg-black/40">
             <td class="p-2.5 font-bold text-white">${p.name} (#${p.shirt})</td>
@@ -2332,7 +2334,7 @@
             <td class="p-2.5 text-center space-x-1">
               ${editable ? `<button onclick="openEditProfileModal('${memberKey}')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-[10px] font-bold">Editar Dados</button>` : ''}
               ${loggedUser?.isAdmin && p.serverId && !p.paid ? `<button onclick="confirmMemberPayment('${p.serverId}')" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 px-2 py-1 rounded text-[10px] font-bold">Confirmar Pix</button>` : ''}
-              ${loggedUser?.isAdmin && p.serverId ? `<button onclick="deleteMember('${p.serverId}')" class="bg-rose-600/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded text-[10px] font-bold">Excluir membro</button>` : ''}
+              ${loggedUser?.isAdmin ? `<button onclick="deleteMember('${deletionKey}')" class="bg-rose-600/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded text-[10px] font-bold">Excluir membro</button>` : ''}
             </td>
           </tr>
         `;
@@ -2343,7 +2345,7 @@
               <button type="button" data-member-inspect="${memberKey}" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Inspecionar</button>
               ${editable ? `<button type="button" data-member-edit="${memberKey}" class="bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Editar dados</button>` : ''}
               ${paymentAction ? `<button type="button" data-member-payment="${escape(p.serverId)}" class="bg-emerald-600/20 text-emerald-200 border border-emerald-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Confirmar Pix</button>` : ''}
-              ${deleteAction ? `<button type="button" data-member-delete="${escape(p.serverId)}" class="bg-rose-600/20 text-rose-200 border border-rose-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Excluir membro</button>` : ''}
+              ${deleteAction ? `<button type="button" data-member-delete="${deletionKey}" class="bg-rose-600/20 text-rose-200 border border-rose-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Excluir membro</button>` : ''}
             </div>
           </article>`;
       });
