@@ -235,6 +235,53 @@ app.get('/api/admin/members', authenticate, requireAdmin, requireDatabase, async
     res.json({ members: rows.map(row => ({ ...userPublic(row), paymentStatus: billingStatus(row, fee).status })) });
   } catch (error) { next(error); }
 });
+app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const memberId = String(req.params.id || '');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberId)) {
+    return res.status(400).json({ error: 'Identificador de associado invÃ¡lido.' });
+  }
+  if (memberId === req.user.id) return res.status(409).json({ error: 'VocÃª nÃ£o pode excluir a prÃ³pria conta de administrador.' });
+  try {
+    const { data: member, error: memberError } = await supabase.from('profiles').select('id,name,email,is_admin').eq('id', memberId).maybeSingle();
+    if (memberError) throw memberError;
+    if (!member) return res.status(404).json({ error: 'Associado nÃ£o encontrado.' });
+
+    if (member.is_admin) {
+      const { count, error: countError } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', true);
+      if (countError) throw countError;
+      if ((count ?? 0) <= 1) return res.status(409).json({ error: 'NÃ£o Ã© possÃ­vel excluir o Ãºltimo administrador da associaÃ§Ã£o.' });
+    }
+
+    // Remove the account's cached roster and attendance references before the
+    // Auth deletion, while preserving historical match records and finances.
+    const { data: stateRow, error: stateReadError } = await supabase.from('app_state').select('state_json,updated_at').eq('id', 1).maybeSingle();
+    if (stateReadError) throw stateReadError;
+    let previousState = null;
+    let cleanedState = null;
+    if (stateRow?.state_json) {
+      previousState = stateRow.state_json;
+      const players = Array.isArray(previousState.players) ? previousState.players : [];
+      const email = String(member.email || '').toLowerCase();
+      const belongsToMember = player => String(player.serverId || player.authUserId || '') === memberId || (!!email && String(player.email || '').toLowerCase() === email);
+      const localIds = new Set(players.filter(belongsToMember).map(player => String(player.id)));
+      cleanedState = {
+        ...previousState,
+        players: players.filter(player => !belongsToMember(player)),
+        presentPlayers: (Array.isArray(previousState.presentPlayers) ? previousState.presentPlayers : []).filter(id => !localIds.has(String(id))),
+        checkedInPlayers: (Array.isArray(previousState.checkedInPlayers) ? previousState.checkedInPlayers : []).filter(id => !localIds.has(String(id)))
+      };
+      const { error: stateWriteError } = await supabase.from('app_state').update({ state_json: cleanedState, updated_at: new Date().toISOString() }).eq('id', 1);
+      if (stateWriteError) throw stateWriteError;
+    }
+
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(memberId);
+    if (deleteError) {
+      if (previousState) await supabase.from('app_state').update({ state_json: previousState, updated_at: stateRow.updated_at }).eq('id', 1);
+      throw deleteError;
+    }
+    res.json({ ok: true, id: memberId, name: member.name });
+  } catch (error) { next(error); }
+});
 function validatePhoto(photo) {
   return !photo || (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) && photo.length <= 500_000);
 }
