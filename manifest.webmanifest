@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Futmancos - Associação de Futebol",
+  "short_name": "Futmancos",
+  "description": "Central da associação Futmancos: baba, escalação, resultados e resenha.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0a0c0a",
+  "theme_color": "#0a0c0a",
+  "icons": [
+    { "src": "/assets/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

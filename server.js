@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { timingSafeEqual } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import { createClient } from '@supabase/supabase-js';
@@ -10,6 +11,7 @@ const env = (name, fallback = '') => process.env[name] ?? fallback;
 const port = Number(env('PORT', '3000'));
 const supabaseUrl = env('SUPABASE_URL');
 const supabaseServiceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+const adminDeleteCode = env('ADMIN_DELETE_CODE', '8630');
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
@@ -29,9 +31,14 @@ const saoPauloDay = (date = new Date()) => Number(new Intl.DateTimeFormat('en-US
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
 const userPublic = row => ({
   id: row.id, name: row.name, email: row.email, phone: row.phone, age: row.age,
-  pos: row.position, foot: row.foot, height: row.height, photo: row.photo || '',
+  pos: row.position, foot: row.foot, height: row.height, shirt: Number(row.shirt_number) || 0, photo: row.photo || '',
   isAdmin: !!row.is_admin, paidMonth: row.paid_month || ''
 });
+const isDemoMember = member => {
+  const email = String(member?.email || '').toLowerCase();
+  const name = String(member?.name || '').trim().toLowerCase();
+  return ['lukyan@futmancos.com', 'mateus@futmancos.com'].includes(email) || ['lukyan', 'mateus'].includes(name);
+};
 
 async function setting(key) {
   if (!supabase) return null;
@@ -105,6 +112,13 @@ app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, nex
     const { data: row, error } = await supabase.from('app_state').select('state_json,updated_at').eq('id', 1).maybeSingle();
     if (error) throw error;
     const state = row?.state_json || null;
+    if (state) {
+      state.players = Array.isArray(state.players) ? state.players.filter(player => !isDemoMember(player)) : [];
+      if (Array.isArray(state.transactions)) state.transactions = state.transactions.filter(item => String(item.desc || '') !== 'Mensalidade Lukyan');
+      const rosterIds = new Set((row.state_json?.players || []).filter(isDemoMember).map(player => String(player.id)));
+      if (Array.isArray(state.presentPlayers)) state.presentPlayers = state.presentPlayers.filter(id => !rosterIds.has(String(id)));
+      if (Array.isArray(state.checkedInPlayers)) state.checkedInPlayers = state.checkedInPlayers.filter(id => !rosterIds.has(String(id)));
+    }
     if (state && !req.user.is_admin) state.players = state.players.map(({ phone, paid, paidMonth, paymentStatus, ...player }) => player);
     res.json({ state, updatedAt: row?.updated_at || null });
   } catch (error) { next(error); }
@@ -113,12 +127,12 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
   const incoming = req.body?.state;
   if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return res.status(400).json({ error: 'Os dados compartilhados enviados não são válidos.' });
   const state = {
-    players: Array.isArray(incoming.players) ? incoming.players.map(({ pass, password, ...player }) => player) : [],
+    players: Array.isArray(incoming.players) ? incoming.players.filter(player => !isDemoMember(player)).map(({ pass, password, ...player }) => player) : [],
     arenas: Array.isArray(incoming.arenas) ? incoming.arenas : [],
-    transactions: Array.isArray(incoming.transactions) ? incoming.transactions : [],
+    transactions: Array.isArray(incoming.transactions) ? incoming.transactions.filter(item => String(item.desc || '') !== 'Mensalidade Lukyan') : [],
     matchHistory: Array.isArray(incoming.matchHistory) ? incoming.matchHistory : [],
-    presentPlayers: Array.isArray(incoming.presentPlayers) ? incoming.presentPlayers : [],
-    checkedInPlayers: Array.isArray(incoming.checkedInPlayers) ? incoming.checkedInPlayers : [],
+    presentPlayers: Array.isArray(incoming.presentPlayers) ? incoming.presentPlayers.filter(id => !(incoming.players || []).some(player => isDemoMember(player) && String(player.id) === String(id))) : [],
+    checkedInPlayers: Array.isArray(incoming.checkedInPlayers) ? incoming.checkedInPlayers.filter(id => !(incoming.players || []).some(player => isDemoMember(player) && String(player.id) === String(id))) : [],
     mediaLinks: incoming.mediaLinks && typeof incoming.mediaLinks === 'object' ? incoming.mediaLinks : {},
     monthlyFee: Number(incoming.monthlyFee) || await getFee(),
     nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null
@@ -237,20 +251,18 @@ app.get('/api/admin/members', authenticate, requireAdmin, requireDatabase, async
 });
 app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const memberId = String(req.params.id || '');
+  const submittedCodeBuffer = Buffer.from(String(req.body?.adminCode || ''));
+  const expectedCodeBuffer = Buffer.from(adminDeleteCode);
+  const validAdminCode = submittedCodeBuffer.length === expectedCodeBuffer.length && timingSafeEqual(submittedCodeBuffer, expectedCodeBuffer);
+  if (!validAdminCode) return res.status(403).json({ error: 'Código de administração incorreto.' });
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberId)) {
     return res.status(400).json({ error: 'Identificador de associado invÃ¡lido.' });
   }
-  if (memberId === req.user.id) return res.status(409).json({ error: 'VocÃª nÃ£o pode excluir a prÃ³pria conta de administrador.' });
   try {
     const { data: member, error: memberError } = await supabase.from('profiles').select('id,name,email,is_admin').eq('id', memberId).maybeSingle();
     if (memberError) throw memberError;
     if (!member) return res.status(404).json({ error: 'Associado nÃ£o encontrado.' });
 
-    if (member.is_admin) {
-      const { count, error: countError } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', true);
-      if (countError) throw countError;
-      if ((count ?? 0) <= 1) return res.status(409).json({ error: 'NÃ£o Ã© possÃ­vel excluir o Ãºltimo administrador da associaÃ§Ã£o.' });
-    }
 
     // Remove the account's cached roster and attendance references before the
     // Auth deletion, while preserving historical match records and finances.
@@ -279,7 +291,7 @@ app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase
       if (previousState) await supabase.from('app_state').update({ state_json: previousState, updated_at: stateRow.updated_at }).eq('id', 1);
       throw deleteError;
     }
-    res.json({ ok: true, id: memberId, name: member.name });
+    res.json({ ok: true, id: memberId, name: member.name, deletedSelf: memberId === req.user.id });
   } catch (error) { next(error); }
 });
 function validatePhoto(photo) {
@@ -304,6 +316,26 @@ app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatab
     const { error } = await supabase.from('profiles').update({ photo }).eq('id', member.id);
     if (error) throw error;
     res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.put('/api/admin/members/:id/shirt-number', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const shirtNumber = Number(req.body?.shirtNumber);
+  if (!Number.isInteger(shirtNumber) || shirtNumber < 0 || shirtNumber > 99) {
+    return res.status(400).json({ error: 'O número da camisa deve ser de 1 a 99, ou 0 para sem número.' });
+  }
+  try {
+    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
+    if (findError) throw findError;
+    if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    if (shirtNumber > 0) {
+      const { data: duplicate, error: duplicateError } = await supabase.from('profiles').select('id').eq('shirt_number', shirtNumber).neq('id', member.id).limit(1);
+      if (duplicateError) throw duplicateError;
+      if (duplicate?.length) return res.status(409).json({ error: 'Esse número de camisa já está atribuído a outro jogador.' });
+    }
+    const { error } = await supabase.from('profiles').update({ shirt_number: shirtNumber }).eq('id', member.id);
+    if (error) throw error;
+    res.json({ ok: true, shirtNumber });
   } catch (error) { next(error); }
 });
 
