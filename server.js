@@ -485,6 +485,8 @@ app.post('/api/admin/baba/draws', authenticate, requireAdmin, requireDatabase, a
   if (!validDate(gameDay) || !Number.isInteger(selectedCount) || selectedCount < 2 || selectedCount > 30 || !Array.isArray(submitted) || submitted.length !== selectedCount) return res.status(400).json({ error: 'O sorteio precisa de uma data e da quantidade correta de jogadores.' });
   const ids = submitted.map(player => String(player.userId || ''));
   if (new Set(ids).size !== ids.length || ids.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return res.status(400).json({ error: 'A lista do sorteio contém jogador inválido ou duplicado.' });
+  const assignedKeeperIds = Array.isArray(req.body?.assignedKeeperIds) ? req.body.assignedKeeperIds.map(String) : [];
+  if (assignedKeeperIds.length !== 2 || new Set(assignedKeeperIds).size !== 2 || assignedKeeperIds.some(id => !ids.includes(id))) return res.status(400).json({ error: 'Selecione dois goleiros diferentes que estejam incluídos neste sorteio.' });
   try {
     const { data: attendance, error: attendanceError } = await supabase.from('baba_attendance').select('user_id').eq('game_day', gameDay).eq('kind', 'checkin').in('user_id', ids);
     if (attendanceError) throw attendanceError;
@@ -495,13 +497,14 @@ app.post('/api/admin/baba/draws', authenticate, requireAdmin, requireDatabase, a
     const players = submitted.map(player => {
       const profile = byId.get(String(player.userId));
       if (!profile) return null;
-      return { userId: profile.id, name: profile.name, email: profile.email, position: profile.position, shirt: Number(profile.shirt_number) || 0, ovr: Math.max(1, Math.min(99, Number(player.ovr) || 70)), team: player.team === 'B' ? 'B' : 'A', goals: 0, assists: 0, saves: 0 };
+      return { userId: profile.id, name: profile.name, email: profile.email, position: profile.position, shirt: Number(profile.shirt_number) || 0, ovr: Math.max(1, Math.min(99, Number(player.ovr) || 70)), team: player.team === 'B' ? 'B' : 'A', isKeeper: assignedKeeperIds.includes(profile.id), goals: 0, assists: 0, saves: 0 };
     });
     if (players.some(player => !player)) return res.status(400).json({ error: 'Não foi possível carregar todos os jogadores sorteados.' });
     const { data: last, error: lastError } = await supabase.from('baba_draws').select('draw_order').eq('game_day', gameDay).order('draw_order', { ascending: false }).limit(1).maybeSingle();
     if (lastError) throw lastError;
     const drawOrder = Number(last?.draw_order || 0) + 1, id = randomUUID();
-    const drawData = { players, assignedKeeperId: String(req.body?.assignedKeeperId || ''), winner: '', scoreA: null, scoreB: null, drawOrder };
+    if (assignedKeeperIds.some(id => !players.some(player => player.userId === id)) || players.filter(player => player.isKeeper && player.team === 'A').length !== 1 || players.filter(player => player.isKeeper && player.team === 'B').length !== 1) return res.status(400).json({ error: 'O sorteio deve ter um goleiro em cada time.' });
+    const drawData = { players, assignedKeeperIds, winner: '', scoreA: null, scoreB: null, drawOrder };
     const { error } = await supabase.from('baba_draws').insert({ id, game_day: gameDay, draw_order: drawOrder, selected_count: selectedCount, draw_data: drawData, created_by: req.user.id });
     if (error) throw error;
     res.status(201).json({ draw: { ...drawData, id, gameDay, drawOrder, selectedCount, finalized: false } });
