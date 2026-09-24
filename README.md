@@ -11,6 +11,7 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 3. `supabase/migrations/202609240002_player_shirt_number.sql` (se ainda nÃ£o executou).
 4. `supabase/migrations/202609240003_gallery.sql` (cria o bucket pÃºblico de leitura; envio e exclusÃ£o ficam restritos a ADM pela API).
 5. `supabase/migrations/202609240004_guests_and_guest_fees.sql` (convidados, presença/check-in e configurações de valores).
+6. `supabase/migrations/202609240005_draws_codes_push.sql` (códigos de convite, sorteios persistentes e notificações push).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 
@@ -52,8 +53,12 @@ O cadastro de convidados não cria conta. O CPF é criptografado pelo servidor e
 Na tela ADM, defina mensalidade, diária de convidado e contribuição de referência dos goleiros (para custos de churrasco/confra). A exclusão de transações exige conta ADM e código de administração (8630 por padrão; se ADMIN_DELETE_CODE estiver configurado no Render, use o valor definido ali).
 
 
-## Convidados e valores
+## Códigos, sorteios e avisos no celular
 
-O cadastro de convidados não cria conta. O CPF é criptografado pelo servidor e mostrado aos administradores somente com os últimos dígitos. Quem convidou e os ADMs podem marcar presença e check-in no baba. Convidados ficam fora das estatísticas oficiais, avaliações e cartinhas.
+A migração 202609240005_draws_codes_push.sql cria um código aleatório individual de seis dígitos para cada perfil existente e gera o código dos próximos cadastros. O associado encontra o código em Perfil; o convidado informa esse código no cadastro. Execute também esta migração no Supabase.
 
-Na tela ADM, defina mensalidade, diária de convidado e contribuição de referência dos goleiros (para custos de churrasco/confra). A exclusão de transações exige conta ADM e código de administração (8630 por padrão; se ADMIN_DELETE_CODE estiver configurado no Render, use o valor definido ali).
+Na Central Baba, ADM escolhe a quantidade de jogadores com check-in, sorteia times balanceados pelo OVR e salva cada sorteio. Jogadores que ainda não saíram em sorteios daquele dia têm prioridade. Se nenhum goleiro confirmou check-in, o ADM escolhe quem assume a função. Ao final dos jogos, preencha gols, assistências, defesas e vencedor de cada sorteio; só depois encerre o dia para abrir a votação.
+
+Para receber notificações na barra do celular, no computador com Node.js instalado abra a pasta do projeto, execute `npm install` e depois `npm run generate-vapid`. Cadastre os valores impressos `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` como variáveis do Render e use `VAPID_SUBJECT=mailto:santoslucasalmeida@gmail.com`. Mantenha a chave privada somente no Render e estável entre publicações. Depois publique o app, instale-o no iPhone e toque em **Ajuda > Ativar avisos neste aparelho**. Os avisos incluem baba novo, dia do baba, mensalidade pendente/atrasada e abertura da votação.
+
+No Render gratuito, o servidor pode dormir quando não recebe acessos. Eventos acionados por ações no site (novo baba, votação e pagamento) são enviados quando ocorrem; lembretes de data e mensalidade dependem de o serviço estar acordado no horário da verificação.

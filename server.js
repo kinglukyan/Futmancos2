@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createCipheriv, createHmac, randomBytes, createHash, timingSafeEqual, randomUUID } from 'node:crypto';
+import { createCipheriv, createHmac, randomBytes, createHash, timingSafeEqual, randomUUID, randomInt } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
+import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -12,6 +13,11 @@ const port = Number(env('PORT', '3000'));
 const supabaseUrl = env('SUPABASE_URL');
 const supabaseServiceKey = env('SUPABASE_SERVICE_ROLE_KEY');
 const adminDeleteCode = env('ADMIN_DELETE_CODE', '8630');
+const vapidPublicKey = env('VAPID_PUBLIC_KEY');
+const vapidPrivateKey = env('VAPID_PRIVATE_KEY');
+const pushEnabled = !!(vapidPublicKey && vapidPrivateKey);
+const guestInviteAttempts = new Map();
+if (pushEnabled) webpush.setVapidDetails(env('VAPID_SUBJECT', 'mailto:santoslucasalmeida@gmail.com'), vapidPublicKey, vapidPrivateKey);
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
@@ -32,6 +38,36 @@ function isValidCpf(value) {
     if (digit !== Number(cpf[length])) return false;
   }
   return true;
+}
+async function sendPushUsers(userIds, eventKey, notification) {
+  if (!pushEnabled || !supabase || !userIds.length) return;
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  const [{ data: subscriptions, error: subError }, { data: sentRows, error: sentError }] = await Promise.all([
+    supabase.from('push_subscriptions').select('user_id,endpoint,subscription').in('user_id', uniqueIds),
+    supabase.from('notification_deliveries').select('user_id').eq('event_key', eventKey).in('user_id', uniqueIds)
+  ]);
+  if (subError) throw subError; if (sentError) throw sentError;
+  const alreadySent = new Set((sentRows || []).map(row => row.user_id));
+  const targets = (subscriptions || []).filter(item => !alreadySent.has(item.user_id));
+  const succeeded = new Set();
+  await Promise.all(targets.map(async item => {
+    try { await webpush.sendNotification(item.subscription, JSON.stringify(notification)); succeeded.add(item.user_id); }
+    catch (error) {
+      if (error.statusCode === 404 || error.statusCode === 410) await supabase.from('push_subscriptions').delete().eq('endpoint', item.endpoint);
+      else console.warn('Falha ao enviar notificação push:', error.message);
+    }
+  }));
+  if (succeeded.size) {
+    const rows = [...succeeded].map(user_id => ({ event_key: eventKey, user_id }));
+    const { error } = await supabase.from('notification_deliveries').upsert(rows, { onConflict: 'event_key,user_id', ignoreDuplicates: true });
+    if (error) throw error;
+  }
+}
+async function sendPushAll(eventKey, notification, exceptUserId = '') {
+  if (!pushEnabled || !supabase) return;
+  const { data, error } = await supabase.from('push_subscriptions').select('user_id');
+  if (error) throw error;
+  await sendPushUsers((data || []).map(row => row.user_id).filter(id => id !== exceptUserId), eventKey, notification);
 }
 
 const app = express();
@@ -109,6 +145,43 @@ app.get('/api/health', (_req, res) => res.status(supabase ? 200 : 503).json({ ok
 app.get('/api/auth/me', authenticate, (_req, res) => res.json({ user: userPublic(_req.user) }));
 app.post('/api/auth/logout', (_req, res) => res.json({ ok: true }));
 
+app.get('/api/me/guest-code', authenticate, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: current, error } = await supabase.from('member_guest_codes').select('code').eq('member_id', req.user.id).maybeSingle();
+    if (error) throw error;
+    if (current) return res.json({ code: current.code });
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const code = String(randomInt(100000, 1000000));
+      const { data, error: insertError } = await supabase.from('member_guest_codes').insert({ member_id: req.user.id, code }).select('code').maybeSingle();
+      if (!insertError && data) return res.status(201).json({ code: data.code });
+      if (insertError?.code !== '23505') throw insertError;
+      const { data: raced } = await supabase.from('member_guest_codes').select('code').eq('member_id', req.user.id).maybeSingle();
+      if (raced) return res.json({ code: raced.code });
+    }
+    return res.status(503).json({ error: 'Não foi possível gerar um código agora. Tente novamente.' });
+  } catch (error) { next(error); }
+});
+app.get('/api/push/public-key', (_req, res) => res.json({ enabled: pushEnabled, publicKey: pushEnabled ? vapidPublicKey : '' }));
+app.post('/api/push/subscribe', authenticate, requireDatabase, async (req, res, next) => {
+  const subscription = req.body?.subscription;
+  const endpoint = String(subscription?.endpoint || '');
+  if (!pushEnabled) return res.status(503).json({ error: 'As notificações do celular ainda não foram configuradas no servidor.' });
+  if (!endpoint.startsWith('https://') || !subscription?.keys?.p256dh || !subscription?.keys?.auth) return res.status(400).json({ error: 'A assinatura do aparelho não é válida.' });
+  try {
+    const { error } = await supabase.from('push_subscriptions').upsert({ endpoint, user_id: req.user.id, subscription, updated_at: new Date().toISOString() }, { onConflict: 'endpoint' });
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+app.delete('/api/push/subscribe', authenticate, requireDatabase, async (req, res, next) => {
+  const endpoint = String(req.body?.endpoint || '');
+  try {
+    const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint).eq('user_id', req.user.id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
 app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
   const token = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Entre na conta do Supabase para continuar.' });
@@ -123,7 +196,11 @@ app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
 });
 
 app.get('/api/payments/status', authenticate, requireDatabase, async (req, res, next) => {
-  try { res.json(billingStatus(req.user, await getFee())); } catch (error) { next(error); }
+  try {
+    const status = billingStatus(req.user, await getFee());
+    if (['pending', 'overdue'].includes(status.status)) await sendPushUsers([req.user.id], `billing-${status.status}:${status.month}`, { title: status.status === 'overdue' ? 'Mensalidade em atraso' : 'Mensalidade pendente', body: status.status === 'overdue' ? 'Fale com um administrador para regularizar o pagamento.' : `A mensalidade vence no dia ${status.dueDay}. Confira a tela Mensalidades.`, url: '/' });
+    res.json(status);
+  } catch (error) { next(error); }
 });
 
 app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, next) => {
@@ -159,9 +236,18 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     keeperCosts: Array.isArray(incoming.keeperCosts) ? incoming.keeperCosts.slice(0, 100).filter(item => item && typeof item.title === 'string') : []
   };
   try {
+    const { data: previous, error: previousError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (previousError) throw previousError;
+    const previousGame = previous?.state_json?.nextGame || null;
+    const gameWasChanged = JSON.stringify(previousGame) !== JSON.stringify(state.nextGame);
     const updatedAt = new Date().toISOString();
     const { error } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: updatedAt }, { onConflict: 'id' });
     if (error) throw error;
+    if (gameWasChanged && state.nextGame?.date) {
+      const description = [state.nextGame.name, state.nextGame.date, state.nextGame.time, state.nextGame.address].filter(Boolean).join(' · ');
+      const eventKey = `new-baba:${createHash('sha256').update(JSON.stringify(state.nextGame)).digest('hex').slice(0, 32)}`;
+      await sendPushAll(eventKey, { title: 'Novo baba marcado ou atualizado', body: description || 'Confira a data e o local do próximo baba.', url: '/' }, req.user.id);
+    }
     res.json({ ok: true, updatedAt });
   } catch (error) { next(error); }
 });
@@ -178,29 +264,30 @@ async function attendanceRows(day) {
     .sort((a, b) => a.row.created_at.localeCompare(b.row.created_at) || a.profile.name.localeCompare(b.profile.name))
     .map(({ row, profile }) => ({ kind: row.kind, userId: profile.id, email: profile.email, name: profile.name, position: profile.position }));
 }
-app.get('/api/guests/inviters', requireDatabase, async (_req, res, next) => {
-  try {
-    const { data, error } = await supabase.from('profiles').select('id,name,email,shirt_number').order('name');
-    if (error) throw error;
-    res.json({ inviters: (data || []).filter(row => !isDemoMember(row)).map(row => ({ id: row.id, name: row.name, shirt: Number(row.shirt_number) || 0 })) });
-  } catch (error) { next(error); }
-});
 app.post('/api/guests', requireDatabase, async (req, res, next) => {
   const name = String(req.body?.name || '').trim().replace(/\s+/g, ' ');
   const cpf = String(req.body?.cpf || '').replace(/\D/g, '');
-  const age = Number(req.body?.age), invitedBy = String(req.body?.invitedBy || ''), honeypot = String(req.body?.website || '');
+  const age = Number(req.body?.age), invitationCode = String(req.body?.invitationCode || '').trim(), honeypot = String(req.body?.website || '');
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (honeypot) return res.status(400).json({ error: 'Cadastro inválido.' });
   if (name.length < 2 || name.length > 80) return res.status(400).json({ error: 'Informe o nome completo do convidado.' });
   if (!isValidCpf(cpf)) return res.status(400).json({ error: 'O CPF informado é inválido. Confira os 11 dígitos.' });
   if (!Number.isInteger(age) || age < 1 || age > 120) return res.status(400).json({ error: 'Informe uma idade válida entre 1 e 120 anos.' });
-  if (!uuidPattern.test(invitedBy)) return res.status(400).json({ error: 'Selecione na lista quem convidou.' });
+  if (!/^\d{6}$/.test(invitationCode)) return res.status(400).json({ error: 'Informe o código de convite de seis dígitos fornecido pelo associado.' });
+  const attemptKey = req.ip || req.socket.remoteAddress || 'unknown', now = Date.now();
+  const attempt = guestInviteAttempts.get(attemptKey) || { count: 0, since: now };
+  if (now - attempt.since > 10 * 60 * 1000) { attempt.count = 0; attempt.since = now; }
+  if (attempt.count >= 15) return res.status(429).json({ error: 'Muitas tentativas de código. Aguarde alguns minutos e tente novamente.' });
+  attempt.count++; guestInviteAttempts.set(attemptKey, attempt);
   try {
-    const { data: inviter, error: inviterError } = await supabase.from('profiles').select('id,name').eq('id', invitedBy).maybeSingle();
+    const { data: codeRow, error: codeError } = await supabase.from('member_guest_codes').select('member_id').eq('code', invitationCode).maybeSingle();
+    if (codeError) throw codeError;
+    if (!codeRow) return res.status(400).json({ error: 'Código de convite não encontrado. Peça ao associado para conferir o código no Perfil.' });
+    const { data: inviter, error: inviterError } = await supabase.from('profiles').select('id,name,email').eq('id', codeRow.member_id).maybeSingle();
     if (inviterError) throw inviterError;
     if (!inviter || isDemoMember(inviter)) return res.status(400).json({ error: 'Selecione um associado válido como responsável pelo convite.' });
     const { data: guest, error } = await supabase.from('baba_guests').insert({
-      name, cpf_hash: guestCpfHash(cpf), cpf_encrypted: encryptGuestCpf(cpf), cpf_last4: cpf.slice(-4), age, invited_by: invitedBy
+      name, cpf_hash: guestCpfHash(cpf), cpf_encrypted: encryptGuestCpf(cpf), cpf_last4: cpf.slice(-4), age, invited_by: inviter.id
     }).select('id,name,age,created_at').single();
     if (error?.code === '23505') return res.status(409).json({ error: 'Este CPF já está cadastrado como convidado. Fale com a administração se precisar corrigir os dados.' });
     if (error) throw error;
@@ -384,6 +471,70 @@ app.get('/api/baba/matches', authenticate, requireDatabase, async (_req, res, ne
     res.json({ matches: rows.map(row => ({ ...row.game_data, votingOpen: row.voting_open })) });
   } catch (error) { next(error); }
 });
+app.get('/api/baba/draws', authenticate, requireDatabase, async (req, res, next) => {
+  const date = String(req.query.date || '');
+  if (!validDate(date)) return res.status(400).json({ error: 'Informe a data do baba.' });
+  try {
+    const { data, error } = await supabase.from('baba_draws').select('id,game_day,draw_order,selected_count,draw_data,finalized,created_at').eq('game_day', date).order('draw_order');
+    if (error) throw error;
+    res.json({ draws: (data || []).map(row => ({ ...row.draw_data, id: row.id, gameDay: row.game_day, drawOrder: row.draw_order, selectedCount: row.selected_count, finalized: row.finalized, createdAt: row.created_at })) });
+  } catch (error) { next(error); }
+});
+app.post('/api/admin/baba/draws', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const gameDay = String(req.body?.gameDay || ''), selectedCount = Number(req.body?.selectedCount), submitted = req.body?.players;
+  if (!validDate(gameDay) || !Number.isInteger(selectedCount) || selectedCount < 2 || selectedCount > 30 || !Array.isArray(submitted) || submitted.length !== selectedCount) return res.status(400).json({ error: 'O sorteio precisa de uma data e da quantidade correta de jogadores.' });
+  const ids = submitted.map(player => String(player.userId || ''));
+  if (new Set(ids).size !== ids.length || ids.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return res.status(400).json({ error: 'A lista do sorteio contém jogador inválido ou duplicado.' });
+  try {
+    const { data: attendance, error: attendanceError } = await supabase.from('baba_attendance').select('user_id').eq('game_day', gameDay).eq('kind', 'checkin').in('user_id', ids);
+    if (attendanceError) throw attendanceError;
+    if (new Set((attendance || []).map(row => row.user_id)).size !== ids.length) return res.status(409).json({ error: 'Todos os sorteados precisam ter check-in neste baba.' });
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id,name,email,position,shirt_number').in('id', ids);
+    if (profilesError) throw profilesError;
+    const byId = new Map((profiles || []).map(player => [player.id, player]));
+    const players = submitted.map(player => {
+      const profile = byId.get(String(player.userId));
+      if (!profile) return null;
+      return { userId: profile.id, name: profile.name, email: profile.email, position: profile.position, shirt: Number(profile.shirt_number) || 0, ovr: Math.max(1, Math.min(99, Number(player.ovr) || 70)), team: player.team === 'B' ? 'B' : 'A', goals: 0, assists: 0, saves: 0 };
+    });
+    if (players.some(player => !player)) return res.status(400).json({ error: 'Não foi possível carregar todos os jogadores sorteados.' });
+    const { data: last, error: lastError } = await supabase.from('baba_draws').select('draw_order').eq('game_day', gameDay).order('draw_order', { ascending: false }).limit(1).maybeSingle();
+    if (lastError) throw lastError;
+    const drawOrder = Number(last?.draw_order || 0) + 1, id = randomUUID();
+    const drawData = { players, assignedKeeperId: String(req.body?.assignedKeeperId || ''), winner: '', scoreA: null, scoreB: null, drawOrder };
+    const { error } = await supabase.from('baba_draws').insert({ id, game_day: gameDay, draw_order: drawOrder, selected_count: selectedCount, draw_data: drawData, created_by: req.user.id });
+    if (error) throw error;
+    res.status(201).json({ draw: { ...drawData, id, gameDay, drawOrder, selectedCount, finalized: false } });
+  } catch (error) { next(error); }
+});
+app.put('/api/admin/baba/draws/:id/finalize', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const id = String(req.params.id || ''), winner = String(req.body?.winner || ''), stats = req.body?.stats;
+  if (!['A', 'B', 'draw'].includes(winner) || !Array.isArray(stats)) return res.status(400).json({ error: 'Escolha o time vencedor e informe os dados dos jogadores.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('baba_draws').select('id,game_day,draw_data,finalized').eq('id', id).maybeSingle();
+    if (readError) throw readError;
+    if (!row) return res.status(404).json({ error: 'Sorteio não encontrado.' });
+    if (row.finalized) return res.status(409).json({ error: 'Os dados deste sorteio já foram finalizados.' });
+    const drafted = row.draw_data?.players || [];
+    const statsById = new Map(stats.map(item => [String(item.userId), item]));
+    if (statsById.size !== drafted.length || drafted.some(player => !statsById.has(String(player.userId)))) return res.status(400).json({ error: 'Informe gols, assistências e defesas de todos os jogadores sorteados.' });
+    const players = drafted.map(player => {
+      const item = statsById.get(String(player.userId));
+      return { ...player, goals: Math.min(99, Math.max(0, Math.floor(Number(item.goals) || 0))), assists: Math.min(99, Math.max(0, Math.floor(Number(item.assists) || 0))), saves: Math.min(999, Math.max(0, Math.floor(Number(item.saves) || 0))) };
+    });
+    const scoreA = players.filter(player => player.team === 'A').reduce((sum, player) => sum + player.goals, 0);
+    const scoreB = players.filter(player => player.team === 'B').reduce((sum, player) => sum + player.goals, 0);
+    const date = new Date(`${row.game_day}T12:00:00`).toLocaleDateString('pt-BR');
+    const match = { id, gameDay: row.game_day, date, scoreA, scoreB, winner, teamA: players.filter(player => player.team === 'A').map(player => player.name), teamB: players.filter(player => player.team === 'B').map(player => player.name), checkedInIds: players.map(player => player.userId), checkedInEmails: players.map(player => player.email), checkedInPlayersData: players.map(player => ({ email: player.email, name: player.name, pos: player.position })), stats: players.map(({ userId, email, name, team, goals, assists, saves }) => ({ playerId: userId, email, name, team, goals, assists, saves })), votingOpen: false, drawOrder: row.draw_data?.drawOrder || 0 };
+    const drawData = { ...row.draw_data, players, winner, scoreA, scoreB };
+    const [{ error: drawError }, { error: matchError }] = await Promise.all([
+      supabase.from('baba_draws').update({ draw_data: drawData, finalized: true }).eq('id', id),
+      supabase.from('baba_matches').upsert({ id, game_day: row.game_day, game_data: match, voting_open: false }, { onConflict: 'id' })
+    ]);
+    if (drawError) throw drawError; if (matchError) throw matchError;
+    res.json({ ok: true, draw: { ...drawData, id, gameDay: row.game_day, finalized: true }, match });
+  } catch (error) { next(error); }
+});
 app.post('/api/admin/baba/matches', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const match = req.body?.match;
   if (!match || !match.id || !validDate(match.gameDay)) return res.status(400).json({ error: 'Informe uma partida e uma data válidas.' });
@@ -399,9 +550,13 @@ app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requi
   const date = String(req.params.date || '');
   if (!validDate(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
   try {
+    const { data: draws, error: drawsError } = await supabase.from('baba_draws').select('id,finalized').eq('game_day', date);
+    if (drawsError) throw drawsError;
+    if (draws?.length && draws.some(draw => !draw.finalized)) return res.status(409).json({ error: 'Finalize gols, assistências e defesas de todos os sorteios antes de liberar a votação.' });
     const { data, error } = await supabase.from('baba_matches').update({ voting_open: true }).eq('game_day', date).select('id');
     if (error) throw error;
     if (!data.length) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
+    await sendPushAll(`votes-open:${date}`, { title: 'Votação das cartinhas liberada', body: 'O ADM encerrou os jogos do dia. Avalie as cartinhas dos jogadores que participaram.', url: '/' }, req.user.id);
     res.json({ ok: true, games: data.length });
   } catch (error) { next(error); }
 });
@@ -596,5 +751,31 @@ app.use((error, _req, res, _next) => {
   console.error('Futmancos API error:', error);
   res.status(500).json({ error: 'O servidor não conseguiu concluir a solicitação. Confira as tabelas e as variáveis do Supabase.' });
 });
+
+async function checkScheduledPushes() {
+  if (!pushEnabled || !supabase) return;
+  try {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const dayNumber = saoPauloDay(), month = monthKey();
+    const { data: stateRow, error: stateError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (stateError) throw stateError;
+    const nextGame = stateRow?.state_json?.nextGame;
+    if (nextGame?.date === today) {
+      const label = [nextGame.name, nextGame.time, nextGame.address].filter(Boolean).join(' · ');
+      await sendPushAll(`baba-day:${today}`, { title: 'Hoje tem baba!', body: label || 'Confira a Central Baba para ver o local e confirmar presença.', url: '/' });
+    }
+    const { data: members, error: membersError } = await supabase.from('profiles').select('id,email,name,position,paid_month,is_admin');
+    if (membersError) throw membersError;
+    const fee = await getFee();
+    for (const member of (members || []).filter(row => !isDemoMember(row))) {
+      const status = billingStatus(member, fee).status;
+      if (status === 'pending' && dayNumber <= 12) await sendPushUsers([member.id], `billing-pending:${month}`, { title: 'Mensalidade pendente', body: 'A mensalidade está disponível e vence no dia 12. Confira os dados Pix no app.', url: '/' });
+      else if (status === 'overdue' && dayNumber > 12) await sendPushUsers([member.id], `billing-overdue:${month}`, { title: 'Mensalidade em atraso', body: 'Fale com um administrador pelo WhatsApp para regularizar o pagamento.', url: '/' });
+    }
+  } catch (error) { console.warn('Não foi possível verificar os avisos agendados:', error.message); }
+}
+const pushReminderTimer = setInterval(checkScheduledPushes, 60 * 60 * 1000);
+pushReminderTimer.unref?.();
+setTimeout(checkScheduledPushes, 20_000).unref?.();
 
 app.listen(port, '0.0.0.0', () => console.log(`Futmancos API listening on ${port}`));

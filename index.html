@@ -107,7 +107,7 @@
         <button id="nav-desk-resenha" onclick="navigate('resenha')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Resenha</button>
         <button id="nav-desk-home" onclick="navigate('home')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition guest-only">Início</button>
         <button id="nav-desk-registro" onclick="navigate('registro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition guest-only">Criar Conta</button>
-        <button id="nav-desk-convidado" onclick="navigate('convidado')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Convidado</button>
+        <button id="nav-desk-convidado" onclick="navigate('convidado')" class="nav-btn-desk guest-only px-3 py-1.5 rounded-lg transition">Convidado</button>
         <button id="nav-desk-baba" onclick="navigate('baba')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Central Baba</button>
         <button id="nav-desk-perfil" onclick="navigate('perfil')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Meu Perfil</button>
         <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
@@ -267,6 +267,7 @@
 
     <!-- 0. ABA RESENHA -->
     <section id="sec-resenha" class="space-y-6">
+      <div id="resenhaGalleryCarousel" class="relative bg-black/50 border border-gray-800 rounded-2xl overflow-hidden min-h-24"></div>
       <div class="bg-brand-cardBg border border-gray-800 rounded-2xl p-6 text-center relative overflow-hidden">
         <h2 class="font-teko text-4xl sm:text-5xl text-brand-lightGreen tracking-wider uppercase">RESENHA FUTMANCOS</h2>
         <p class="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto -mt-1">
@@ -331,10 +332,6 @@
       </div>
 
 
-      <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-white">GALERIA DA ASSOCIAÇÃO</h3>
-        <div id="resenhaGallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
-      </div>
     </section>
 
     <!-- TELA INICIAL (GUEST) -->
@@ -384,7 +381,7 @@
         <label class="text-xs text-gray-400 sm:col-span-2">Nome completo<input id="guestName" required minlength="2" maxlength="80" autocomplete="name" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
         <label class="text-xs text-gray-400">CPF<input id="guestCpf" required inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" oninput="formatGuestCpf(this)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
         <label class="text-xs text-gray-400">Idade<input id="guestAge" required type="number" min="1" max="120" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
-        <label class="text-xs text-gray-400 sm:col-span-2">Quem convidou?<select id="guestInviter" required class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"><option value="">Carregando associados...</option></select></label>
+        <label class="text-xs text-gray-400 sm:col-span-2">Código do associado que convidou<input id="guestInvitationCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" placeholder="6 dígitos" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"><span class="block mt-1 text-[10px] text-gray-500">Peça o código ao associado. Ele fica no Perfil.</span></label>
         <div class="hidden" aria-hidden="true"><label>Deixe vazio<input id="guestWebsite" tabindex="-1" autocomplete="off"></label></div>
         <label class="sm:col-span-2 flex items-start gap-2 text-[11px] text-gray-400"><input id="guestPrivacyConsent" type="checkbox" required class="mt-0.5"><span>Autorizo o uso destes dados pela Futmancos para controle de acesso, identificação e segurança da associação. O CPF será armazenado criptografado e exibido aos ADMs apenas de forma mascarada.</span></label>
         <button type="submit" class="sm:col-span-2 bg-emerald-700 text-white font-bold py-3 rounded-xl">Cadastrar como convidado</button>
@@ -404,6 +401,7 @@
 
     <!-- CENTRAL DO BABA -->
     <section id="sec-baba" class="hidden space-y-4">
+      <div id="babaGalleryCarousel" class="relative bg-black/50 border border-gray-800 rounded-2xl overflow-hidden min-h-24"></div>
       <div class="bg-brand-cardBg border border-gray-800 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs text-brand-lightGreen font-bold tracking-widest uppercase">Próximo Baba</span>
@@ -445,22 +443,20 @@
         <div id="guestAttendanceList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       </div>
 
-      <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
-        <div>
-          <h3 class="font-teko text-2xl text-amber-400">REGISTRAR RESULTADO PÓS-JOGO</h3>
-          <p class="text-xs text-gray-400">Selecione os jogadores que atuaram, distribua os times e informe os números após o jogo. Só entram jogadores com check-in.</p>
-        </div>
-        <form onsubmit="adminSubmitMatch(event)" class="space-y-3">
-          <div class="grid grid-cols-2 gap-3 max-w-sm">
-            <label class="text-[10px] text-emerald-400 font-bold">GOLS TIME VERDE<input id="matchScoreA" type="number" min="0" value="0" required class="mt-1 w-full bg-black border border-emerald-500/40 rounded-xl p-2 text-white text-lg"></label>
-            <label class="text-[10px] text-amber-400 font-bold">GOLS TIME PRETO<input id="matchScoreB" type="number" min="0" value="0" required class="mt-1 w-full bg-black border border-amber-500/40 rounded-xl p-2 text-white text-lg"></label>
-          </div>
-          <label class="block max-w-xs text-[10px] text-gray-400">Data dos jogos<input id="adminMatchDate" type="date" required class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
-          <div id="adminMatchPlayers" class="space-y-2"></div>
-          <p id="adminMatchStatus" class="text-xs text-emerald-300"></p>
-          <div class="flex flex-col sm:flex-row gap-2"><button type="submit" class="bg-amber-500 text-black font-bold px-5 py-3 rounded-xl text-xs">SALVAR MAIS UM JOGO</button><button type="button" onclick="closeMatchDayVoting()" class="bg-brand-green text-black font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR O DIA E LIBERAR VOTAÇÃO</button></div>
-        </form>
-      </section>
+      <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-sky-300">SORTEIOS DO BABA</h3><div id="babaDrawResults" class="space-y-2"></div></div>
+<section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
+  <div><h3 class="font-teko text-2xl text-amber-400">SORTEAR TIMES E FECHAR RESULTADOS</h3><p class="text-xs text-gray-400">Os times são balanceados pelo OVR das cartinhas. Quem ainda não foi sorteado tem prioridade no próximo sorteio do dia. Registre todos os sorteios e, ao final, informe os resultados juntos.</p></div>
+  <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="loadBabaDraws(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+    <label class="text-[10px] text-gray-400">Quantidade total de jogadores<input id="drawPlayerCount" type="number" min="2" max="30" value="10" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
+    <label id="drawKeeperOverrideWrap" class="hidden text-[10px] text-gray-400">Atribuir função de goleiro<select id="drawKeeperOverride" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label>
+    <button type="button" onclick="createBalancedTeamDraw()" class="bg-sky-700 text-white font-bold px-4 py-3 rounded-xl text-xs">SORTEAR E SALVAR TIMES</button>
+  </div>
+  <p id="adminMatchStatus" class="text-xs text-emerald-300" aria-live="polite"></p>
+  <div><h4 class="font-teko text-xl text-white">SORTEIOS SALVOS</h4><div id="adminDrawRecords" class="space-y-2"></div></div>
+  <div><h4 class="font-teko text-xl text-amber-300">RESULTADOS DO DIA</h4><p class="text-[10px] text-gray-400 mb-2">Depois de todos os jogos, informe gols, assistências e defesas, e selecione o time vencedor em cada partida.</p><div id="adminDrawFinalizeList" class="space-y-3"></div></div>
+  <div class="flex flex-col sm:flex-row gap-2"><button type="button" onclick="saveDayDrawResults()" class="bg-amber-500 text-black font-bold px-5 py-3 rounded-xl text-xs">SALVAR RESULTADOS DE TODOS OS JOGOS</button><button type="button" onclick="closeMatchDayVoting()" class="bg-brand-green text-black font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR O DIA E LIBERAR VOTAÇÃO</button></div>
+</section>
 
       <section class="bg-brand-cardBg border border-amber-500/30 p-4 md:p-6 rounded-2xl space-y-4">
         <div class="border-b border-gray-800 pb-3">
@@ -496,6 +492,12 @@
         </div>
       </div>
 
+      <div id="memberGuestCodePanel" class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
+        <h3 class="font-teko text-2xl text-sky-300">CÓDIGO PARA CONVIDAR</h3>
+        <p class="text-xs text-gray-400">Compartilhe este código de seis dígitos com seu convidado para ele fazer o cadastro. Não é um código de acesso à conta.</p>
+        <div class="flex items-center gap-3"><strong id="memberGuestCode" class="font-mono tracking-[0.3em] text-2xl text-white">••••••</strong><button type="button" onclick="copyMemberGuestCode()" class="bg-sky-800 text-white px-3 py-2 rounded-lg text-xs font-bold">Copiar</button></div>
+        <p id="memberGuestCodeStatus" class="text-xs text-gray-400" aria-live="polite"></p>
+      </div>
       <div id="passkeySettings" class="hidden bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
         <div><h3 class="font-teko text-2xl text-emerald-300">ENTRADA COM BIOMETRIA</h3><p class="text-xs text-gray-400">Cadastre uma chave de acesso neste aparelho para entrar com digital, Face ID, PIN ou bloqueio de tela. A associação não recebe nem guarda sua biometria.</p></div>
         <button id="registerPasskeyBtn" type="button" onclick="registerDevicePasskey()" class="w-full sm:w-auto bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar biometria neste aparelho</button>
@@ -627,7 +629,7 @@
         <h2 class="font-teko text-4xl text-brand-lightGreen">AJUDA E NOTIFICAÇÕES</h2>
         <p class="text-sm text-gray-300">Instale a Futmancos na tela inicial pelo menu Compartilhar do Safari (iPhone) ou pelo menu do navegador (Android/Chrome).</p>
         <p class="text-sm text-gray-300">Para entrar com Face ID, digital ou PIN, entre na conta, abra Perfil e toque em “Ativar biometria neste aparelho”. O aparelho guarda a biometria; o site usa uma chave de acesso.</p>
-        <p class="text-xs text-gray-400">Lembretes dentro do site aparecem enquanto ele estiver aberto. Notificações push mesmo com o site fechado precisam de configuração adicional de servidor e permissões do aparelho.</p>
+        <p class="text-xs text-gray-400">Ative os avisos com o botão abaixo e permita notificações. No iPhone, instale primeiro a Futmancos na Tela de Início e abra o app instalado.</p>
         <button id="enableNotificationsBtn" onclick="enableFutmancosNotifications()" class="bg-sky-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar avisos neste aparelho</button>
         <p id="notificationStatus" class="text-xs text-gray-400"></p>
         <form id="recoveryPasswordForm" onsubmit="finishPasswordRecovery(event)" class="hidden border-t border-gray-800 pt-4 space-y-2">
@@ -999,7 +1001,7 @@
         <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[10px]">Início</span>
       </button>
-      <button id="nav-mob-convidado" onclick="navigate('convidado')" class="mobile-nav-btn flex flex-col items-center gap-0.5"><i data-lucide="user-round-plus" class="w-5 h-5"></i><span class="text-[10px]">Convid.</span></button>
+      <button id="nav-mob-convidado" onclick="navigate('convidado')" class="mobile-nav-btn guest-only flex flex-col items-center gap-0.5"><i data-lucide="user-round-plus" class="w-5 h-5"></i><span class="text-[10px]">Convid.</span></button>
       <button id="nav-mob-baba" onclick="navigate('baba')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
         <i data-lucide="volleyball" class="w-5 h-5"></i>
         <span class="text-[10px]">Baba</span>
@@ -1053,6 +1055,7 @@
       youtube: ''
     };
     let associationGallery = JSON.parse(localStorage.getItem('futmancos_gallery') || '[]');
+    let galleryCarouselIndex = 0, galleryCarouselTimer = null;
     let keeperCosts = JSON.parse(localStorage.getItem('futmancos_keeper_costs') || '[]');
     let lastSharedGameSnapshot = null;
     let sharedMatchesInitialized = false;
@@ -1076,6 +1079,7 @@
     let presentPlayers = JSON.parse(localStorage.getItem('futmancos_presence')) || [];
     let checkedInPlayers = JSON.parse(localStorage.getItem('futmancos_checkin')) || [];
     let matchHistory = JSON.parse(localStorage.getItem('futmancos_history')) || [];
+    let babaDraws = [];
 
     const DEMO_PLAYER_EMAILS = new Set(['lukyan@futmancos.com', 'mateus@futmancos.com']);
     const isDemoPlayer = player => DEMO_PLAYER_EMAILS.has(String(player.email || '').toLowerCase()) || ['mateus', 'lukyan'].includes(String(player.name || '').trim().toLowerCase());
@@ -1246,14 +1250,18 @@
       const digits = input.value.replace(/\D/g, '').slice(0, 11);
       input.value = digits.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     }
-    async function loadGuestInviters() {
-      const select = document.getElementById('guestInviter'); if (!select) return;
-      try {
-        const { inviters = [] } = await apiRequest('/guests/inviters');
-        select.replaceChildren(new Option('Selecione quem convidou', ''));
-        inviters.forEach(person => select.add(new Option(`${person.name}${Number(person.shirt) ? ` (#${person.shirt})` : ''}`, person.id)));
-        if (!inviters.length) select.replaceChildren(new Option('Nenhum associado disponível', ''));
-      } catch { select.replaceChildren(new Option('Não foi possível carregar associados', '')); }
+    async function loadMyGuestCode() {
+      if (!loggedUser) return;
+      const output = document.getElementById('memberGuestCode'), status = document.getElementById('memberGuestCodeStatus');
+      if (status) status.textContent = 'Carregando seu código…';
+      try { const result = await apiRequest('/me/guest-code'); if (output) output.textContent = result.code; if (status) status.textContent = 'Código ativo. Um convidado pode usá-lo no cadastro.'; }
+      catch (error) { if (status) status.textContent = error.message; }
+    }
+    async function copyMemberGuestCode() {
+      const code = document.getElementById('memberGuestCode')?.textContent || '';
+      if (!/^\d{6}$/.test(code)) return loadMyGuestCode();
+      try { await navigator.clipboard.writeText(code); const status = document.getElementById('memberGuestCodeStatus'); if (status) status.textContent = 'Código copiado.'; }
+      catch { alert(`Seu código para convidar é ${code}`); }
     }
     async function submitGuestRegistration(event) {
       event.preventDefault(); const form = event.target, status = document.getElementById('guestRegistrationStatus');
@@ -1261,7 +1269,7 @@
       if (status) status.textContent = 'Enviando cadastro…';
       try {
         const name = document.getElementById('guestName').value.trim();
-        const result = await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name, cpf: document.getElementById('guestCpf').value, age: Number(document.getElementById('guestAge').value), invitedBy: document.getElementById('guestInviter').value, website: document.getElementById('guestWebsite').value }) });
+        const result = await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name, cpf: document.getElementById('guestCpf').value, age: Number(document.getElementById('guestAge').value), invitationCode: document.getElementById('guestInvitationCode').value, website: document.getElementById('guestWebsite').value }) });
         currentGuestCheckoutName = result.guest?.name || name;
         form.reset(); if (status) status.textContent = 'Cadastro concluído. Abrindo os dados para pagamento…';
         const welcome = document.getElementById('guestPaymentWelcome'); if (welcome) welcome.textContent = `Cadastro de ${currentGuestCheckoutName} concluído. Faça o Pix da diária e envie o comprovante à administração.`;
@@ -1328,7 +1336,7 @@
       if (sharedSyncTimer) return;
       sharedSyncTimer = window.setInterval(async () => {
         if (!loggedUser) return;
-        await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance();
+        await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance(); await loadBabaDraws();
         await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await refreshPaymentStatus();
         if (loggedUser.isAdmin) { await refreshAdminMembers(); await refreshAdminGuests(); }
         renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton();
@@ -1382,6 +1390,25 @@
       } catch (error) { console.warn('O navegador não concluiu a instalação.', error); }
       deferredInstallPrompt = null;
     }
+    function decodePushKey(base64) {
+      const padded = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+      return Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+    }
+    async function enableFutmancosNotifications() {
+      const status = document.getElementById('notificationStatus');
+      if (!loggedUser) { openLoginModal(); if (status) status.textContent = 'Entre na sua conta para receber avisos pessoais.'; return; }
+      if (!('Notification' in window) || !('serviceWorker' in navigator) || !window.isSecureContext) { if (status) status.textContent = 'Este navegador precisa oferecer notificações e acesso HTTPS.'; return; }
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') { if (status) status.textContent = 'Permita notificações nas configurações do navegador.'; return; }
+        const config = await apiRequest('/push/public-key');
+        if (!config.enabled || !config.publicKey) throw new Error('O servidor ainda não foi configurado para notificações push.');
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodePushKey(config.publicKey) });
+        await apiRequest('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: subscription.toJSON() }) });
+        if (status) status.textContent = 'Avisos ativados neste aparelho. Você receberá notícias de babas, pagamentos e votações.';
+      } catch (error) { if (status) status.textContent = error.message || 'Não foi possível ativar os avisos.'; }
+    }
 
     async function init() {
       configureFutmancosPWA();
@@ -1391,9 +1418,9 @@
         await loadSharedAppState(true);
         await loadSharedMatchHistory();
         await refreshSharedAttendance();
-        await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
+        await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await loadBabaDraws(activeBabaDate);
       }
-      const matchDateInput = document.getElementById('adminMatchDate'); if (matchDateInput && !matchDateInput.value) matchDateInput.value = localDateKey();
+      const matchDateInput = document.getElementById('adminMatchDate'); if (matchDateInput && !matchDateInput.value) matchDateInput.value = activeBabaDate || localDateKey();
       populateShirts();
       populateKeeperSelectors();
       renderPresence();
@@ -1417,7 +1444,6 @@
       document.getElementById('admGlobalFeeInput').value = globalMonthlyFee;
       document.getElementById('admGuestFeeInput').value = globalGuestFee;
       document.getElementById('admKeeperFeeInput').value = globalKeeperFee;
-      await loadGuestInviters();
 
       if (mediaLinks.instagram) document.getElementById('admInstaLink').value = mediaLinks.instagram;
       if (document.getElementById('admYtLink')) document.getElementById('admYtLink').value = (mediaLinks.youtubeVideos || (mediaLinks.youtube ? [mediaLinks.youtube] : [])).join('\n');
@@ -1957,6 +1983,7 @@
     }
 
     function navigate(secId) {
+      if (loggedUser && secId === 'convidado') { alert('A aba de cadastro de convidados fica disponível para pessoas sem conta. Compartilhe seu código no Perfil.'); return navigate('perfil'); }
       if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custos'].includes(secId)) {
         openLoginModal();
         return;
@@ -1972,8 +1999,8 @@
       updateNavHighlight(secId);
 
       if (secId === 'resenha') renderResenhaTab();
-      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); updatePresenceButton(); }
-      if (secId === 'perfil') renderProfile();
+      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
+      if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); }
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); }
       if (secId === 'financeiro') refreshPaymentStatus();
@@ -2166,13 +2193,6 @@
       toast.classList.remove('hidden'); clearTimeout(toast._timer); toast._timer = setTimeout(() => toast.classList.add('hidden'), 6000);
       if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState === 'hidden') new Notification(title, { body, icon: '/assets/app-icon-192.png' });
     }
-    async function enableFutmancosNotifications() {
-      const status = document.getElementById('notificationStatus');
-      if (!('Notification' in window)) { status.innerText = 'Este navegador não oferece notificações. Os avisos continuam dentro do site.'; return; }
-      const permission = await Notification.requestPermission();
-      status.innerText = permission === 'granted' ? 'Avisos ativados neste aparelho enquanto o site estiver aberto.' : 'Permissão não concedida. Você pode ativá-la nas configurações do navegador.';
-      if (permission === 'granted') showFutmancosNotice('Avisos ativados', 'Você receberá alertas de alterações enquanto usar o site.');
-    }
     async function sendPasswordRecovery() {
       const email = document.getElementById('loginUsername').value.trim();
       if (!email) return alert('Digite seu e-mail no campo de entrada para receber o link de recuperação.');
@@ -2235,14 +2255,28 @@
     }
 
     function renderAssociationGallery() {
-      const box = document.getElementById('resenhaGallery'); if (!box) return;
-      box.replaceChildren();
-      (associationGallery || []).forEach(item => {
-        if (!item?.url || !String(item.url).startsWith('https://')) return;
-        const image = document.createElement('img'); image.src = item.url; image.alt = 'Foto da associação Futmancos'; image.loading = 'lazy';
-        image.className = 'w-full aspect-square object-cover rounded-xl border border-gray-800'; box.append(image);
+      const photos = (associationGallery || []).filter(item => item?.url && String(item.url).startsWith('https://'));
+      const targets = ['resenhaGalleryCarousel', 'babaGalleryCarousel'];
+      if (!photos.length) {
+        targets.forEach(id => { const box = document.getElementById(id); if (box) { box.className = 'bg-brand-cardBg border border-gray-800 rounded-2xl p-4 text-center text-xs text-gray-500'; box.textContent = 'A galeria da associação aparecerá aqui.'; } });
+        return;
+      }
+      galleryCarouselIndex %= photos.length;
+      targets.forEach(id => {
+        const box = document.getElementById(id); if (!box) return;
+        box.className = 'relative bg-black/60 border border-gray-800 rounded-2xl overflow-hidden'; box.replaceChildren();
+        const photo = document.createElement('img'); photo.src = photos[galleryCarouselIndex].url; photo.alt = `Foto ${galleryCarouselIndex + 1} da Futmancos`; photo.className = 'w-full h-48 sm:h-64 md:h-80 object-cover'; photo.loading = 'lazy'; box.append(photo);
+        const label = document.createElement('span'); label.className = 'absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-[10px] font-bold text-white'; label.textContent = `GALERIA · ${galleryCarouselIndex + 1}/${photos.length}`; box.append(label);
+        const previous = document.createElement('button'); previous.type = 'button'; previous.setAttribute('aria-label', 'Foto anterior'); previous.className = 'absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 text-white px-3 py-2'; previous.textContent = '‹'; previous.onclick = () => stepGalleryCarousel(-1); box.append(previous);
+        const next = document.createElement('button'); next.type = 'button'; next.setAttribute('aria-label', 'Próxima foto'); next.className = 'absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 text-white px-3 py-2'; next.textContent = '›'; next.onclick = () => stepGalleryCarousel(1); box.append(next);
       });
-      if (!box.children.length) box.innerHTML = '<p class="col-span-full text-xs text-gray-500">As fotos da resenha aparecerão aqui.</p>';
+      if (!galleryCarouselTimer) galleryCarouselTimer = window.setInterval(() => stepGalleryCarousel(1), 6000);
+    }
+    function stepGalleryCarousel(direction) {
+      const photos = (associationGallery || []).filter(item => item?.url && String(item.url).startsWith('https://'));
+      if (!photos.length) return;
+      galleryCarouselIndex = (galleryCarouselIndex + direction + photos.length) % photos.length;
+      renderAssociationGallery();
     }
     function renderGalleryAdmin() {
       const box = document.getElementById('adminGalleryList'); if (!box) return;
@@ -2390,9 +2424,109 @@
       const latest = matchHistory[0]; const dayKey = latest.gameDay || `legacy-${latest.id}`;
       return matchHistory.filter(match => (match.gameDay || `legacy-${match.id}`) === dayKey);
     }
+    async function loadBabaDraws(date = document.getElementById('adminMatchDate')?.value || activeBabaDate) {
+      if (!loggedUser || !date) return;
+      try { babaDraws = (await apiRequest(`/baba/draws?date=${encodeURIComponent(date)}`)).draws || []; renderTeamDraws(); }
+      catch (error) { console.warn('Sorteios compartilhados indisponíveis.', error); }
+    }
+    function drawCandidates() {
+      return checkedInPlayers.map(id => players.find(player => String(player.id) === String(id))).filter(player => player?.serverId && /^[0-9a-f-]{36}$/i.test(String(player.serverId)));
+    }
+    function renderDrawKeeperChoice() {
+      const wrap = document.getElementById('drawKeeperOverrideWrap'), select = document.getElementById('drawKeeperOverride');
+      if (!wrap || !select) return;
+      const candidates = drawCandidates(), goalies = candidates.filter(player => String(player.pos || '').toLowerCase().includes('goleiro'));
+      wrap.classList.toggle('hidden', goalies.length > 0);
+      select.replaceChildren(new Option('Escolha quem será goleiro', ''));
+      candidates.forEach(player => select.add(new Option(player.name, String(player.serverId))));
+    }
+    function renderTeamDraws() {
+      const publicBox = document.getElementById('babaDrawResults'), adminBox = document.getElementById('adminDrawRecords'), finalizeBox = document.getElementById('adminDrawFinalizeList');
+      renderDrawKeeperChoice();
+      const score = draw => draw.players.reduce((sum, player) => sum + Number(player.ovr || 0), 0);
+      const card = draw => {
+        const a = draw.players.filter(player => player.team === 'A'), b = draw.players.filter(player => player.team === 'B');
+        const winnerText = draw.finalized ? (draw.winner === 'draw' ? 'Empate' : `Venceu o time ${draw.winner === 'A' ? 'Verde' : 'Preto'}`) : 'Aguardando resultado';
+        const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        return `<div class="bg-black/40 border border-gray-800 rounded-xl p-3"><div class="flex justify-between gap-2 text-xs"><strong>Sorteio ${draw.drawOrder}</strong><span class="text-gray-400">${winnerText}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><div class="text-emerald-300 text-xs"><strong>TIME VERDE · OVR ${score({players:a})}</strong><p>${a.map(player => safe(player.name)).join(', ')}</p></div><div class="text-amber-300 text-xs"><strong>TIME PRETO · OVR ${score({players:b})}</strong><p>${b.map(player => safe(player.name)).join(', ')}</p></div></div></div>`;
+      };
+      [publicBox, adminBox].forEach(box => { if (!box) return; box.innerHTML = babaDraws.length ? babaDraws.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum time sorteado para esta data.</p>'; });
+      if (!finalizeBox) return;
+      finalizeBox.replaceChildren();
+      const pending = babaDraws.filter(draw => !draw.finalized);
+      if (!pending.length) { finalizeBox.innerHTML = '<p class="text-xs text-gray-500">Não há resultados pendentes.</p>'; return; }
+      pending.forEach(draw => {
+        const panel = document.createElement('div'); panel.className = 'bg-black/40 border border-gray-800 rounded-xl p-3 space-y-2'; panel.dataset.drawId = draw.id;
+        const title = document.createElement('strong'); title.className = 'block text-sm text-amber-200'; title.textContent = `Sorteio ${draw.drawOrder} · vencedor`; panel.append(title);
+        const winner = document.createElement('select'); winner.className = 'w-full bg-black border border-gray-700 rounded-lg p-2 text-xs'; winner.dataset.winner = 'true'; winner.append(new Option('Selecione', ''), new Option('Time Verde', 'A'), new Option('Time Preto', 'B'), new Option('Empate', 'draw')); panel.append(winner);
+        draw.players.forEach(player => {
+          const row = document.createElement('div'); row.className = 'grid grid-cols-1 sm:grid-cols-4 gap-2 items-center border-t border-gray-800 pt-2';
+          const name = document.createElement('span'); name.className = 'text-xs text-white'; name.textContent = `${player.name} · ${player.team === 'A' ? 'Verde' : 'Preto'} · OVR ${player.ovr}`; row.append(name);
+          [['Gols','goals'],['Assist.','assists'],['Defesas','saves']].forEach(([label,key]) => { const field = document.createElement('label'); field.className = 'text-[9px] text-gray-400'; field.textContent = label; const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.value = '0'; input.className = 'mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white'; input.dataset.stat = `${player.userId}:${key}`; field.append(input); row.append(field); });
+          panel.append(row);
+        });
+        finalizeBox.append(panel);
+      });
+    }
+    function shuffleItems(items) { const copy = items.slice(); for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; }
+    async function createBalancedTeamDraw() {
+      if (!loggedUser?.isAdmin) return alert('Apenas ADM pode sortear os times.');
+      const gameDay = document.getElementById('adminMatchDate').value || localDateKey();
+      const count = Number(document.getElementById('drawPlayerCount').value), candidates = drawCandidates();
+      if (!Number.isInteger(count) || count < 2 || count > 30 || count > candidates.length) return alert(`Escolha uma quantidade entre 2 e ${Math.min(30, candidates.length)} jogadores com check-in.`);
+      const registeredGoalies = candidates.filter(player => String(player.pos || '').toLowerCase().includes('goleiro'));
+      const assignedKeeperId = registeredGoalies.length ? '' : document.getElementById('drawKeeperOverride').value;
+      if (!registeredGoalies.length && !assignedKeeperId) return alert('Não há goleiro com check-in. Escolha um jogador para receber essa função neste sorteio.');
+      const previouslyDrawn = new Set(babaDraws.flatMap(draw => draw.players.map(player => String(player.userId))));
+      const keeperChoices = registeredGoalies.length ? registeredGoalies : candidates.filter(player => String(player.serverId) === assignedKeeperId);
+      const freshKeepers = shuffleItems(keeperChoices.filter(player => !previouslyDrawn.has(String(player.serverId))));
+      const forced = freshKeepers[0] || shuffleItems(keeperChoices)[0];
+      const pool = candidates.filter(player => String(player.serverId) !== String(forced?.serverId || ''));
+      const fresh = shuffleItems(pool.filter(player => !previouslyDrawn.has(String(player.serverId))));
+      const rest = shuffleItems(pool.filter(player => previouslyDrawn.has(String(player.serverId))));
+      const picked = [...(forced ? [forced] : []), ...fresh, ...rest].slice(0, count);
+      if (picked.length !== count) return alert('Não há jogadores suficientes com check-in para este sorteio.');
+      const ovr = player => calcOVR(player), sums = { A: 0, B: 0 }, keepers = { A: 0, B: 0 }, assigned = [];
+      picked.sort((a,b) => ovr(b)-ovr(a) || Math.random() - 0.5).forEach(player => {
+        const isKeeper = String(player.pos || '').toLowerCase().includes('goleiro') || String(player.serverId) === assignedKeeperId;
+        let team;
+        if (isKeeper && keepers.A !== keepers.B) team = keepers.A < keepers.B ? 'A' : 'B';
+        else if (sums.A !== sums.B) team = sums.A < sums.B ? 'A' : 'B';
+        else team = Math.random() < 0.5 ? 'A' : 'B';
+        sums[team] += ovr(player); if (isKeeper) keepers[team]++;
+        assigned.push({ userId: player.serverId, ovr: ovr(player), team });
+      });
+      try {
+        const result = await apiRequest('/admin/baba/draws', { method: 'POST', body: JSON.stringify({ gameDay, selectedCount: count, assignedKeeperId, players: assigned }) });
+        babaDraws.push(result.draw); renderTeamDraws();
+        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Sorteio ${result.draw.drawOrder} salvo para todos os dispositivos. Overall dos times: ${sums.A} × ${sums.B}.`;
+      } catch (error) { alert(error.message); }
+    }
+    async function saveDayDrawResults() {
+      if (!loggedUser?.isAdmin) return alert('Apenas ADM pode salvar os resultados.');
+      const panels = [...document.querySelectorAll('#adminDrawFinalizeList [data-draw-id]')];
+      if (!panels.length) return alert('Não há resultados pendentes.');
+      try {
+        for (const panel of panels) {
+          const drawId = panel.dataset.drawId, winner = panel.querySelector('[data-winner]')?.value;
+          if (!winner) return alert(`Selecione o time vencedor do sorteio ${babaDraws.find(draw => draw.id === drawId)?.drawOrder || ''}.`);
+          const draw = babaDraws.find(item => String(item.id) === String(drawId));
+          const stats = draw.players.map(player => { const values = Object.fromEntries([...panel.querySelectorAll(`[data-stat^="${player.userId}:"]`)].map(input => [input.dataset.stat.split(':')[1], Number(input.value) || 0])); return { userId: player.userId, ...values }; });
+          const result = await apiRequest(`/admin/baba/draws/${encodeURIComponent(drawId)}/finalize`, { method: 'PUT', body: JSON.stringify({ winner, stats }) });
+          const current = babaDraws.findIndex(item => String(item.id) === String(drawId)); if (current >= 0) babaDraws[current] = result.draw;
+          const oldMatch = matchHistory.findIndex(item => String(item.id) === String(result.match.id)); if (oldMatch >= 0) matchHistory[oldMatch] = result.match; else matchHistory.unshift(result.match);
+          result.match.stats.forEach(stat => { const player = players.find(item => String(item.serverId || item.id) === String(stat.playerId) || String(item.email || '').toLowerCase() === String(stat.email || '').toLowerCase()); if (player) { player.goals = (player.goals || 0) + stat.goals; player.assists = (player.assists || 0) + stat.assists; player.saves = (player.saves || 0) + stat.saves; player.matches = (player.matches || 0) + 1; player.days = (player.days || 0) + 1; } });
+        }
+        saveState(); renderTeamDraws(); renderRanking(); renderEAFCCardsGrid(); renderProfile(); renderMatchHistory(); renderVotingSection();
+        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = 'Resultados finais compartilhados. Agora você pode encerrar o dia e liberar a votação.';
+        alert('Resultados salvos. Os dados oficiais e as cartinhas já foram atualizados.');
+      } catch (error) { alert(`Não foi possível salvar todos os resultados. ${error.message}`); await loadBabaDraws(); await loadSharedMatchHistory(); }
+    }
+
     async function closeMatchDayVoting() {
       if (!loggedUser?.isAdmin) return alert('Apenas administradores podem encerrar o dia.');
       const date = document.getElementById('adminMatchDate')?.value || localDateKey();
+      await loadBabaDraws(date); await loadSharedMatchHistory();
       const games = matchHistory.filter(match => match.gameDay === date);
       if (!games.length) return alert('Salve ao menos um jogo para essa data antes de liberar a votação.');
       try { await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/close`, { method: 'PUT', body: '{}' }); }
