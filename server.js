@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timingSafeEqual, randomUUID } from 'node:crypto';
+import { createCipheriv, createHmac, randomBytes, createHash, timingSafeEqual, randomUUID } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import { createClient } from '@supabase/supabase-js';
@@ -15,6 +15,24 @@ const adminDeleteCode = env('ADMIN_DELETE_CODE', '8630');
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
+function guestCpfHash(cpf) { return createHmac('sha256', supabaseServiceKey || 'missing-server-secret').update(cpf).digest('hex'); }
+function encryptGuestCpf(cpf) {
+  const key = createHash('sha256').update(`${supabaseServiceKey || 'missing-server-secret'}:futmancos-guest-cpf:v1`).digest();
+  const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(cpf, 'utf8'), cipher.final()]);
+  return `${iv.toString('base64')}.${cipher.getAuthTag().toString('base64')}.${encrypted.toString('base64')}`;
+}
+function isValidCpf(value) {
+  const cpf = String(value || '').replace(/\D/g, '');
+  if (!/^\d{11}$/.test(cpf) || /^([0-9])\1{10}$/.test(cpf)) return false;
+  for (let length = 9; length <= 10; length++) {
+    let sum = 0;
+    for (let i = 0; i < length; i++) sum += Number(cpf[i]) * (length + 1 - i);
+    const digit = (sum * 10) % 11 % 10;
+    if (digit !== Number(cpf[length])) return false;
+  }
+  return true;
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -160,6 +178,90 @@ async function attendanceRows(day) {
     .sort((a, b) => a.row.created_at.localeCompare(b.row.created_at) || a.profile.name.localeCompare(b.profile.name))
     .map(({ row, profile }) => ({ kind: row.kind, userId: profile.id, email: profile.email, name: profile.name, position: profile.position }));
 }
+app.get('/api/guests/inviters', requireDatabase, async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('id,name,email,shirt_number').order('name');
+    if (error) throw error;
+    res.json({ inviters: (data || []).filter(row => !isDemoMember(row)).map(row => ({ id: row.id, name: row.name, shirt: Number(row.shirt_number) || 0 })) });
+  } catch (error) { next(error); }
+});
+app.post('/api/guests', requireDatabase, async (req, res, next) => {
+  const name = String(req.body?.name || '').trim().replace(/\s+/g, ' ');
+  const cpf = String(req.body?.cpf || '').replace(/\D/g, '');
+  const age = Number(req.body?.age), invitedBy = String(req.body?.invitedBy || ''), honeypot = String(req.body?.website || '');
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (honeypot) return res.status(400).json({ error: 'Cadastro inválido.' });
+  if (name.length < 2 || name.length > 80 || !isValidCpf(cpf) || !Number.isInteger(age) || age < 1 || age > 120 || !uuidPattern.test(invitedBy)) {
+    return res.status(400).json({ error: 'Confira nome, CPF, idade e selecione quem convidou.' });
+  }
+  try {
+    const { data: inviter, error: inviterError } = await supabase.from('profiles').select('id,name').eq('id', invitedBy).maybeSingle();
+    if (inviterError) throw inviterError;
+    if (!inviter || isDemoMember(inviter)) return res.status(400).json({ error: 'Selecione um associado válido como responsável pelo convite.' });
+    const { data: guest, error } = await supabase.from('baba_guests').insert({
+      name, cpf_hash: guestCpfHash(cpf), cpf_encrypted: encryptGuestCpf(cpf), cpf_last4: cpf.slice(-4), age, invited_by: invitedBy
+    }).select('id,name,age,created_at').single();
+    if (error?.code === '23505') return res.status(409).json({ error: 'Este CPF já está cadastrado como convidado. Fale com a administração se precisar corrigir os dados.' });
+    if (error) throw error;
+    res.status(201).json({ guest: { ...guest, invitedByName: inviter.name } });
+  } catch (error) { next(error); }
+});
+async function guestAttendanceRows(day, viewer) {
+  const { data: guests, error } = await supabase.from('baba_guests').select('id,name,age,invited_by,created_at').order('created_at', { ascending: false });
+  if (error) throw error;
+  const guestIds = (guests || []).map(guest => guest.id);
+  const { data: marked, error: attendanceError } = guestIds.length
+    ? await supabase.from('baba_guest_attendance').select('guest_id,kind,marked_by,created_at').eq('game_day', day).in('guest_id', guestIds)
+    : { data: [], error: null };
+  if (attendanceError) throw attendanceError;
+  const attendingIds = new Set((marked || []).map(row => row.guest_id));
+  const visible = (guests || []).filter(guest => viewer.is_admin || guest.invited_by === viewer.id || attendingIds.has(guest.id));
+  const profileIds = [...new Set(visible.flatMap(guest => [guest.invited_by, ...(marked || []).filter(row => row.guest_id === guest.id).map(row => row.marked_by)].filter(Boolean)))];
+  const { data: profiles, error: profilesError } = profileIds.length
+    ? await supabase.from('profiles').select('id,name').in('id', profileIds)
+    : { data: [], error: null };
+  if (profilesError) throw profilesError;
+  const profileName = new Map((profiles || []).map(profile => [profile.id, profile.name]));
+  return visible.map(guest => {
+    const records = (marked || []).filter(row => row.guest_id === guest.id);
+    return {
+      id: guest.id, name: guest.name, age: viewer.is_admin || guest.invited_by === viewer.id ? guest.age : null,
+      invitedBy: profileName.get(guest.invited_by) || 'Associado', invitedById: guest.invited_by,
+      presence: records.some(row => row.kind === 'presence'), checkin: records.some(row => row.kind === 'checkin'),
+      canManage: !!viewer.is_admin || guest.invited_by === viewer.id
+    };
+  }).sort((a, b) => Number(b.checkin) - Number(a.checkin) || Number(b.presence) - Number(a.presence) || a.name.localeCompare(b.name));
+}
+app.get('/api/baba/guests/attendance', authenticate, requireDatabase, async (req, res, next) => {
+  const day = String(req.query.date || '');
+  if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
+  try { res.json({ guests: await guestAttendanceRows(day, req.user) }); } catch (error) { next(error); }
+});
+app.post('/api/baba/guests/:id/attendance', authenticate, requireDatabase, async (req, res, next) => {
+  const day = String(req.body?.date || ''), kind = String(req.body?.kind || ''), guestId = String(req.params.id || '');
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!validDate(day) || !['presence', 'checkin'].includes(kind) || !uuidPattern.test(guestId)) return res.status(400).json({ error: 'Dados de presença/check-in inválidos.' });
+  try {
+    const { data: guest, error: guestError } = await supabase.from('baba_guests').select('id,invited_by').eq('id', guestId).maybeSingle();
+    if (guestError) throw guestError;
+    if (!guest) return res.status(404).json({ error: 'Convidado não encontrado.' });
+    if (!req.user.is_admin && guest.invited_by !== req.user.id) return res.status(403).json({ error: 'Somente quem convidou ou um ADM pode marcar esta presença.' });
+    const { data: presence, error: presenceError } = await supabase.from('baba_guest_attendance').select('id').eq('game_day', day).eq('guest_id', guestId).eq('kind', 'presence').maybeSingle();
+    if (presenceError) throw presenceError;
+    if (kind === 'presence' && presence) {
+      const { error } = await supabase.from('baba_guest_attendance').delete().eq('game_day', day).eq('guest_id', guestId);
+      if (error) throw error;
+    } else if (kind === 'checkin') {
+      if (!presence) return res.status(409).json({ error: 'Marque presença do convidado antes do check-in.' });
+      const { error } = await supabase.from('baba_guest_attendance').upsert({ game_day: day, guest_id: guestId, kind, marked_by: req.user.id }, { onConflict: 'game_day,guest_id,kind', ignoreDuplicates: true });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('baba_guest_attendance').upsert({ game_day: day, guest_id: guestId, kind, marked_by: req.user.id }, { onConflict: 'game_day,guest_id,kind', ignoreDuplicates: true });
+      if (error) throw error;
+    }
+    res.json({ guests: await guestAttendanceRows(day, req.user) });
+  } catch (error) { next(error); }
+});
 app.get('/api/baba/attendance', authenticate, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
   if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
@@ -310,6 +412,48 @@ app.get('/api/admin/members', authenticate, requireAdmin, requireDatabase, async
     res.json({ members: rows.map(row => ({ ...userPublic(row), paymentStatus: billingStatus(row, fee).status })) });
   } catch (error) { next(error); }
 });
+app.get('/api/admin/guests', authenticate, requireAdmin, requireDatabase, async (_req, res, next) => {
+  try {
+    const { data: guests, error } = await supabase.from('baba_guests').select('id,name,cpf_last4,age,invited_by,created_at').order('created_at', { ascending: false });
+    if (error) throw error;
+    const inviterIds = [...new Set((guests || []).map(guest => guest.invited_by).filter(Boolean))];
+    const { data: profiles, error: profileError } = inviterIds.length
+      ? await supabase.from('profiles').select('id,name').in('id', inviterIds)
+      : { data: [], error: null };
+    if (profileError) throw profileError;
+    const names = new Map((profiles || []).map(profile => [profile.id, profile.name]));
+    res.json({ guests: (guests || []).map(guest => ({ ...guest, cpfMasked: `***.***.***-${guest.cpf_last4}`, invitedByName: names.get(guest.invited_by) || 'Associado removido' })) });
+  } catch (error) { next(error); }
+});
+app.delete('/api/admin/guests/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const guestId = String(req.params.id || '');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(guestId)) return res.status(400).json({ error: 'Identificador de convidado inválido.' });
+  try {
+    const { data, error } = await supabase.from('baba_guests').delete().eq('id', guestId).select('id');
+    if (error) throw error;
+    if (!data?.length) return res.status(404).json({ error: 'Convidado não encontrado.' });
+    res.json({ ok: true, id: guestId });
+  } catch (error) { next(error); }
+});
+app.delete('/api/admin/transactions/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const submitted = Buffer.from(String(req.body?.adminCode || ''));
+  const expected = Buffer.from(adminDeleteCode);
+  if (submitted.length !== expected.length || !timingSafeEqual(submitted, expected)) return res.status(403).json({ error: 'Código de administração incorreto.' });
+  const transactionId = String(req.params.id || '');
+  if (!transactionId || transactionId.length > 120) return res.status(400).json({ error: 'Identificador da transação inválido.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (readError) throw readError;
+    if (!row) return res.status(404).json({ error: 'Caixa ainda não possui transações compartilhadas.' });
+    const state = row.state_json || {}, current = Array.isArray(state.transactions) ? state.transactions : [];
+    const next = current.filter(item => String(item.id) !== transactionId);
+    if (next.length === current.length) return res.status(404).json({ error: 'Transação não encontrada no caixa compartilhado.' });
+    state.transactions = next;
+    const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) throw error;
+    res.json({ ok: true, transactions: next });
+  } catch (error) { next(error); }
+});
 app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const memberId = String(req.params.id || '');
   const submittedCodeBuffer = Buffer.from(String(req.body?.adminCode || ''));
@@ -375,10 +519,9 @@ app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatab
   const photo = String(req.body?.photo || '');
   if (!validatePhoto(photo)) return res.status(400).json({ error: 'A foto deve ser PNG, JPG ou WebP e ter até 350 KB.' });
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id,position').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
-    if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const { error } = await supabase.from('profiles').update({ photo }).eq('id', member.id);
     if (error) throw error;
     res.json({ ok: true });
@@ -407,9 +550,10 @@ app.put('/api/admin/members/:id/shirt-number', authenticate, requireAdmin, requi
 
 app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,position').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const month = monthKey();
     const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
     if (error) throw error;
@@ -420,9 +564,13 @@ app.put('/api/admin/monthly-fee', authenticate, requireAdmin, requireDatabase, a
   const amount = Number(req.body?.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000) return res.status(400).json({ error: 'Informe um valor mensal válido.' });
   try {
+    const guestFee = Number(req.body?.guestFee ?? await setting('guest_daily_fee') ?? 0);
+    const keeperFee = Number(req.body?.keeperFee ?? await setting('keeper_event_fee') ?? 0);
+    if (!Number.isFinite(guestFee) || guestFee < 0 || guestFee > 5000 || !Number.isFinite(keeperFee) || keeperFee < 0 || keeperFee > 5000) return res.status(400).json({ error: 'Informe valores válidos para convidado e custos de goleiro.' });
     const fee = Math.round(amount * 100) / 100;
-    await saveSetting('monthly_fee', fee);
-    res.json({ monthlyFee: fee });
+    const guestDailyFee = Math.round(guestFee * 100) / 100, keeperEventFee = Math.round(keeperFee * 100) / 100;
+    await Promise.all([saveSetting('monthly_fee', fee), saveSetting('guest_daily_fee', guestDailyFee), saveSetting('keeper_event_fee', keeperEventFee)]);
+    res.json({ monthlyFee: fee, guestFee: guestDailyFee, keeperFee: keeperEventFee });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -438,8 +586,8 @@ app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, 
 });
 app.get('/api/config', requireDatabase, async (_req, res, next) => {
   try {
-    const [monthlyFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('pix_key'), setting('pix_qr_data_url')]);
-    res.json({ monthlyFee, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
+    const [monthlyFee, guestFee, keeperFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('pix_key'), setting('pix_qr_data_url')]);
+    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, keeperFee: Number(keeperFee) || 0, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
   } catch (error) { next(error); }
 });
 

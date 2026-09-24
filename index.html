@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8">
@@ -105,6 +105,7 @@
         <button id="nav-desk-resenha" onclick="navigate('resenha')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Resenha</button>
         <button id="nav-desk-home" onclick="navigate('home')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition guest-only">Início</button>
         <button id="nav-desk-registro" onclick="navigate('registro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition guest-only">Criar Conta</button>
+        <button id="nav-desk-convidado" onclick="navigate('convidado')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Convidado</button>
         <button id="nav-desk-baba" onclick="navigate('baba')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Central Baba</button>
         <button id="nav-desk-perfil" onclick="navigate('perfil')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Meu Perfil</button>
         <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
@@ -329,7 +330,7 @@
 
       <div class="bg-brand-cardBg border border-emerald-500/30 p-5 rounded-2xl space-y-3">
         <h3 class="font-teko text-2xl text-emerald-300">PIX PARA CONVIDADOS</h3>
-        <p class="text-xs text-gray-300">Faça o Pix da diária e envie o comprovante para a administração pelo WhatsApp.</p>
+        <p class="text-xs text-gray-300">Diária do convidado: <strong id="guestDailyFee" class="text-emerald-300">R$ 0,00</strong>. Faça o Pix e envie o comprovante à administração.</p>
         <img id="guestPixQr" alt="QR Code Pix da associação" class="hidden mx-auto w-44 h-44 object-contain bg-white p-2 rounded-xl">
         <div id="guestPixKeyBox" class="hidden text-center space-y-2"><code id="guestPixKey" class="block text-sm break-all"></code><button onclick="copyPixKey()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold">Copiar chave Pix</button></div>
         <p id="guestPixEmpty" class="text-xs text-amber-200">A administração ainda não cadastrou o Pix.</p>
@@ -355,9 +356,10 @@
         <p class="text-xs sm:text-sm text-gray-300 max-w-2xl mx-auto mt-4 leading-relaxed">
           Somos uma associação de amigos apaixonados pelo futebol do fim de semana. Aqui o espírito esportivo e a amizade vêm antes do placar. Venha fazer parte do nosso grupo!
         </p>
-        <div class="mt-6 flex flex-wrap justify-center gap-3">
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
           <button onclick="openLoginModal()" class="bg-brand-green text-black font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider">Já sou Membro (Fazer Login)</button>
           <button onclick="navigate('registro')" class="bg-gray-800 border border-gray-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider">Criar minha conta</button>
+          <button onclick="navigate('convidado')" class="bg-emerald-800 border border-emerald-500/40 text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider">Cadastrar convidado</button>
         </div>
       </div>
 
@@ -380,6 +382,20 @@
           <p class="text-xs text-gray-400">Confirme presença e check-in; a administração registra os resultados depois do jogo.</p>
         </div>
       </div>
+    </section>
+
+    <section id="sec-convidado" class="hidden max-w-2xl mx-auto bg-brand-cardBg border border-emerald-500/30 p-5 sm:p-7 rounded-2xl space-y-4">
+      <div><h2 class="font-teko text-4xl text-emerald-300">CADASTRO DE CONVIDADO</h2><p class="text-xs text-gray-300">Não precisa criar conta. Informe os dados para a associação identificar quem participará do baba.</p><p class="text-xs text-emerald-300 mt-2">Diária: <strong id="guestSignupDailyFee">R$ 0,00</strong> — confira o Pix na Resenha.</p></div>
+      <form id="guestRegistrationForm" onsubmit="submitGuestRegistration(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="text-xs text-gray-400 sm:col-span-2">Nome completo<input id="guestName" required minlength="2" maxlength="80" autocomplete="name" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
+        <label class="text-xs text-gray-400">CPF<input id="guestCpf" required inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" oninput="formatGuestCpf(this)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
+        <label class="text-xs text-gray-400">Idade<input id="guestAge" required type="number" min="1" max="120" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"></label>
+        <label class="text-xs text-gray-400 sm:col-span-2">Quem convidou?<select id="guestInviter" required class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-3 text-sm text-white"><option value="">Carregando associados...</option></select></label>
+        <div class="hidden" aria-hidden="true"><label>Deixe vazio<input id="guestWebsite" tabindex="-1" autocomplete="off"></label></div>
+        <label class="sm:col-span-2 flex items-start gap-2 text-[11px] text-gray-400"><input id="guestPrivacyConsent" type="checkbox" required class="mt-0.5"><span>Autorizo o uso destes dados pela Futmancos para controle de acesso, identificação e segurança da associação. O CPF será armazenado criptografado e exibido aos ADMs apenas de forma mascarada.</span></label>
+        <button type="submit" class="sm:col-span-2 bg-emerald-700 text-white font-bold py-3 rounded-xl">Cadastrar como convidado</button>
+      </form>
+      <p id="guestRegistrationStatus" class="text-xs text-gray-300" aria-live="polite"></p>
     </section>
 
     <!-- CENTRAL DO BABA -->
@@ -417,6 +433,12 @@
           <p class="text-[10px] text-gray-400">Jogadores com check-in ficam disponíveis para o registro pós-jogo e para votar.</p>
           <div id="checkInList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar"></div>
         </div>
+      </div>
+
+      <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
+        <h3 class="font-teko text-2xl text-sky-300">CONVIDADOS DO BABA (<span id="guestBabaCount">0</span>)</h3>
+        <p class="text-[10px] text-gray-400">O ADM ou o associado que convidou pode marcar presença e check-in. Convidados ficam fora dos resultados oficiais, avaliações e cartinhas.</p>
+        <div id="guestAttendanceList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       </div>
 
       <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
@@ -591,6 +613,7 @@
       <div class="bg-brand-cardBg border border-amber-500/30 p-5 rounded-2xl space-y-3 max-w-3xl mx-auto">
         <h2 class="font-teko text-4xl text-amber-300">CUSTOS DE CHURRASCOS E CONFRA</h2>
         <p class="text-xs text-gray-300">A conta de goleiro é isenta da mensalidade. Aqui ficam apenas contribuições opcionais para churrascos e confraternizações.</p>
+        <p id="keeperFeeInfo" class="text-sm text-amber-200"></p>
         <div id="keeperCostsList" class="space-y-2"></div>
       </div>
     </section>
@@ -744,10 +767,11 @@
           <h3 class="font-teko text-2xl text-white">DEFINIR VALOR DA MENSALIDADE</h3>
           <p class="text-xs text-gray-400">Define o valor cobrado de todos os associados (membros e ADMs pagantes).</p>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <span class="text-xs font-bold text-gray-400">R$</span>
-          <input type="number" step="0.01" id="admGlobalFeeInput" class="bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-28 outline-none">
-          <button onclick="saveGlobalFee()" class="bg-amber-500 text-black font-bold text-xs px-3 py-2 rounded-xl">Atualizar</button>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full sm:w-auto">
+          <label class="text-[10px] text-gray-400">Mensalidade<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
+          <label class="text-[10px] text-gray-400">Diária convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
+          <label class="text-[10px] text-gray-400">Contribuição goleiro<input type="number" min="0" step="0.01" id="admKeeperFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
+          <button onclick="saveGlobalFee()" class="self-end bg-amber-500 text-black font-bold text-xs px-3 py-2 rounded-xl">Salvar valores</button>
         </div>
       </div>
 
@@ -880,6 +904,12 @@
         </div>
       </div>
 
+      <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
+        <h3 class="font-teko text-2xl text-sky-300">CONVIDADOS CADASTRADOS (<span id="guestAdminCount">0</span>)</h3>
+        <p class="text-[10px] text-gray-400">CPF aparece mascarado; o número completo permanece criptografado e restrito no banco.</p>
+        <div id="guestAdminList" class="space-y-2"></div>
+      </div>
+
       <!-- TABELA DE MEMBROS ADM -->
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-4">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -965,6 +995,7 @@
         <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[10px]">Início</span>
       </button>
+      <button id="nav-mob-convidado" onclick="navigate('convidado')" class="mobile-nav-btn flex flex-col items-center gap-0.5"><i data-lucide="user-round-plus" class="w-5 h-5"></i><span class="text-[10px]">Convid.</span></button>
       <button id="nav-mob-baba" onclick="navigate('baba')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
         <i data-lucide="volleyball" class="w-5 h-5"></i>
         <span class="text-[10px]">Baba</span>
@@ -1003,6 +1034,7 @@
     );
     let loggedUser = JSON.parse(localStorage.getItem('futmancos_loggedUser')) || null;
     let globalMonthlyFee = parseFloat(localStorage.getItem('futmancos_monthly_fee')) || 50.00;
+    let globalGuestFee = 0, globalKeeperFee = 0, guestAttendance = [];
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
     let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
@@ -1201,8 +1233,62 @@
           else if (addedCheckins.length) { const player = players.find(item => String(item.id) === String(addedCheckins[0])); showFutmancosNotice('Check-in registrado', `${player?.name || 'Um jogador'} chegou à arena.`); }
         }
         sharedAttendanceInitialized = true;
+        await refreshGuestAttendance();
         saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton(); renderResenhaTab();
       } catch (error) { console.warn('Presença compartilhada indisponível.', error); }
+    }
+    function formatGuestCpf(input) {
+      const digits = input.value.replace(/\D/g, '').slice(0, 11);
+      input.value = digits.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    async function loadGuestInviters() {
+      const select = document.getElementById('guestInviter'); if (!select) return;
+      try {
+        const { inviters = [] } = await apiRequest('/guests/inviters');
+        select.replaceChildren(new Option('Selecione quem convidou', ''));
+        inviters.forEach(person => select.add(new Option(`${person.name}${Number(person.shirt) ? ` (#${person.shirt})` : ''}`, person.id)));
+        if (!inviters.length) select.replaceChildren(new Option('Nenhum associado disponível', ''));
+      } catch { select.replaceChildren(new Option('Não foi possível carregar associados', '')); }
+    }
+    async function submitGuestRegistration(event) {
+      event.preventDefault(); const form = event.target, status = document.getElementById('guestRegistrationStatus');
+      const submit = form.querySelector('button[type="submit"]'); if (submit) submit.disabled = true;
+      if (status) status.textContent = 'Enviando cadastro…';
+      try {
+        await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name: document.getElementById('guestName').value, cpf: document.getElementById('guestCpf').value, age: Number(document.getElementById('guestAge').value), invitedBy: document.getElementById('guestInviter').value, website: document.getElementById('guestWebsite').value }) });
+        form.reset(); if (status) status.textContent = 'Convidado cadastrado. Quem convidou ou um ADM pode marcar a presença no Central Baba.';
+        await refreshGuestAttendance();
+      } catch (error) { if (status) status.textContent = error.message; }
+      finally { if (submit) submit.disabled = false; }
+    }
+    async function refreshGuestAttendance() {
+      if (!loggedUser) return;
+      try { guestAttendance = (await apiRequest(`/baba/guests/attendance?date=${encodeURIComponent(activeBabaDate)}`)).guests || []; renderGuestAttendance(); }
+      catch (error) { console.warn('Lista de convidados indisponível.', error); }
+    }
+    function renderGuestAttendance() {
+      const list = document.getElementById('guestAttendanceList'), count = document.getElementById('guestBabaCount'); if (!list) return;
+      const attending = guestAttendance.filter(item => item.presence);
+      if (count) count.textContent = String(attending.length);
+      list.replaceChildren();
+      if (!guestAttendance.length) { list.innerHTML = '<p class="text-xs text-gray-500">Nenhum convidado cadastrado para este baba.</p>'; return; }
+      guestAttendance.forEach(guest => {
+        const card = document.createElement('div'); card.className = 'bg-black/40 border border-gray-800 rounded-xl p-3 flex flex-wrap justify-between items-center gap-2';
+        const details = document.createElement('div');
+        const title = document.createElement('strong'); title.className = 'block text-sm text-white'; title.textContent = guest.name;
+        const sub = document.createElement('span'); sub.className = 'text-[10px] text-gray-400'; sub.textContent = `Convidou: ${guest.invitedBy}${guest.age ? ` · ${guest.age} anos` : ''} · ${guest.presence ? (guest.checkin ? 'Check-in feito' : 'Presença confirmada') : 'Sem presença'}`;
+        details.append(title, sub); card.append(details);
+        if (guest.canManage) {
+          const controls = document.createElement('div'); controls.className = 'flex gap-2';
+          const presence = document.createElement('button'); presence.type = 'button'; presence.className = 'rounded-lg px-3 py-2 text-[10px] font-bold bg-sky-700 text-white'; presence.textContent = guest.presence ? 'Desmarcar' : 'Marcar presença'; presence.onclick = () => markGuestAttendance(guest.id, 'presence'); controls.append(presence);
+          const checkin = document.createElement('button'); checkin.type = 'button'; checkin.disabled = !guest.presence || guest.checkin; checkin.className = 'rounded-lg px-3 py-2 text-[10px] font-bold bg-emerald-700 text-white disabled:opacity-40'; checkin.textContent = guest.checkin ? 'Check-in feito' : 'Check-in'; checkin.onclick = () => markGuestAttendance(guest.id, 'checkin'); controls.append(checkin); card.append(controls);
+        }
+        list.append(card);
+      });
+    }
+    async function markGuestAttendance(id, kind) {
+      try { const response = await apiRequest(`/baba/guests/${encodeURIComponent(id)}/attendance`, { method: 'POST', body: JSON.stringify({ date: activeBabaDate, kind }) }); guestAttendance = response.guests || []; renderGuestAttendance(); }
+      catch (error) { alert(error.message); }
     }
     async function refreshSharedVotes(day) {
       if (!loggedUser || !day) { sharedVotesByPlayer = {}; sharedMyVotes = []; return; }
@@ -1235,7 +1321,7 @@
         if (!loggedUser) return;
         await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance();
         await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await refreshPaymentStatus();
-        if (loggedUser.isAdmin) await refreshAdminMembers();
+        if (loggedUser.isAdmin) { await refreshAdminMembers(); await refreshAdminGuests(); }
         renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton();
         renderVotingSection(); renderRanking(); renderEAFCCardsGrid(); renderMatchHistory(); renderResenhaTab();
         if (currentActiveTab === 'adm' && loggedUser.isAdmin) { renderMemberList(); renderFinanceModule(); }
@@ -1320,6 +1406,9 @@
       if (loggedUser) await refreshPaymentStatus(true);
       document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
       document.getElementById('admGlobalFeeInput').value = globalMonthlyFee;
+      document.getElementById('admGuestFeeInput').value = globalGuestFee;
+      document.getElementById('admKeeperFeeInput').value = globalKeeperFee;
+      await loadGuestInviters();
 
       if (mediaLinks.instagram) document.getElementById('admInstaLink').value = mediaLinks.instagram;
       if (document.getElementById('admYtLink')) document.getElementById('admYtLink').value = (mediaLinks.youtubeVideos || (mediaLinks.youtube ? [mediaLinks.youtube] : [])).join('\n');
@@ -1577,6 +1666,8 @@
       try {
         const config = await apiRequest('/config');
         globalMonthlyFee = Number(config.monthlyFee) || globalMonthlyFee;
+        globalGuestFee = Number(config.guestFee) || 0;
+        globalKeeperFee = Number(config.keeperFee) || 0;
         if (config.whatsapp) adminWhatsapp = String(config.whatsapp).replace(/\D/g, '');
         associationPixKey = config.pixKey || '';
         associationPixQrDataUrl = config.pixQrDataUrl || '';
@@ -1585,6 +1676,10 @@
         renderPixPaymentDetails();
         renderGuestPix();
         try { associationGallery = (await apiRequest('/gallery')).images || []; renderAssociationGallery(); } catch { /* Galeria vazia enquanto a API não responde. */ }
+        const guestSignup = document.getElementById('guestSignupDailyFee'); if (guestSignup) guestSignup.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
+        const guestDaily = document.getElementById('guestDailyFee'); if (guestDaily) guestDaily.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
+        const feeInput = document.getElementById('admGuestFeeInput'); if (feeInput) feeInput.value = globalGuestFee;
+        const keeperInput = document.getElementById('admKeeperFeeInput'); if (keeperInput) keeperInput.value = globalKeeperFee;
         const display = document.getElementById('displayMonthlyFee');
         if (display) display.innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
       } catch { /* A API ainda não está conectada. */ }
@@ -1619,7 +1714,8 @@
       if (keyBox) keyBox.classList.toggle('hidden', !associationPixKey);
       if (key) key.textContent = associationPixKey;
       if (empty) empty.classList.toggle('hidden', !!(associationPixKey || associationPixQrDataUrl));
-      const text = encodeURIComponent('Olá! Sou convidado da Futmancos, fiz o Pix da diária e vou enviar o comprovante.');
+      const fee = globalGuestFee.toFixed(2).replace('.', ',');
+      const text = encodeURIComponent(`Olá! Sou convidado da Futmancos. Fiz o Pix da diária de R$ ${fee} e vou enviar o comprovante.`);
       const link = document.getElementById('guestPixWhatsapp'); if (link) link.href = `https://wa.me/${adminWhatsapp}?text=${text}`;
     }
     async function copyPixKey() {
@@ -1866,10 +1962,10 @@
       updateNavHighlight(secId);
 
       if (secId === 'resenha') renderResenhaTab();
-      if (secId === 'baba') { renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderVotingSection(); updatePresenceButton(); }
+      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); updatePresenceButton(); }
       if (secId === 'perfil') renderProfile();
       if (secId === 'eafc') renderEAFCCardsGrid();
-      if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); }
+      if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); }
       if (secId === 'financeiro') refreshPaymentStatus();
       if (secId === 'custos') renderKeeperCosts();
     }
@@ -2643,6 +2739,25 @@
         saveState(); renderMemberList();
       } catch (error) { console.warn('Não foi possível atualizar as situações de mensalidade.', error); }
     }
+    async function refreshAdminGuests() {
+      if (!loggedUser?.isAdmin) return;
+      const list = document.getElementById('guestAdminList'), count = document.getElementById('guestAdminCount'); if (!list) return;
+      try {
+        const { guests = [] } = await apiRequest('/admin/guests'); if (count) count.textContent = String(guests.length); list.replaceChildren();
+        if (!guests.length) { list.innerHTML = '<p class="text-xs text-gray-500">Nenhum convidado cadastrado.</p>'; return; }
+        guests.forEach(guest => {
+          const row = document.createElement('div'); row.className = 'flex flex-wrap justify-between items-center gap-2 bg-black/40 border border-gray-800 p-3 rounded-xl';
+          const info = document.createElement('div'); const name = document.createElement('strong'); name.className = 'block text-sm'; name.textContent = guest.name;
+          const detail = document.createElement('span'); detail.className = 'text-[10px] text-gray-400'; detail.textContent = `${guest.cpfMasked} · ${guest.age} anos · Convidou: ${guest.invitedByName}`; info.append(name, detail); row.append(info);
+          const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Excluir'; remove.className = 'bg-rose-900/50 text-rose-200 px-3 py-2 rounded-lg text-xs font-bold'; remove.onclick = () => deleteGuest(guest.id, guest.name); row.append(remove); list.append(row);
+        });
+      } catch (error) { list.textContent = error.message; }
+    }
+    async function deleteGuest(id, name) {
+      if (!loggedUser?.isAdmin || !confirm(`Excluir o cadastro de ${name}? Esta ação também remove suas presenças e check-ins.`)) return;
+      try { await apiRequest(`/admin/guests/${encodeURIComponent(id)}`, { method: 'DELETE' }); await refreshAdminGuests(); await refreshGuestAttendance(); }
+      catch (error) { alert(error.message); }
+    }
     async function confirmMemberPayment(memberId) {
       if (!loggedUser?.isAdmin) return alert('Apenas administradores podem confirmar pagamentos.');
       if (!confirm('Você conferiu o comprovante Pix e deseja confirmar a mensalidade deste mês?')) return;
@@ -2862,10 +2977,15 @@
     async function saveGlobalFee() {
       const amount = Number(document.getElementById('admGlobalFeeInput').value);
       try {
-        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount }) });
-        globalMonthlyFee = Number(data.monthlyFee);
+        const guestFee = Number(document.getElementById('admGuestFeeInput').value);
+        const keeperFee = Number(document.getElementById('admKeeperFeeInput').value);
+        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee, keeperFee }) });
+        globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee); globalKeeperFee = Number(data.keeperFee);
         document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
-        alert('Valor da mensalidade atualizado.');
+        document.getElementById('guestSignupDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
+        document.getElementById('guestDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
+        renderGuestPix(); renderKeeperCosts();
+        alert('Valores da associação atualizados.');
       } catch (error) { alert(error.message); }
     }
 
@@ -2928,12 +3048,14 @@
               <span class="font-bold text-white block">${t.desc}</span>
               <span class="text-[10px] text-gray-400">${t.date} • ${t.category}</span>
             </div>
-            <span class="font-bold ${t.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'}">
-              ${t.type === 'entrada' ? '+' : '-'} R$ ${t.value.toFixed(2)}
-            </span>
+            <div class="flex items-center gap-2"><span class="font-bold ${t.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'}">
+              ${t.type === 'entrada' ? '+' : '-'} R$ ${Number(t.value || 0).toFixed(2)}
+            </span>${loggedUser?.isAdmin ? `<button type="button" data-delete-transaction="${String(t.id).replace(/[^\w-]/g, '')}" class="text-rose-300 border border-rose-900 px-2 py-1 rounded text-[10px]">Apagar</button>` : ''}</div>
           </div>
         `;
       });
+
+      list.querySelectorAll('[data-delete-transaction]').forEach(button => button.onclick = () => deleteCashTransaction(button.dataset.deleteTransaction));
 
       document.getElementById('finTotalIn').innerText = `R$ ${inVal.toFixed(2)}`;
       document.getElementById('finTotalOut').innerText = `R$ ${outVal.toFixed(2)}`;
@@ -2956,9 +3078,20 @@
       });
     }
 
+    async function deleteCashTransaction(id) {
+      if (!loggedUser?.isAdmin) return alert('Apenas ADM pode apagar transações.');
+      const adminCode = prompt('Digite o código de administração para apagar esta transação:'); if (adminCode === null) return;
+      if (!confirm('Apagar esta transação do caixa compartilhado em todos os dispositivos?')) return;
+      try {
+        const result = await apiRequest(`/admin/transactions/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ adminCode }) });
+        transactions = result.transactions || []; saveState(); renderFinanceModule();
+        alert('Transação removida do caixa compartilhado.');
+      } catch (error) { alert(error.message); }
+    }
     function renderKeeperCosts() {
       const list = document.getElementById('keeperCostsList'), admin = document.getElementById('adminKeeperCostsList');
       const fmt = amount => `R$ ${Number(amount || 0).toFixed(2).replace('.', ',')}`;
+      const feeInfo = document.getElementById('keeperFeeInfo'); if (feeInfo) feeInfo.textContent = globalKeeperFee > 0 ? `Contribuição de referência definida pela associação: R$ ${globalKeeperFee.toFixed(2).replace('.', ',')}. Os valores de cada evento aparecem abaixo.` : 'A associação ainda não definiu uma contribuição de referência.';
       const card = item => `<div class="bg-black/40 border border-gray-800 p-3 rounded-xl flex justify-between gap-3 items-center"><div><strong class="text-sm">${String(item.title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</strong><p class="text-[10px] text-gray-400">${item.date ? new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR') : 'Data a confirmar'}</p></div><strong class="text-amber-300 text-sm">${fmt(item.amount)}</strong></div>`;
       if (list) list.innerHTML = keeperCosts.length ? keeperCosts.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum custo de confraternização foi publicado.</p>';
       if (admin) admin.innerHTML = keeperCosts.map(item => `<div class="flex justify-between items-center gap-2 bg-black/30 p-2 rounded-lg text-xs">${card(item)}<button onclick="deleteKeeperCost('${String(item.id).replace(/[^\w-]/g, '')}')" class="text-rose-300">Excluir</button></div>`).join('');

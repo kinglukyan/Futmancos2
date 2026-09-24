@@ -10,6 +10,7 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 2. `supabase/migrations/202609240001_shared_app_data.sql`.
 3. `supabase/migrations/202609240002_player_shirt_number.sql` (se ainda nÃ£o executou).
 4. `supabase/migrations/202609240003_gallery.sql` (cria o bucket pÃºblico de leitura; envio e exclusÃ£o ficam restritos a ADM pela API).
+5. `supabase/migrations/202609240004_guests_and_guest_fees.sql` (convidados, presença/check-in e configurações de valores).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 
@@ -42,3 +43,17 @@ O HTML chama os caminhos `/api/...` no domínio da Vercel. Depois que o Render p
 Os dados salvos no Supabase incluem perfis, mensalidades e confirmações de pagamento, chave Pix e QR Code, arenas, próximo baba, presença, check-in, partidas, resultados, votações e fotos de perfil. As contas continuam sendo autenticadas pelo Supabase Auth. O navegador sincroniza atualizações periodicamente.
 
 No Render gratuito, o serviço pode levar aproximadamente um minuto para responder após 15 minutos sem tráfego; os dados permanecem no Supabase.
+
+
+## Convidados e valores
+
+O cadastro de convidados não cria conta. O CPF é criptografado pelo servidor e mostrado aos administradores somente com os últimos dígitos. Quem convidou e os ADMs podem marcar presença e check-in no baba. Convidados ficam fora das estatísticas oficiais, avaliações e cartinhas.
+
+Na tela ADM, defina mensalidade, diária de convidado e contribuição de referência dos goleiros (para custos de churrasco/confra). A exclusão de transações exige conta ADM e código de administração (8630 por padrão; se ADMIN_DELETE_CODE estiver configurado no Render, use o valor definido ali).
+
+
+## Convidados e valores
+
+O cadastro de convidados não cria conta. O CPF é criptografado pelo servidor e mostrado aos administradores somente com os últimos dígitos. Quem convidou e os ADMs podem marcar presença e check-in no baba. Convidados ficam fora das estatísticas oficiais, avaliações e cartinhas.
+
+Na tela ADM, defina mensalidade, diária de convidado e contribuição de referência dos goleiros (para custos de churrasco/confra). A exclusão de transações exige conta ADM e código de administração (8630 por padrão; se ADMIN_DELETE_CODE estiver configurado no Render, use o valor definido ali).
