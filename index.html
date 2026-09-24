@@ -2086,6 +2086,24 @@
         alert('Pagamento confirmado para este mês.');
       } catch (error) { alert(error.message || 'Não foi possível confirmar o pagamento.'); }
     }
+    async function deleteMember(memberId) {
+      if (!loggedUser?.isAdmin) return alert('Apenas administradores podem excluir associados.');
+      if (!memberId || String(memberId) === String(loggedUser.serverId || loggedUser.authUserId)) return alert('Você não pode excluir a própria conta de administrador.');
+      if (!confirm('Excluir esta conta de associado? A pessoa perderá o acesso ao site e seus dados cadastrais e de presença serão removidos. O histórico dos jogos já realizados será mantido. Esta ação não pode ser desfeita.')) return;
+      const member = players.find(player => String(player.serverId || player.authUserId || '') === String(memberId));
+      try {
+        await apiRequest(`/admin/members/${encodeURIComponent(memberId)}`, { method: 'DELETE' });
+        const removedIds = new Set(players.filter(player => String(player.serverId || player.authUserId || '') === String(memberId)).map(player => String(player.id)));
+        players = players.filter(player => String(player.serverId || player.authUserId || '') !== String(memberId));
+        presentPlayers = presentPlayers.filter(id => !removedIds.has(String(id)));
+        checkedInPlayers = checkedInPlayers.filter(id => !removedIds.has(String(id)));
+        saveState(); renderMemberList(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderRanking(); renderEAFCCardsGrid();
+        if (member?.email) await refreshSharedAttendance();
+        alert('A conta do associado foi excluída.');
+      } catch (error) {
+        alert(error.message || 'Não foi possível excluir o associado.');
+      }
+    }
     function renderMemberList() {
       const tbody = document.getElementById('memberTableBody');
       if (!tbody) return;
@@ -2127,7 +2145,8 @@
             </td>
             <td class="p-2.5 text-center space-x-1">
               <button onclick="openEditProfileModal(${p.id})" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded text-[10px] font-bold">Editar Dados</button>
-              ${loggedUser?.isAdmin && p.serverId && !p.paid ? `<button onclick="confirmMemberPayment(${p.serverId})" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 px-2 py-1 rounded text-[10px] font-bold">Confirmar Pix</button>` : ''}
+              ${loggedUser?.isAdmin && p.serverId && !p.paid ? `<button onclick="confirmMemberPayment('${p.serverId}')" class="bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 px-2 py-1 rounded text-[10px] font-bold">Confirmar Pix</button>` : ''}
+              ${loggedUser?.isAdmin && p.serverId && String(p.serverId) !== String(loggedUser.serverId || loggedUser.authUserId) ? `<button onclick="deleteMember('${p.serverId}')" class="bg-rose-600/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded text-[10px] font-bold">Excluir membro</button>` : ''}
             </td>
           </tr>
         `;
