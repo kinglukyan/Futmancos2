@@ -72,11 +72,10 @@
     .rank-card { --rank-main:#54b85b; --rank-light:#b8f1a9; --rank-deep:#183a22; --rank-glow:rgba(76,175,80,.3); --rank-hue:75deg; position:relative; isolation:isolate; background:linear-gradient(150deg,color-mix(in srgb,var(--rank-main) 24%,#17201b),#0a0e0c 48%,color-mix(in srgb,var(--rank-deep) 60%,#090c0a)); border:1px solid var(--rank-main); box-shadow:0 10px 28px rgba(0,0,0,.35),0 0 20px var(--rank-glow); }
     .rank-card::before { content:""; position:absolute; inset:6px; border:1px solid color-mix(in srgb,var(--rank-main) 65%,transparent); border-radius:12px; pointer-events:none; z-index:-1; }
     .rank-card::after { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg,color-mix(in srgb,var(--rank-main) 15%,transparent),transparent 42%); pointer-events:none; z-index:-1; }
-    .rank-card-backdrop { position:absolute; inset:0; z-index:0; overflow:hidden; border-radius:inherit; pointer-events:none; }
-    .rank-card > :not(.rank-card-backdrop) { position:relative; z-index:2; }
+    .rank-card-background { position:absolute; z-index:0; top:78px; left:5%; width:90%; height:245px; object-fit:contain; opacity:.43; filter:grayscale(1) sepia(.9) hue-rotate(var(--rank-hue)) saturate(3) blur(2px); mix-blend-mode:screen; pointer-events:none; }
+    .rank-card-texture { position:absolute; z-index:1; inset:0; width:100%; height:100%; object-fit:cover; opacity:.26; filter:grayscale(1) sepia(.8) hue-rotate(var(--rank-hue)) saturate(2.5); mix-blend-mode:soft-light; pointer-events:none; }
+    .rank-card > :not(.rank-card-background):not(.rank-card-texture) { position:relative; z-index:2; }
     .rank-card > .absolute { position:absolute; z-index:3; }
-    .rank-card-backdrop::before { content:""; position:absolute; inset:-5%; background:url('/assets/logo-futmancos.jpeg') center 48%/88% auto no-repeat; filter:grayscale(1) sepia(1) hue-rotate(var(--rank-hue)) saturate(3.2) blur(2px); opacity:.27; mix-blend-mode:screen; transform:scale(1.04); }
-    .rank-card-backdrop::after { content:""; position:absolute; inset:0; background:url('/assets/card-texture.png') center/cover no-repeat,repeating-linear-gradient(135deg,transparent 0 5px,rgba(255,255,255,.025) 5px 6px),radial-gradient(ellipse at 50% 36%,rgba(255,255,255,.08),transparent 68%); filter:grayscale(1) sepia(.85) hue-rotate(var(--rank-hue)) saturate(2.4); opacity:.18; mix-blend-mode:soft-light; }
     .rank-bronze { --rank-main:#54b85b; --rank-light:#c7f5b4; --rank-deep:#24472a; --rank-glow:rgba(77,190,86,.28); --rank-hue:75deg; }
     .rank-silver { --rank-main:#bdcbd5; --rank-light:#f2fbff; --rank-deep:#425567; --rank-glow:rgba(180,210,230,.3); --rank-hue:165deg; }
     .rank-gold { --rank-main:#edbd45; --rank-light:#fff1a6; --rank-deep:#76501a; --rank-glow:rgba(242,183,46,.34); --rank-hue:350deg; }
@@ -2556,7 +2555,8 @@
 
         containerTop3.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
-            <span class="rank-card-backdrop" aria-hidden="true"></span>
+            <img class="rank-card-background" src="/assets/logo-futmancos.jpeg" alt="" aria-hidden="true">
+            <img class="rank-card-texture" src="/assets/card-texture.png" alt="" aria-hidden="true">
             <div class="absolute top-2 right-2 bg-black/70 px-2 py-0.5 rounded-full text-[10px] font-bold text-brand-gold border border-brand-gold/40">
               TOP ${index + 1}
             </div>
@@ -3324,7 +3324,8 @@
 
         container.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
-            <span class="rank-card-backdrop" aria-hidden="true"></span>
+            <img class="rank-card-background" src="/assets/logo-futmancos.jpeg" alt="" aria-hidden="true">
+            <img class="rank-card-texture" src="/assets/card-texture.png" alt="" aria-hidden="true">
             <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg>${rank.label}</div>
             <div class="flex justify-between items-start">
               <div class="text-center">
