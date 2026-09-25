@@ -728,15 +728,15 @@
 
       <details id="leagueAccordion" class="group mt-4 rounded-2xl border border-emerald-500/40 bg-brand-cardBg p-3 shadow-lg">
         <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-2 py-2 [&::-webkit-details-marker]:hidden">
-          <span><strong class="block font-teko text-3xl text-emerald-300">CAMPEONATO FUTMANCOS</strong><small class="text-xs text-gray-400">Liga em turno único · pontos, gols, cansaço e histórico</small></span>
+          <span><strong class="block font-teko text-3xl text-emerald-300">MANCOS LEAGUE</strong><small class="text-xs text-gray-400">Liga em turno único · pontos, gols, cansaço e histórico</small></span>
           <span class="shrink-0 rounded-full border border-emerald-400/50 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-200"><span class="group-open:hidden">Abrir ＋</span><span class="hidden group-open:inline">Fechar −</span></span>
         </summary>
         <div class="mt-3 space-y-4 border-t border-gray-800 pt-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div><strong id="leagueSeasonTitle" class="font-teko text-2xl text-white">TEMPORADA 1</strong><p id="leagueStatusText" class="text-[11px] text-gray-400">Carregando campeonato…</p></div>
-            <div class="flex flex-wrap gap-2"><button type="button" onclick="loadLeague(true)" class="rounded-lg border border-gray-700 bg-black/40 px-3 py-2 text-[10px] font-bold text-gray-200">Atualizar tabela</button><button id="leagueSimulateBtn" type="button" onclick="simulateNextLeagueMatch()" class="hidden rounded-lg bg-emerald-500 px-3 py-2 text-[10px] font-black text-black">Simular próximo confronto · 15s</button><button id="leagueCloseBtn" type="button" onclick="closeLeagueSeason()" class="hidden rounded-lg bg-amber-400 px-3 py-2 text-[10px] font-black text-black">Encerrar campeonato</button><button id="leagueNewSeasonBtn" type="button" onclick="startLeagueSeason()" class="hidden rounded-lg bg-sky-500 px-3 py-2 text-[10px] font-black text-black">Iniciar nova temporada</button></div>
+            <div class="flex flex-wrap gap-2"><button type="button" onclick="loadLeague(true)" class="rounded-lg border border-gray-700 bg-black/40 px-3 py-2 text-[10px] font-bold text-gray-200">Atualizar tabela</button><button id="leagueSimulateBtn" type="button" onclick="playMyLeagueMatch()" class="hidden rounded-lg bg-emerald-500 px-3 py-2 text-[10px] font-black text-black">Jogar</button><button id="leagueCloseBtn" type="button" onclick="closeLeagueSeason()" class="hidden rounded-lg bg-amber-400 px-3 py-2 text-[10px] font-black text-black">Encerrar campeonato</button><button id="leagueNewSeasonBtn" type="button" onclick="startLeagueSeason()" class="hidden rounded-lg bg-sky-500 px-3 py-2 text-[10px] font-black text-black">Iniciar nova temporada</button><button id="leagueResetBtn" type="button" onclick="resetLeagueForTesting()" class="hidden rounded-lg border border-rose-500/50 bg-rose-950/50 px-3 py-2 text-[10px] font-black text-rose-200">Zerar campeonato (teste)</button></div>
           </div>
-          <p class="rounded-lg border border-sky-500/20 bg-sky-950/20 p-2 text-[10px] text-gray-300">Cada associado disputa um confronto simulado contra cada outro, uma vez. Vitória vale 3 pontos, empate 1; desempate por saldo, gols pró e confronto direto. Novos associados entram com os confrontos que faltam. Cada jogo aumenta o cansaço e reduz o OVR efetivo; a temporada nova recupera todos.</p>
+          <p class="rounded-lg border border-sky-500/20 bg-sky-950/20 p-2 text-[10px] text-gray-300">Cada associado enfrenta cada outro uma vez, usando os times salvos no Plano de Jogo. Vitória vale 3 pontos e empate 1. Os gols e assistências são atribuídos às cartinhas escaladas. O cansaço aparece na cartinha: quem joga acumula 8 pontos líquidos; quem descansa recupera 2 pontos por partida.</p>
           <div id="leagueLivePanel" class="hidden rounded-xl border border-emerald-400/30 bg-black/70 p-4 space-y-3" aria-live="polite"><div class="flex items-center justify-between gap-2"><strong id="leagueLiveFixture" class="text-xs text-white">Confronto</strong><span class="flex items-center gap-2"><span id="leagueLiveClock" class="font-mono text-xs text-emerald-300">00:15</span><button type="button" onclick="document.getElementById('leagueLivePanel').classList.add('hidden')" class="text-gray-400" aria-label="Fechar transmissão">×</button></span></div><div class="h-2 overflow-hidden rounded-full bg-gray-800"><div id="leagueProgressBar" class="h-full w-0 bg-gradient-to-r from-emerald-500 to-amber-300 transition-[width] duration-100"></div></div><p id="leagueNarrative" class="min-h-8 text-sm font-semibold text-gray-100">Apito inicial! A bola rola no campo virtual…</p><p id="leagueRevealScore" class="hidden text-center font-teko text-4xl font-black text-amber-300"></p></div>
           <div class="overflow-x-auto rounded-xl border border-gray-800"><table class="min-w-[690px] w-full text-left text-[10px]"><thead class="bg-black/50 text-gray-400"><tr><th class="p-2">#</th><th class="p-2">ASSOCIADO</th><th class="p-2">PTS</th><th class="p-2">J</th><th class="p-2">V</th><th class="p-2">E</th><th class="p-2">D</th><th class="p-2">GP</th><th class="p-2">SG</th><th class="p-2">OVR ATUAL</th><th class="p-2">CANSAÇO</th><th class="p-2">TÍTULOS</th></tr></thead><tbody id="leagueStandingsBody" class="divide-y divide-gray-800"><tr><td colspan="12" class="p-3 text-center text-gray-500">Carregando…</td></tr></tbody></table></div>
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-3"><section class="rounded-xl border border-gray-800 bg-black/20 p-3"><h3 class="font-teko text-xl text-white">TABELA DE CONFRONTOS</h3><div id="leagueFixtures" class="mt-2 max-h-[420px] space-y-2 overflow-y-auto text-xs"></div></section><section class="rounded-xl border border-amber-500/20 bg-black/20 p-3"><h3 class="font-teko text-xl text-amber-200">HALL DA FAMA</h3><div id="leagueHistory" class="mt-2 max-h-[420px] space-y-2 overflow-y-auto text-xs"></div></section></div>
@@ -1283,6 +1283,7 @@
     let gamePlanDraggingMarker = '', gamePlanMarkerPointerId = null, gamePlanMarkerMoved = false, gamePlanMarkerStartX = 0, gamePlanMarkerStartY = 0, gamePlanSuppressClickUntil = 0;
     let gamePlanCustomPositions = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`custom${i + 1}`, { x: [25, 75, 25, 75, 25, 75][i], y: [30, 30, 50, 50, 70, 70][i] }]));
     let leagueState = null, leagueStandingsCache = [], leagueSimulating = false, leagueSimulationTimer = null;
+    let leaguePollTimer = null;
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
@@ -1757,6 +1758,7 @@
       updateFinanceCategories();
       updatePresenceButton();
       if (!billingWatchTimer) billingWatchTimer = window.setInterval(() => { if (loggedUser) { refreshPaymentStatus(); syncCustoGoConfig(); } }, 60000);
+      if (!leaguePollTimer) leaguePollTimer = window.setInterval(() => { if (loggedUser && document.visibilityState === 'visible') loadLeague(true); }, 30000);
 
       if (loggedUser) await refreshPaymentStatus(true);
       document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
@@ -3562,7 +3564,7 @@
       return 0;
     }
     function gamePlanPositionMatches(player, role) { return gamePlanPositionPenalty(player, role) === 0; }
-    function gamePlanEffectiveOvr(player, role) { return Math.round(calcOVR(player) * (1 - gamePlanPositionPenalty(player, role) / 100)); }
+    function gamePlanEffectiveOvr(player, role) { return Math.round(calcOVR(player) * (1 - gamePlanPositionPenalty(player, role) / 100) * (1 - leagueCardFatigue(player) / 100)); }
     function gamePlanPlayerIdFromData(value) { try { return decodeURIComponent(value); } catch { return value; } }
     function gamePlanEscape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char])); }
     function gamePlanPhoto(player) {
@@ -3583,7 +3585,7 @@
         const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? (slot.id === 'gk' ? 'style="position:absolute;left:50%;top:auto;bottom:12px;transform:translateX(-50%)"' : `style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);touch-action:none;cursor:grab"`) : '', markerPointers = isCustomFieldSlot ? `onpointerdown="beginGamePlanMarkerMove(event,'${slot.id}')" onpointermove="moveGamePlanMarker(event)" onpointerup="endGamePlanMarkerMove(event)" onpointercancel="endGamePlanMarkerMove(event)"` : '';
         if (!player) return `<div data-game-plan-slot="${slot.id}" ${markerPointers} role="button" tabindex="0" ${customStyle} aria-label="${label}, arraste para reposicionar" onclick="handleGamePlanSlotClick(event,'${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
         const positionPenalty = gamePlanPositionPenalty(player, role), mismatch = positionPenalty > 0, picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
-        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ` · −${positionPenalty}%` : ''}</span>${playerFootIconsMarkup(player.foot, true)}</button></div>`;
+        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ` · −${positionPenalty}%` : ''}</span>${playerFootIconsMarkup(player.foot, true)}${gamePlanCardFatigueMarkup(player)}</button></div>`;
       }).join('')}</div>`).join('');
 
       const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
@@ -3605,9 +3607,11 @@
     let leagueLoadPromise = null;
     function leagueParticipantName(participant) { return String(participant?.nickname || participant?.name || 'Associado'); }
     function leaguePlayerCard(id) { return players.find(player => [player.id, player.serverId, player.authUserId].some(value => value != null && String(value) === String(id))); }
+    function leagueCardFatigue(player) { return Math.max(0, Math.min(100, Number(leagueState?.fatigueByCard?.[String(player?.id)]) || 0)); }
+    function gamePlanCardFatigueMarkup(player) { const fatigue = leagueCardFatigue(player); return `<span class="mt-0.5 flex w-[82%] items-center gap-1" title="Cansaço ${fatigue}%"><span class="h-1 flex-1 overflow-hidden rounded-full bg-black/70"><span class="block h-full rounded-full ${fatigue >= 70 ? 'bg-rose-400' : fatigue >= 35 ? 'bg-amber-300' : 'bg-emerald-300'}" style="width:${fatigue}%"></span></span><small class="text-[7px] text-white/70">${fatigue}%</small></span>`; }
     function leagueParticipantOvr(participant) {
-      const card = leaguePlayerCard(participant?.id), base = card ? calcOVR(card) : 70, fatigue = Math.max(0, Math.min(60, Number(participant?.fatigue) || 0));
-      return Math.max(1, Math.round(base * (1 - fatigue * .0035)));
+      const card = leaguePlayerCard(participant?.id), base = card ? calcOVR(card) : 70, fatigue = card ? leagueCardFatigue(card) : 0;
+      return Math.max(1, Math.round(base * (1 - fatigue / 100)));
     }
     function renderLeague() {
       if (!leagueState) return;
@@ -3619,26 +3623,31 @@
         ? `Encerrada · Campeão: ${champion ? leagueParticipantName(champion) : '—'} · ${matches.length} confrontos concluídos`
         : `Em andamento · ${participants.length} associados · ${matches.length - pending.length}/${matches.length} confrontos concluídos · ${pending.length} pendentes`;
       const simulateButton = document.getElementById('leagueSimulateBtn');
-      simulateButton.classList.toggle('hidden', !isAdmin || closed || !pending.length);
+      const myPending = pending.filter(match => [String(match.homePlayerId), String(match.awayPlayerId)].includes(String(loggedUser?.id)));
+      simulateButton.classList.toggle('hidden', closed || !myPending.length);
+      simulateButton.textContent = myPending.length ? `Jogar · ${myPending.length} pendente(s)` : 'Jogar';
       simulateButton.disabled = leagueSimulating;
       simulateButton.classList.toggle('opacity-50', leagueSimulating);
       document.getElementById('leagueCloseBtn').classList.toggle('hidden', !isAdmin || closed);
       document.getElementById('leagueCloseBtn').disabled = !!pending.length || !matches.length || leagueSimulating;
       document.getElementById('leagueCloseBtn').classList.toggle('opacity-50', !!pending.length || !matches.length || leagueSimulating);
       document.getElementById('leagueNewSeasonBtn').classList.toggle('hidden', !isAdmin || !closed);
+      document.getElementById('leagueResetBtn').classList.toggle('hidden', !isAdmin);
       const participantById = new Map(participants.map(item => [String(item.id), item]));
       const table = leagueStandingsCache.length ? leagueStandingsCache : participants.map(item => ({ id: String(item.id), name: leagueParticipantName(item), position: item.position, points: 0, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalDifference: 0, fatigue: item.fatigue || 0, trophies: leagueState.trophies?.[item.id] || 0 }));
       document.getElementById('leagueStandingsBody').innerHTML = table.length ? table.map((row, index) => {
-        const participant = participantById.get(String(row.id)), baseCard = leaguePlayerCard(row.id), baseOvr = baseCard ? calcOVR(baseCard) : 70, effectiveOvr = leagueParticipantOvr(participant || row), fatigue = Number(participant?.fatigue ?? row.fatigue) || 0;
+        const participant = participantById.get(String(row.id)), baseCard = leaguePlayerCard(row.id), baseOvr = baseCard ? calcOVR(baseCard) : 70, effectiveOvr = leagueParticipantOvr(participant || row), fatigue = baseCard ? leagueCardFatigue(baseCard) : 0;
         const trophyCount = Number(leagueState.trophies?.[row.id] ?? row.trophies) || 0;
         return `<tr class="${index === 0 && row.played ? 'bg-amber-400/10' : ''}"><td class="p-2 font-bold ${index === 0 && row.played ? 'text-amber-300' : 'text-gray-400'}">${index + 1}</td><td class="p-2"><strong class="block text-white">${gamePlanEscape(row.name)}</strong><small class="text-gray-500">${gamePlanEscape(row.position || participant?.position || '')}</small></td><td class="p-2 font-black text-amber-300">${row.points}</td><td class="p-2">${row.played}</td><td class="p-2">${row.wins}</td><td class="p-2">${row.draws}</td><td class="p-2">${row.losses}</td><td class="p-2">${row.goalsFor}</td><td class="p-2 ${row.goalDifference >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${row.goalDifference > 0 ? '+' : ''}${row.goalDifference}</td><td class="p-2"><span title="Base ${baseOvr} · após cansaço">${effectiveOvr}</span></td><td class="p-2">${fatigue}/60</td><td class="p-2 text-amber-300">🏆 ×${trophyCount}</td></tr>`;
       }).join('') : '<tr><td colspan="12" class="p-3 text-center text-gray-500">Nenhum associado cadastrado no campeonato.</td></tr>';
       const sortedMatches = [...matches].sort((a,b) => Number(a.round) - Number(b.round) || String(a.createdAt).localeCompare(String(b.createdAt)));
       document.getElementById('leagueFixtures').innerHTML = sortedMatches.length ? sortedMatches.map(match => {
         const home = participantById.get(String(match.homePlayerId)), away = participantById.get(String(match.awayPlayerId)), complete = match.status === 'completed';
-        return `<div class="flex items-center justify-between gap-2 rounded-lg border ${complete ? 'border-emerald-900/70 bg-emerald-950/20' : 'border-gray-800 bg-black/30'} p-2"><span class="text-[9px] text-gray-500">R${match.round}</span><span class="min-w-0 flex-1 truncate text-right text-gray-200">${gamePlanEscape(leagueParticipantName(home))}</span><strong class="shrink-0 font-teko text-lg ${complete ? 'text-emerald-300' : 'text-gray-600'}">${complete ? `${match.homeGoals} × ${match.awayGoals}` : '×'}</strong><span class="min-w-0 flex-1 truncate text-gray-200">${gamePlanEscape(leagueParticipantName(away))}</span><span class="w-16 shrink-0 text-right text-[8px] ${complete ? 'text-emerald-400' : 'text-amber-300'}">${complete ? 'ENCERRADO' : 'PENDENTE'}</span></div>`;
+        const canPlay = !complete && [String(match.homePlayerId),String(match.awayPlayerId)].includes(String(loggedUser?.id));
+        const events = (match.goalEvents || []).map(event => `${event.minute}′ ${gamePlanEscape(event.scorer)}${event.assist ? ` (A: ${gamePlanEscape(event.assist)})` : ''}`).join(' · ');
+        return `<div class="rounded-lg border ${complete ? 'border-emerald-900/70 bg-emerald-950/20' : 'border-gray-800 bg-black/30'} p-2"><div class="flex items-center justify-between gap-2"><span class="text-[9px] text-gray-500">R${match.round}</span><span class="min-w-0 flex-1 truncate text-right text-gray-200">${gamePlanEscape(leagueParticipantName(home))}</span><strong class="shrink-0 font-teko text-lg ${complete ? 'text-emerald-300' : 'text-gray-600'}">${complete ? `${match.homeGoals} × ${match.awayGoals}` : '×'}</strong><span class="min-w-0 flex-1 truncate text-gray-200">${gamePlanEscape(leagueParticipantName(away))}</span>${canPlay ? `<button type="button" onclick="playLeagueMatch('${String(match.id).replace(/[^\w-]/g,'')}')" class="rounded-md bg-emerald-500 px-2 py-1 text-[9px] font-black text-black">Jogar</button>` : `<span class="w-16 shrink-0 text-right text-[8px] ${complete ? 'text-emerald-400' : 'text-amber-300'}">${complete ? 'ENCERRADO' : 'PENDENTE'}</span>`}</div>${events ? `<p class="mt-1 text-[9px] text-gray-400">${events}</p>` : ''}</div>`;
       }).join('') : '<p class="py-3 text-center text-gray-500">Os confrontos serão gerados ao carregar os associados.</p>';
-      const history = [...(leagueState.history || [])].reverse();
+        const history = [...(leagueState.history || [])].reverse();
       document.getElementById('leagueHistory').innerHTML = history.length ? history.map(entry => `<div class="rounded-lg border border-amber-500/20 bg-black/40 p-3"><strong class="text-amber-200">🏆 Temporada ${entry.season} · ${gamePlanEscape(entry.championNickname || entry.championName)}</strong><p class="mt-1 text-[9px] text-gray-400">${entry.matches?.length || 0} confrontos · ${entry.standings?.length || 0} participantes · ${entry.closedAt ? new Date(entry.closedAt).toLocaleDateString('pt-BR') : ''}</p></div>`).join('') : '<p class="py-3 text-center text-gray-500">Os campeões aparecerão aqui ao encerrar a primeira temporada.</p>';
       const error = document.getElementById('leagueError'); if (error.dataset.message) { error.textContent = error.dataset.message; error.classList.remove('hidden'); } else error.classList.add('hidden');
       lucide.createIcons();
@@ -3651,59 +3660,45 @@
         try {
           const result = await apiRequest('/league');
           leagueState = result.league; leagueStandingsCache = result.standings || [];
-          renderLeague(); if (currentActiveTab === 'perfil') renderProfile();
+          renderLeague(); renderGamePlan(); if (currentActiveTab === 'perfil') renderProfile();
+          const notices = result.myNotifications || [];
+          if (notices.length) { notices.forEach(item => showFutmancosNotice(item.title, item.body)); apiRequest('/league/notifications/read', { method: 'POST', body: JSON.stringify({ ids: notices.map(item => item.id) }) }).catch(() => {}); }
         } catch (failure) {
           if (error) { error.dataset.message = failure.message || 'Não foi possível carregar o campeonato.'; error.textContent = error.dataset.message; error.classList.remove('hidden'); }
         } finally { leagueLoadPromise = null; }
       })();
       return leagueLoadPromise;
     }
-    function leagueRatings(participant) {
-      const card = leaguePlayerCard(participant.id), effective = leagueParticipantOvr(participant);
-      const value = key => card ? calcAttribute(card[`${key}Votes`]) : 70;
-      const position = String(participant.position || '').toLocaleLowerCase('pt-BR');
-      const positionalBonus = position.includes('atacante') ? 2 : position.includes('goleiro') ? 2 : position.includes('volante') ? 1 : 0;
-      const attack = effective * .32 + value('rit') * .12 + value('dri') * .18 + value('chu') * .24 + value('pas') * .14 + positionalBonus;
-      const defense = effective * .32 + value('def') * .45 + value('fis') * .23 + (position.includes('goleiro') ? 4 : 0);
-      return { effective, attack, defense };
+    async function playMyLeagueMatch() {
+      if (!leagueState || leagueSimulating) return;
+      const match = [...(leagueState.matches || [])].filter(item => item.status !== 'completed' && [String(item.homePlayerId),String(item.awayPlayerId)].includes(String(loggedUser?.id))).sort((a,b) => Number(a.round)-Number(b.round))[0];
+      if (!match) return alert('Você não tem confrontos pendentes nesta temporada.');
+      await playLeagueMatch(match.id);
     }
-    function leaguePoisson(lambda) {
-      const limit = Math.exp(-Math.max(.05, lambda)); let product = 1, goals = 0;
-      do { goals++; product *= Math.random(); } while (product > limit && goals < 13);
-      return Math.min(12, goals - 1);
-    }
-    function leagueSimResult(home, away) {
-      const homeRatings = leagueRatings(home), awayRatings = leagueRatings(away);
-      const homeLuck = .9 + Math.random() * .2, awayLuck = .9 + Math.random() * .2;
-      const expectedHome = Math.max(.12, Math.min(3.4, 1.05 + (homeRatings.attack - awayRatings.defense) / 28)) * homeLuck;
-      const expectedAway = Math.max(.12, Math.min(3.4, 1.05 + (awayRatings.attack - homeRatings.defense) / 28)) * awayLuck;
-      return { homeGoals: leaguePoisson(expectedHome), awayGoals: leaguePoisson(expectedAway), homeLuck, awayLuck, homeStrength: homeRatings.attack, awayStrength: awayRatings.attack };
-    }
-    async function simulateNextLeagueMatch() {
-      if (!loggedUser?.isAdmin || leagueSimulating || leagueState?.status !== 'active') return;
-      const match = [...(leagueState.matches || [])].filter(item => item.status !== 'completed').sort((a,b) => Number(a.round)-Number(b.round))[0];
-      if (!match) return alert('Não há confrontos pendentes.');
+    async function playLeagueMatch(matchId) {
+      if (leagueSimulating) return;
+      const match = leagueState?.matches?.find(item => String(item.id) === String(matchId));
+      if (!match || ![String(match.homePlayerId),String(match.awayPlayerId)].includes(String(loggedUser?.id))) return alert('Esse confronto não pertence ao seu time.');
       const home = leagueState.participants.find(item => String(item.id) === String(match.homePlayerId)), away = leagueState.participants.find(item => String(item.id) === String(match.awayPlayerId));
-      if (!home || !away) return alert('Não foi possível identificar os participantes desse confronto. Atualize a tabela.');
-      const result = leagueSimResult(home, away);
       leagueSimulating = true; renderLeague();
       try {
-        const saved = await apiRequest(`/admin/league/matches/${encodeURIComponent(match.id)}/result`, { method: 'POST', body: JSON.stringify(result) });
+        const saved = await apiRequest(`/league/matches/${encodeURIComponent(match.id)}/play`, { method: 'POST', body: '{}' });
         leagueState = saved.league; leagueStandingsCache = saved.standings || [];
-        await playLeagueTimeline(match, home, away, result);
-      } catch (error) { leagueSimulating = false; renderLeague(); alert(error.message || 'Não foi possível salvar o resultado.'); }
+        await playLeagueTimeline(saved.match || match, home, away, saved.match);
+        renderGamePlan();
+      } catch (error) { leagueSimulating = false; renderLeague(); alert(error.message || 'Não foi possível iniciar a partida.'); }
     }
     async function playLeagueTimeline(match, home, away, result) {
       const panel = document.getElementById('leagueLivePanel'), narrative = document.getElementById('leagueNarrative'), progress = document.getElementById('leagueProgressBar'), clock = document.getElementById('leagueLiveClock'), reveal = document.getElementById('leagueRevealScore');
       const homeName = leagueParticipantName(home), awayName = leagueParticipantName(away), roster = leagueState.participants || [];
       const midfield = roster.find(item => /meio|volante/i.test(item.position || '')) || home;
-      const attacker = roster.find(item => /atacante/i.test(item.position || '')) || (result.homeGoals >= result.awayGoals ? home : away);
       const keeper = roster.find(item => /goleiro/i.test(item.position || '') && ![home.id, away.id].map(String).includes(String(item.id)));
+      const scorerNames = (result.goalEvents || []).slice(0, 2).map(goal => `${goal.scorer}${goal.assist ? ` (assistência: ${goal.assist})` : ''}`).join(' · ');
       const lines = [
         'Apito inicial! A bola rola no campo virtual…',
         `Pressão no meio-campo... ${leagueParticipantName(midfield)} rouba a bola!`,
-        `Cruzamento na área... ${leagueParticipantName(attacker)} subiu de cabeça! ${keeper ? `Defesa espetacular do goleiro ${leagueParticipantName(keeper)}!` : 'A defesa se prepara para o lance!'}`,
-        `Contra-ataque rápido... ${result.homeGoals || result.awayGoals ? `chute forte de ${result.homeGoals >= result.awayGoals ? homeName : awayName}!` : 'chute forte de fora da área!'}`,
+        `Cruzamento na área... ${scorerNames || 'os atacantes disputam a bola!'} ${keeper ? `O goleiro ${leagueParticipantName(keeper)} tenta a defesa!` : 'A defesa se prepara para o lance!'}`,
+        `Contra-ataque rápido... ${scorerNames || 'chute forte de fora da área!'}`,
         'Fim de papo! O árbitro apita o final da partida.'
       ];
       panel.classList.remove('hidden'); reveal.classList.add('hidden'); reveal.textContent = ''; progress.style.width = '0%'; clock.textContent = '00:15';
@@ -3737,6 +3732,11 @@
       if (!confirm(`Iniciar a temporada ${(Number(leagueState.season) || 0) + 1} com os associados atuais? Os troféus ficam no perfil e o cansaço volta a zero.`)) return;
       try { const result = await apiRequest('/admin/league/start-season', { method: 'POST', body: '{}' }); leagueState = result.league; leagueStandingsCache = result.standings || []; renderLeague(); renderProfile(); }
       catch (error) { alert(error.message || 'Não foi possível iniciar uma nova temporada.'); }
+    }
+    async function resetLeagueForTesting() {
+      if (!loggedUser?.isAdmin || !confirm('Zerar completamente a Mancos League para testes? A tabela, os confrontos, o cansaço, os troféus e o Hall da Fama serão apagados.')) return;
+      try { const result = await apiRequest('/admin/league/reset', { method: 'POST', body: '{}' }); leagueState = result.league; leagueStandingsCache = result.standings || []; renderLeague(); renderProfile(); renderGamePlan(); }
+      catch (error) { alert(error.message || 'Não foi possível zerar o campeonato.'); }
     }
     function renderRanking() { renderGamePlan(); renderLeague(); }
     function changeGamePlanFormation(formation) {

@@ -17,6 +17,7 @@ const vapidPublicKey = env('VAPID_PUBLIC_KEY');
 const vapidPrivateKey = env('VAPID_PRIVATE_KEY');
 const pushEnabled = !!(vapidPublicKey && vapidPrivateKey);
 const guestInviteAttempts = new Map();
+const leagueMatchLocks = new Set();
 if (pushEnabled) webpush.setVapidDetails(env('VAPID_SUBJECT', 'mailto:santoslucasalmeida@gmail.com'), vapidPublicKey, vapidPrivateKey);
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -198,7 +199,7 @@ function scheduleMissingLeagueFixtures(league) {
   return added.length;
 }
 async function readLeagueData({ syncMembers = false } = {}) {
-  const { data: row, error } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+  const { data: row, error } = await supabase.from('app_state').select('state_json,updated_at').eq('id', 1).maybeSingle();
   if (error) throw error;
   const state = row?.state_json || {};
   let league = state.league;
@@ -227,15 +228,82 @@ async function readLeagueData({ syncMembers = false } = {}) {
     }
     if (scheduleMissingLeagueFixtures(league)) changed = true;
   }
+  let updatedAt = row?.updated_at || '';
   if (changed) {
-    const { error: writeError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    updatedAt = new Date().toISOString();
+    const { error: writeError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: updatedAt }, { onConflict: 'id' });
     if (writeError) throw writeError;
   }
-  return { state, league };
+  return { state, league, updatedAt };
 }
 async function auditLeagueAdminAction(actor, action, entityId, summary, details) {
   try { await auditAdminAction(actor, action, 'league', entityId, summary, details); }
   catch (error) { console.warn('O campeonato foi salvo, mas o registro de auditoria não está disponível.', error.message); }
+}
+
+function leagueAttribute(player, key) {
+  const votes = Array.isArray(player?.[`${key}Votes`]) ? player[`${key}Votes`].map(Number).filter(Number.isFinite) : [];
+  return votes.length ? Math.round(votes.reduce((sum, value) => sum + value, 0) / votes.length) : 70;
+}
+function leagueOvr(player) {
+  const keys = ['rit','dri','chu','def','pas','fis'];
+  const average = keys.reduce((sum, key) => sum + leagueAttribute(player, key), 0) / keys.length;
+  const bonus = Math.min(10, Math.floor((Number(player.goals || 0) * 1.5) + Number(player.assists || 0) + Number(player.saves || 0) * 1.2)) + Math.min(5, Math.floor(Number(player.days || 0) * .5));
+  return Math.min(99, Math.round(average + bonus));
+}
+function leagueRole(slot, plan) {
+  if (slot === 'gk') return 'gk';
+  if (slot.startsWith('def')) return 'def';
+  if (slot.startsWith('att')) return 'att';
+  if (slot.startsWith('mid')) return 'mid';
+  if (slot.startsWith('custom')) { const y = Number(plan.positions?.[slot]?.y ?? 50); return y < 40 ? 'att' : y < 62 ? 'mid' : 'def'; }
+  return 'mid';
+}
+function leaguePositionPenalty(position, role) {
+  const p = String(position || '').toLocaleLowerCase('pt-BR'), gk = p.includes('goleiro'), cb = p.includes('zagueiro'), fb = p.includes('lateral'), dm = p.includes('volante'), mid = p.includes('meio') && !dm, fw = p.includes('atacante');
+  if (role === 'gk') return gk ? 0 : 50;
+  if (gk) return 45;
+  if (role === 'def') return cb ? 0 : fb ? 8 : dm ? 12 : mid ? 20 : fw ? 32 : 22;
+  if (role === 'mid') return (dm || mid) ? 0 : fb ? 12 : fw ? 16 : cb ? 20 : 20;
+  return fw ? 0 : mid ? 15 : dm ? 20 : fb ? 25 : cb ? 35 : 25;
+}
+function leagueTeamFromPlan(state, userId, league) {
+  const plan = state.memberGamePlans?.[String(userId)];
+  if (!plan?.slots || Object.keys(plan.slots).length !== 7 || !plan.slots.gk) throw Object.assign(new Error('Os dois associados precisam salvar um time completo com goleiro no Plano de Jogo.'), { status: 409 });
+  const roster = Array.isArray(state.players) ? state.players : [], fatigueByCard = league.fatigueByCard || {};
+  const used = new Set();
+  const players = Object.entries(plan.slots).map(([slot, id]) => {
+    const player = roster.find(item => [item.id, item.serverId, item.authUserId].some(value => value != null && String(value) === String(id)));
+    if (!player || isDemoMember(player)) throw Object.assign(new Error('Um jogador do time salvo não está mais disponível. Atualize e salve novamente o Plano de Jogo.'), { status: 409 });
+    const cardId = String(player.id), role = leagueRole(slot, plan), fatigue = Math.max(0, Math.min(100, Number(fatigueByCard[cardId]) || 0));
+    used.add(cardId);
+    const attrs = Object.fromEntries(['rit','dri','chu','def','pas','fis'].map(key => [key, leagueAttribute(player, key)]));
+    const baseOvr = leagueOvr(player), effectiveOvr = Math.max(1, Math.round(baseOvr * (1 - leaguePositionPenalty(player.pos, role) / 100) * (1 - fatigue / 100)));
+    return { id: cardId, name: String(player.nickname || player.name || 'Jogador'), position: String(player.pos || ''), role, baseOvr, effectiveOvr, fatigue, ...attrs };
+  });
+  const attack = players.reduce((sum, p) => sum + p.effectiveOvr * .32 + p.rit * .12 + p.dri * .18 + p.chu * .24 + p.pas * .14 + (p.role === 'att' ? 2 : 0), 0) / players.length;
+  const defense = players.reduce((sum, p) => sum + p.effectiveOvr * .32 + p.def * .45 + p.fis * .23 + (p.role === 'gk' ? 4 : 0), 0) / players.length;
+  return { formation: plan.formation, players, used: [...used], attack, defense };
+}
+function leaguePoisson(lambda) {
+  const limit = Math.exp(-Math.max(.05, lambda)); let product = 1, goals = 0;
+  do { goals++; product *= Math.random(); } while (product > limit && goals < 8);
+  return Math.min(7, goals - 1);
+}
+function leagueSimulateTeams(home, away) {
+  const homeLuck = .9 + Math.random() * .2, awayLuck = .9 + Math.random() * .2;
+  const homeGoals = leaguePoisson(Math.max(.1, Math.min(4, 1.2 + (home.attack - away.defense) / 30)) * homeLuck);
+  const awayGoals = leaguePoisson(Math.max(.1, Math.min(4, 1.2 + (away.attack - home.defense) / 30)) * awayLuck);
+  const goalEvent = (team, side) => {
+    const scorers = team.players.filter(player => player.role === 'att' || player.role === 'mid');
+    const pool = scorers.length ? scorers : team.players.filter(player => player.role !== 'gk');
+    const scorer = pool[randomInt(pool.length)];
+    const helpers = team.players.filter(player => player.id !== scorer.id && player.role !== 'gk');
+    const assist = helpers.length && Math.random() < .78 ? helpers[randomInt(helpers.length)] : null;
+    return { side, scorer: scorer?.name || 'Jogador', assist: assist?.name || '' };
+  };
+  const events = [...Array(homeGoals)].map(() => goalEvent(home, 'home')).concat([...Array(awayGoals)].map(() => goalEvent(away, 'away'))).map((event, index) => ({ ...event, minute: 2 + index * 2 + randomInt(3) })).sort((a,b) => a.minute - b.minute);
+  return { homeGoals, awayGoals, homeLuck, awayLuck, homeStrength: home.attack, awayStrength: away.attack, homeTeam: home, awayTeam: away, goalEvents: events };
 }
 
 // Every API request is authorized with the Supabase access token. No local
@@ -457,34 +525,60 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
 app.get('/api/league', authenticate, requireDatabase, async (_req, res, next) => {
   try {
     const { league } = await readLeagueData({ syncMembers: true });
-    res.json({ league, standings: leagueStandings(league) });
+    const myNotifications = (league.notifications || []).filter(item => item.userId === String(_req.user.id) && !item.read);
+    res.json({ league, standings: leagueStandings(league), myNotifications });
   } catch (error) { next(error); }
 });
 
-app.post('/api/admin/league/matches/:id/result', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
-  const homeGoals = Number(req.body?.homeGoals), awayGoals = Number(req.body?.awayGoals);
-  if (!Number.isInteger(homeGoals) || !Number.isInteger(awayGoals) || homeGoals < 0 || awayGoals < 0 || homeGoals > 12 || awayGoals > 12) return res.status(400).json({ error: 'Informe um placar válido entre 0 e 12 gols.' });
+app.post('/api/league/matches/:id/play', authenticate, requireDatabase, async (req, res, next) => {
+  const lockKey = String(req.params.id);
+  if (leagueMatchLocks.has(lockKey)) return res.status(409).json({ error: 'Esse confronto já está sendo jogado. Atualize a Mancos League.' });
+  leagueMatchLocks.add(lockKey);
   try {
-    const { state, league } = await readLeagueData();
+    const { state, league, updatedAt } = await readLeagueData();
     if (league.status !== 'active') return res.status(409).json({ error: 'O campeonato está encerrado.' });
     const match = league.matches.find(item => String(item.id) === String(req.params.id));
     if (!match) return res.status(404).json({ error: 'Confronto não encontrado.' });
     if (match.status === 'completed') return res.status(409).json({ error: 'Este confronto já foi encerrado.' });
-    match.status = 'completed'; match.homeGoals = homeGoals; match.awayGoals = awayGoals; match.playedAt = new Date().toISOString();
-    match.simulation = {
-      homeStrength: Math.max(0, Math.min(100, Number(req.body?.homeStrength) || 0)),
-      awayStrength: Math.max(0, Math.min(100, Number(req.body?.awayStrength) || 0)),
-      homeLuck: Math.max(.9, Math.min(1.1, Number(req.body?.homeLuck) || 1)),
-      awayLuck: Math.max(.9, Math.min(1.1, Number(req.body?.awayLuck) || 1))
-    };
-    for (const id of [match.homePlayerId, match.awayPlayerId]) {
-      const participant = league.participants.find(item => String(item.id) === String(id));
-      if (participant) { participant.fatigue = Math.min(60, (Number(participant.fatigue) || 0) + 8); participant.appearances = (Number(participant.appearances) || 0) + 1; }
-    }
+    if (![String(match.homePlayerId), String(match.awayPlayerId)].includes(String(req.user.id))) return res.status(403).json({ error: 'Você só pode jogar um confronto do seu próprio time.' });
+    const homeTeam = leagueTeamFromPlan(state, match.homePlayerId, league), awayTeam = leagueTeamFromPlan(state, match.awayPlayerId, league), simulation = leagueSimulateTeams(homeTeam, awayTeam);
+    const now = new Date().toISOString();
+    league.fatigueByCard ||= {};
+    const allCards = new Set([...(state.players || []).filter(player => !isDemoMember(player)).map(player => String(player.id)), ...homeTeam.used, ...awayTeam.used]);
+    for (const cardId of allCards) league.fatigueByCard[cardId] = Math.max(0, (Number(league.fatigueByCard[cardId]) || 0) - 2);
+    for (const cardId of new Set([...homeTeam.used, ...awayTeam.used])) league.fatigueByCard[cardId] = Math.min(100, (Number(league.fatigueByCard[cardId]) || 0) + 10);
+    match.status = 'completed'; match.homeGoals = simulation.homeGoals; match.awayGoals = simulation.awayGoals; match.playedAt = now;
+    match.simulation = { homeStrength: simulation.homeStrength, awayStrength: simulation.awayStrength, homeLuck: simulation.homeLuck, awayLuck: simulation.awayLuck };
+    match.goalEvents = simulation.goalEvents;
+    match.lineups = { home: homeTeam.players.map(({id,name,position,role,effectiveOvr}) => ({id,name,position,role,effectiveOvr})), away: awayTeam.players.map(({id,name,position,role,effectiveOvr}) => ({id,name,position,role,effectiveOvr})) };
+    for (const id of [match.homePlayerId, match.awayPlayerId]) { const member = league.participants.find(item => String(item.id) === String(id)); if (member) member.appearances = (Number(member.appearances) || 0) + 1; }
+    const opponentId = String(req.user.id) === String(match.homePlayerId) ? String(match.awayPlayerId) : String(match.homePlayerId);
+    const opponent = league.participants.find(item => String(item.id) === opponentId);
+    league.notifications ||= [];
+    const playerName = league.participants.find(item => String(item.id) === String(req.user.id))?.nickname || req.user.name || 'Seu adversário';
+    const actorWon = simulation.homeGoals !== simulation.awayGoals && (simulation.homeGoals > simulation.awayGoals) === (String(req.user.id) === String(match.homePlayerId));
+    const noticeBody = simulation.homeGoals === simulation.awayGoals ? `${playerName} empatou com você: ${simulation.homeGoals} × ${simulation.awayGoals}.` : actorWon ? `${playerName} venceu você: ${simulation.homeGoals} × ${simulation.awayGoals}.` : `${playerName} perdeu para você: ${simulation.homeGoals} × ${simulation.awayGoals}.`;
+    const notice = { id: randomUUID(), userId: opponentId, matchId: match.id, title: 'Mancos League', body: noticeBody, createdAt: now, read: false };
+    league.notifications.push(notice);
+    league.notifications = league.notifications.slice(-300);
+    const { data: committed, error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date(Date.now() + randomInt(1, 1000)).toISOString() }).eq('id', 1).eq('updated_at', updatedAt).select('id');
+    if (error) throw error;
+    if (!committed?.length) return res.status(409).json({ error: 'Este confronto acabou de ser atualizado. Recarregue a Mancos League antes de tentar novamente.' });
+    await auditLeagueAdminAction(req.user, 'league_match_completed', match.id, `Rodada ${match.round}: ${simulation.homeGoals} × ${simulation.awayGoals}.`, { season: league.season, homePlayerId: match.homePlayerId, awayPlayerId: match.awayPlayerId, homeGoals: simulation.homeGoals, awayGoals: simulation.awayGoals });
+    sendPushUsers([opponentId], `league:${league.season}:${match.id}`, { category: 'league', title: notice.title, body: notice.body, url: '/' }).catch(error => console.warn('Não foi possível enviar aviso da Mancos League:', error.message));
+    res.json({ league, standings: leagueStandings(league), match, opponent: { id: opponentId, name: opponent?.nickname || opponent?.name || 'Adversário' } });
+  } catch (error) { next(error); }
+  finally { leagueMatchLocks.delete(lockKey); }
+});
+
+app.post('/api/league/notifications/read', authenticate, requireDatabase, async (req, res, next) => {
+  try {
+    const { state, league } = await readLeagueData();
+    const ids = new Set(Array.isArray(req.body?.ids) ? req.body.ids.map(String) : []);
+    for (const item of league.notifications || []) if (item.userId === String(req.user.id) && ids.has(String(item.id))) item.read = true;
     const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
     if (error) throw error;
-    await auditLeagueAdminAction(req.user, 'league_match_completed', match.id, `Rodada ${match.round}: ${homeGoals} × ${awayGoals}.`, { season: league.season, homePlayerId: match.homePlayerId, awayPlayerId: match.awayPlayerId, homeGoals, awayGoals });
-    res.json({ league, standings: leagueStandings(league) });
+    res.json({ ok: true });
   } catch (error) { next(error); }
 });
 
@@ -525,11 +619,29 @@ app.post('/api/admin/league/start-season', authenticate, requireAdmin, requireDa
       trophies: Number(previousTrophies[profile.id]) || 0, joinedAt: new Date().toISOString()
     }));
     league.matches = [];
+    league.fatigueByCard = {};
     scheduleMissingLeagueFixtures(league);
     const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
     if (error) throw error;
     await auditLeagueAdminAction(req.user, 'league_season_started', league.season, `Temporada ${league.season} iniciada com ${league.participants.length} participantes.`, { participants: league.participants.length, fixtures: league.matches.length });
     res.json({ league, standings: leagueStandings(league) });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/admin/league/reset', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { state, league } = await readLeagueData();
+    const { data: profiles, error: profileError } = await supabase.from('profiles').select('id,name,nickname,position').order('name');
+    if (profileError) throw profileError;
+    league.season = 1; league.status = 'active'; league.createdAt = new Date().toISOString();
+    delete league.closedAt; delete league.championId;
+    league.participants = (profiles || []).filter(profile => !isDemoMember(profile)).map(profile => ({ id: String(profile.id), name: profile.name || 'Jogador', nickname: profile.nickname || '', position: profile.position || 'Meio-Campo', fatigue: 0, appearances: 0, trophies: 0, joinedAt: new Date().toISOString() }));
+    league.matches = []; league.history = []; league.trophies = {}; league.fatigueByCard = {}; league.notifications = [];
+    scheduleMissingLeagueFixtures(league);
+    const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) throw error;
+    await auditLeagueAdminAction(req.user, 'league_reset', 'all', 'Mancos League reiniciada pelo administrador.', { participants: league.participants.length, fixtures: league.matches.length });
+    res.json({ league, standings: leagueStandings(league), myNotifications: [] });
   } catch (error) { next(error); }
 });
 
