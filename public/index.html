@@ -195,8 +195,12 @@
         <form id="editProfileForm" onsubmit="handleSaveProfile(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input type="hidden" id="editPlayerId">
           <div class="sm:col-span-2">
-            <label class="text-[11px] text-gray-400">Nome / Apelido</label>
+            <label class="text-[11px] text-gray-400">Nome completo</label>
             <input type="text" id="editName" required class="w-full bg-black border border-gray-800 rounded-xl p-2 text-xs text-white outline-none">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-[11px] text-gray-400">Apelido (usado na cartinha)</label>
+            <input type="text" id="editNickname" maxlength="24" class="w-full bg-black border border-gray-800 rounded-xl p-2 text-xs text-white outline-none" placeholder="Como quer aparecer na cartinha">
           </div>
           <div>
             <label class="text-[11px] text-gray-400">Senha</label>
@@ -229,6 +233,7 @@
               <option value="Zagueiro">Zagueiro</option>
               <option value="Lateral">Lateral</option>
               <option value="Meio-Campo">Meio-Campo</option>
+              <option value="Volante">Volante</option>
               <option value="Atacante">Atacante</option>
             </select>
           </div>
@@ -561,7 +566,8 @@
             <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg><span id="myCardPreviewRank">PRATA</span></div>
             <div class="flex justify-between items-start"><div class="text-center"><span id="myCardPreviewOvr" class="font-teko text-5xl font-extrabold rank-accent leading-none block">70</span><span id="myCardPreviewPosition" class="text-[10px] font-bold uppercase tracking-widest rank-accent">MEI</span></div><span id="myCardPreviewShirt" class="font-teko text-2xl font-bold text-gray-300"></span></div>
             <div class="rank-player-stage my-2 relative flex h-48 justify-center"><img id="myCardImagePreview" class="rank-player-cutout" alt="Prévia da imagem da cartinha"><span id="myCardImageEmpty" class="absolute inset-0 z-10 flex items-center justify-center text-center text-xs text-gray-500">Adicione uma foto<br>para ver a prévia</span></div>
-            <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2"><h3 id="myCardPreviewName" class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">JOGADOR</h3></div>
+            <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-1"><h3 id="myCardPreviewName" class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">JOGADOR</h3></div>
+            <div class="grid grid-cols-3 gap-1 pb-1 text-center text-[8px] font-bold uppercase tracking-wide text-gray-200"><span>Idade <b id="myCardPreviewAge" class="block rank-accent">—</b></span><span>Altura <b id="myCardPreviewHeight" class="block rank-accent">—</b></span><span>Melhor pé <b id="myCardPreviewFoot" class="block rank-accent">—</b></span></div>
             <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1"><div class="flex justify-between"><span>RIT</span><span id="myCardPreviewRit" class="rank-accent">70</span></div><div class="flex justify-between"><span>DRI</span><span id="myCardPreviewDri" class="rank-accent">70</span></div><div class="flex justify-between"><span>CHU</span><span id="myCardPreviewChu" class="rank-accent">70</span></div><div class="flex justify-between"><span>DEF</span><span id="myCardPreviewDef" class="rank-accent">70</span></div><div class="flex justify-between"><span>PAS</span><span id="myCardPreviewPas" class="rank-accent">70</span></div><div class="flex justify-between"><span>FIS</span><span id="myCardPreviewFis" class="rank-accent">70</span></div></div>
           </div>
         </div>
@@ -775,8 +781,11 @@
         <p class="text-xs text-gray-400">Preencha seus dados para entrar na associação. Escolha também seu número de camisa disponível.</p>
       </div>
       <form id="regForm" onsubmit="handleRegister(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label class="text-[11px] text-gray-400">Nome ou apelido
+        <label class="text-[11px] text-gray-400">Nome completo
           <input type="text" id="regName" required maxlength="40" autocomplete="name" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400">Apelido (usado na cartinha)
+          <input type="text" id="regNickname" required maxlength="24" autocomplete="nickname" placeholder="Como quer ser chamado" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
         <label class="text-[11px] text-gray-400">Senha (mínimo 10 caracteres)
           <input type="password" id="regPassword" required minlength="10" autocomplete="new-password" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
@@ -804,7 +813,7 @@
         </label>
         <label class="text-[11px] text-gray-400">Posição em campo
           <select id="regPos" required class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
-            <option value="Goleiro">Goleiro</option><option value="Zagueiro">Zagueiro</option><option value="Lateral">Lateral</option><option value="Meio-Campo">Meio-campo</option><option value="Atacante">Atacante</option>
+            <option value="Goleiro">Goleiro</option><option value="Zagueiro">Zagueiro</option><option value="Lateral">Lateral</option><option value="Meio-Campo">Meio-campo</option><option value="Volante">Volante</option><option value="Atacante">Atacante</option>
           </select>
         </label>
         <label class="text-[11px] text-gray-400">Perna dominante
@@ -946,6 +955,7 @@
               <option value="Zagueiro">Zagueiro</option>
               <option value="Lateral">Lateral</option>
               <option value="Meio-Campo">Meio-Campo</option>
+              <option value="Volante">Volante</option>
               <option value="Atacante">Atacante</option>
             </select>
           </div>
@@ -1233,6 +1243,7 @@
 
     let players = JSON.parse(localStorage.getItem('futmancos_players')) || [];
     let gamePlanFormation = '2-3-1', gamePlanSlots = {}, selectedGamePlanPlayerId = '', gamePlanLoadedFor = '';
+    let gamePlanDraggingMarker = '', gamePlanMarkerPointerId = null, gamePlanMarkerMoved = false, gamePlanMarkerStartX = 0, gamePlanMarkerStartY = 0, gamePlanSuppressClickUntil = 0;
     let gamePlanCustomPositions = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`custom${i + 1}`, { x: [25, 75, 25, 75, 25, 75][i], y: [30, 30, 50, 50, 70, 70][i] }]));
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
 
@@ -1309,6 +1320,9 @@
       if (ovr >= 70) return { className: 'rank-silver', label: 'PRATA' };
       return { className: 'rank-bronze', label: 'BRONZE · VERDE' };
     }
+    function playerCardName(player) { return String(player?.nickname || '').trim() || String(player?.name || 'Jogador'); }
+    function playerFootCardLabel(foot) { return foot === 'Direita' ? 'DIR.' : foot === 'Esquerda' ? 'ESQ.' : foot === 'Ambidestro' ? 'AMB.' : '—'; }
+    function playerHeightCardLabel(height) { return Number(height) > 0 ? `${Number(height).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m` : '—'; }
 
     function isCutoutPlayerPhoto(photo) {
       return typeof photo === 'string' && /^data:image\/(png|webp);/i.test(photo);
@@ -1831,6 +1845,7 @@
 
       document.getElementById('editPlayerId').value = playerToEdit.id;
       document.getElementById('editName').value = playerToEdit.name;
+      document.getElementById('editNickname').value = playerToEdit.nickname || '';
       document.getElementById('editPassword').value = playerToEdit.pass || '';
       document.getElementById('editAge').value = playerToEdit.age;
       document.getElementById('editEmail').value = playerToEdit.email;
@@ -1862,6 +1877,7 @@
       if (!p) return;
 
       p.name = document.getElementById('editName').value.trim();
+      p.nickname = document.getElementById('editNickname').value.trim().slice(0, 24);
       p.pass = document.getElementById('editPassword').value.trim();
       p.age = parseInt(document.getElementById('editAge').value);
       p.email = document.getElementById('editEmail').value.trim();
@@ -1903,7 +1919,7 @@
         const { data: authData } = await supabaseClient.auth.getUser();
         if (authData?.user) {
           const { error } = await supabaseClient.from('profiles').update({
-            name: p.name, phone: p.phone, age: p.age, position: p.pos, foot: p.foot, height: p.height, shirt_number: p.shirt || 0
+            name: p.name, nickname: p.nickname, phone: p.phone, age: p.age, position: p.pos, foot: p.foot, height: p.height, shirt_number: p.shirt || 0
           }).eq('id', authData.user.id);
           if (error) { alert(`Não foi possível salvar o perfil no Supabase: ${error.message}`); return; }
           try { await apiRequest('/auth/sync', { method: 'POST', body: '{}' }); }
@@ -1912,6 +1928,7 @@
         loggedUser = p;
       } else if (loggedUser?.isAdmin && p.serverId) {
         try {
+          await apiRequest(`/admin/members/${encodeURIComponent(p.serverId)}/profile`, { method: 'PUT', body: JSON.stringify({ name: p.name, nickname: p.nickname, age: p.age, position: p.pos, foot: p.foot, height: p.height }) });
           await apiRequest(`/admin/members/${encodeURIComponent(p.serverId)}/shirt-number`, {
             method: 'PUT', body: JSON.stringify({ shirtNumber: p.shirt || 0 })
           });
@@ -2057,10 +2074,10 @@
       if (!p) {
         let localId = Date.now();
         while (players.some(x => String(x.id) === String(localId))) localId++;
-        p = { id: localId, name: user.name, age: user.age || 0, email: user.email, phone: user.phone || '', foot: user.foot || 'Direita', pos: user.pos || 'Meio-Campo', height: user.height || 1.7, shirt: 0, photo: '', goals: 0, assists: 0, saves: 0, matches: 0, days: 0, paid: false, ritVotes: [70], driVotes: [70], chuVotes: [70], defVotes: [70], pasVotes: [70], fisVotes: [70] };
+        p = { id: localId, name: user.name, nickname: user.nickname || '', age: user.age || 0, email: user.email, phone: user.phone || '', foot: user.foot || 'Direita', pos: user.pos || 'Meio-Campo', height: user.height || 1.7, shirt: 0, photo: '', goals: 0, assists: 0, saves: 0, matches: 0, days: 0, paid: false, ritVotes: [70], driVotes: [70], chuVotes: [70], defVotes: [70], pasVotes: [70], fisVotes: [70] };
         players.push(p);
       }
-      p.authUserId = user.id; p.serverId = user.id; p.name = user.name; p.email = user.email; p.phone = user.phone || p.phone || '';
+      p.authUserId = user.id; p.serverId = user.id; p.name = user.name; p.nickname = user.nickname || p.nickname || ''; p.email = user.email; p.phone = user.phone || p.phone || '';
       p.age = user.age || p.age; p.foot = user.foot || p.foot; p.pos = user.pos || p.pos; p.height = user.height || p.height; p.shirt = Number(user.shirt) || Number(p.shirt) || 0;
       p.isAdmin = !!user.isAdmin; p.photo = user.photo || p.photo || ''; p.pass = ''; p.paid = user.paymentStatus === 'paid'; p.paymentStatus = user.paymentStatus || p.paymentStatus;
       return p;
@@ -2070,11 +2087,11 @@
       const { data: authData, error: authError } = await supabaseClient.auth.getUser();
       if (authError || !authData?.user) throw new Error('Faça login novamente para carregar seu perfil.');
       const { data: profile, error } = await supabaseClient.from('profiles')
-        .select('id,email,name,phone,age,position,foot,height,shirt_number,is_admin')
+        .select('id,email,name,nickname,phone,age,position,foot,height,shirt_number,is_admin')
         .eq('id', authData.user.id).single();
       if (error || !profile) throw new Error(error?.message || 'Perfil não encontrado no Supabase.');
       return {
-        id: profile.id, name: profile.name, email: profile.email || authData.user.email,
+        id: profile.id, name: profile.name, nickname: profile.nickname || '', email: profile.email || authData.user.email,
         phone: profile.phone || '', age: profile.age || 0, pos: profile.position || 'Meio-Campo',
         foot: profile.foot || 'Direita', height: Number(profile.height) || 1.7, shirt: Number(profile.shirt_number) || 0,
         isAdmin: !!profile.is_admin
@@ -2688,9 +2705,12 @@
       document.getElementById('myCardPreviewTexture').src = FUTMANCOS_CARD_TEXTURE;
       document.getElementById('myCardPreviewRank').innerText = rank.label;
       document.getElementById('myCardPreviewOvr').innerText = ovr;
-      document.getElementById('myCardPreviewPosition').innerText = String(player.pos || 'Meio-Campo').substring(0,3);
+      document.getElementById('myCardPreviewPosition').innerText = player.pos === 'Volante' ? 'VOL' : String(player.pos || 'Meio-Campo').substring(0,3);
       document.getElementById('myCardPreviewShirt').innerText = player.shirt || '';
-      document.getElementById('myCardPreviewName').innerText = player.name || 'JOGADOR';
+      document.getElementById('myCardPreviewName').innerText = playerCardName(player);
+      document.getElementById('myCardPreviewAge').innerText = player.age ? `${player.age} anos` : '—';
+      document.getElementById('myCardPreviewHeight').innerText = playerHeightCardLabel(player.height);
+      document.getElementById('myCardPreviewFoot').innerText = playerFootCardLabel(player.foot);
       [['Rit','ritVotes'],['Dri','driVotes'],['Chu','chuVotes'],['Def','defVotes'],['Pas','pasVotes'],['Fis','fisVotes']].forEach(([label,key]) => { document.getElementById(`myCardPreview${label}`).innerText = calcAttribute(player[key]); });
     }
     async function saveMyCardImage() {
@@ -2744,7 +2764,7 @@
             <div class="flex justify-between items-start">
               <div class="text-center">
                 <span class="font-teko text-5xl font-extrabold rank-accent leading-none block">${ovr}</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos === 'Volante' ? 'VOL' : String(p.pos || '').substring(0,3)}</span>
               </div>
               <div class="text-right">
                 <span class="font-teko text-2xl font-bold text-gray-300">${p.shirt}</span>
@@ -3400,7 +3420,7 @@
 
       document.getElementById('profName').innerText = loggedUser.name;
       document.getElementById('profShirt').innerText = `#${loggedUser.shirt || 0}`;
-      document.getElementById('profDetails').innerText = `${loggedUser.pos} • ${loggedUser.foot} • ${loggedUser.height}m`;
+      document.getElementById('profDetails').innerText = `${loggedUser.nickname ? `${loggedUser.nickname} • ` : ''}${loggedUser.pos} • ${loggedUser.age || '—'} anos • ${Number(loggedUser.height || 0).toFixed(2)}m • Pé ${String(loggedUser.foot || '—').toLowerCase()}`;
       document.getElementById('profGoals').innerText = loggedUser.goals || 0;
       document.getElementById('profAssists').innerText = loggedUser.assists || 0;
       document.getElementById('profSaves').innerText = loggedUser.saves || 0;
@@ -3479,7 +3499,7 @@
       if (role === 'gk') return position.includes('goleiro');
       if (position.includes('goleiro')) return false;
       if (role === 'def') return position.includes('zagueiro') || position.includes('lateral');
-      if (role === 'mid') return position.includes('meio');
+      if (role === 'mid') return position.includes('meio') || position.includes('volante');
       return role === 'att' && position.includes('atacante');
     }
     function gamePlanEffectiveOvr(player, role) { const value = calcOVR(player); return gamePlanPositionMatches(player, role) ? value : Math.round(value * .7); }
@@ -3500,16 +3520,16 @@
       field.className = gamePlanFormation === 'custom' ? 'absolute inset-0 z-10' : 'relative z-10 flex min-h-[560px] flex-col justify-around px-2 py-4 sm:px-5';
       field.innerHTML = rows.map(group => `<div class="${gamePlanFormation === 'custom' ? 'contents' : 'flex items-center justify-around gap-1 sm:gap-3'}">${group.slots.map(slot => {
         const id = gamePlanSlots[slot.id], player = id != null ? gamePlanPlayer(id) : null;
-        const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? `style="left:${slot.id === 'gk' ? 50 : pos.x}%;top:${slot.id === 'gk' ? 88 : pos.y}%;transform:translate(-50%,-50%)"` : '';
-        if (!player) return `<div data-game-plan-slot="${slot.id}" ${isCustomFieldSlot ? `draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')"` : ''} role="button" tabindex="0" ${customStyle} aria-label="${label}, toque para posicionar jogador" onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
+        const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? (slot.id === 'gk' ? 'style="position:absolute;left:50%;top:auto;bottom:12px;transform:translateX(-50%)"' : `style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);touch-action:none;cursor:grab"`) : '', markerPointers = isCustomFieldSlot ? `onpointerdown="beginGamePlanMarkerMove(event,'${slot.id}')" onpointermove="moveGamePlanMarker(event)" onpointerup="endGamePlanMarkerMove(event)" onpointercancel="endGamePlanMarkerMove(event)"` : '';
+        if (!player) return `<div data-game-plan-slot="${slot.id}" ${markerPointers} role="button" tabindex="0" ${customStyle} aria-label="${label}, arraste para reposicionar" onclick="handleGamePlanSlotClick(event,'${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
         const mismatch = !gamePlanPositionMatches(player, role), picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
-        return `<div data-game-plan-slot="${slot.id}" ${isCustomFieldSlot ? `draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')"` : ''} ${customStyle} onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(player.name)}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(player.name)}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span></button></div>`;
+        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span></button></div>`;
       }).join('')}</div>`).join('');
 
       const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
       bench.innerHTML = available.length ? available.map(player => {
         const picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), rank = getCardRank(calcOVR(player));
-        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event,'${encodeURIComponent(String(player.id))}')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(player.name)}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
+        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event,'${encodeURIComponent(String(player.id))}')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(playerCardName(player))}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
       }).join('') : '<p class="col-span-full py-5 text-center text-xs text-gray-500">Todos os jogadores estão escalados.</p>';
       document.getElementById('gamePlanCount').innerText = `${assigned.size} / 7`;
       document.getElementById('gamePlanBenchCount').innerText = `${available.length} jogador(es)`;
@@ -3563,7 +3583,31 @@
       try { const data = JSON.parse(event.dataTransfer.getData('text/plain')); placeGamePlanPlayer(String(data.id), targetSlot, data.originSlot); }
       catch { const id = gamePlanPlayerIdFromData(event.dataTransfer.getData('text/plain')); if (gamePlanPlayer(id)) placeGamePlanPlayer(String(id), targetSlot); }
     }
-    function updateCustomPosition(slot, x, y) { if (!/^custom[1-6]$/.test(slot)) return; gamePlanCustomPositions[slot] = { x: Math.max(10, Math.min(90, x)), y: Math.max(10, Math.min(82, y)) }; }
+    function updateCustomPosition(slot, x, y) { if (!/^custom[1-6]$/.test(slot)) return; gamePlanCustomPositions[slot] = { x: Math.max(8, Math.min(92, Number(x))), y: Math.max(8, Math.min(82, Number(y))) }; }
+    function handleGamePlanSlotClick(event, slot) { event.stopPropagation(); if (Date.now() < gamePlanSuppressClickUntil) return; clickGamePlanSlot(slot); }
+    function beginGamePlanMarkerMove(event, slot) {
+      if (event.target.closest('button') || gamePlanFormation !== 'custom' || !/^custom[1-6]$/.test(slot)) return;
+      gamePlanDraggingMarker = slot; gamePlanMarkerPointerId = event.pointerId; gamePlanMarkerMoved = false;
+      gamePlanMarkerStartX = event.clientX; gamePlanMarkerStartY = event.clientY;
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
+    }
+    function moveGamePlanMarker(event) {
+      if (!gamePlanDraggingMarker || event.pointerId !== gamePlanMarkerPointerId) return;
+      const pitch = document.getElementById('gamePlanPitch'), rect = pitch.getBoundingClientRect(), marker = event.currentTarget;
+      const minX = Math.max(8, Math.min(25, (marker.offsetWidth / 2 + 6) / rect.width * 100)), minY = Math.max(8, Math.min(20, (marker.offsetHeight / 2 + 6) / rect.height * 100));
+      const x = Math.max(minX, Math.min(100 - minX, (event.clientX - rect.left) / rect.width * 100));
+      const y = Math.max(minY, Math.min(Math.min(82, 100 - minY), (event.clientY - rect.top) / rect.height * 100));
+      if (Math.hypot(event.clientX - gamePlanMarkerStartX, event.clientY - gamePlanMarkerStartY) > 3) gamePlanMarkerMoved = true;
+      gamePlanCustomPositions[gamePlanDraggingMarker] = { x: Number(x.toFixed(2)), y: Number(y.toFixed(2)) };
+      marker.style.left = `${x}%`; marker.style.top = `${y}%`;
+      event.preventDefault();
+    }
+    function endGamePlanMarkerMove(event) {
+      if (!gamePlanDraggingMarker || event.pointerId !== gamePlanMarkerPointerId) return;
+      const moved = gamePlanMarkerMoved;
+      gamePlanDraggingMarker = ''; gamePlanMarkerPointerId = null; gamePlanMarkerMoved = false;
+      if (moved) { gamePlanSuppressClickUntil = Date.now() + 300; renderGamePlan(); }
+    }
     function startGamePlanSlotDrag(event, slot) { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-futmancos-slot', slot); }
     function dropGamePlanToBench(event, encodedReserveId = '') {
       event.preventDefault(); event.stopPropagation();
@@ -3651,13 +3695,13 @@
       for (const group of rows) for (let i=0;i<group.slots.length;i++) {
         const slot=group.slots[i], player=gamePlanPlayer(gamePlanSlots[slot.id]); if(!player)continue;
         const customPosition = slot.id === 'gk' ? { x: 50, y: 88 } : gamePlanCustomPositions[slot.id];
-        const x=gamePlanFormation === 'custom' ? x0 + w * customPosition.x / 100 : x0+w*(i+1)/(group.slots.length+1), y=gamePlanFormation === 'custom' ? y0 + h * customPosition.y / 100 : posY[group.role], role=gamePlanSlotRole(slot), label=gamePlanSlotLabel(slot), pic=loaded[sourceIndex++], mismatch=!gamePlanPositionMatches(player,role), tier=getCardRank(calcOVR(player));
+        const x=gamePlanFormation === 'custom' ? x0 + w * customPosition.x / 100 : x0+w*(i+1)/(group.slots.length+1), y=gamePlanFormation === 'custom' ? (slot.id === 'gk' ? y0+h-80 : y0 + h * customPosition.y / 100) : posY[group.role], role=gamePlanSlotRole(slot), label=gamePlanSlotLabel(slot), pic=loaded[sourceIndex++], mismatch=!gamePlanPositionMatches(player,role), tier=getCardRank(calcOVR(player));
         ctx.beginPath();ctx.arc(x,y,58,0,Math.PI*2);ctx.fillStyle='#09120d';ctx.fill();ctx.save();ctx.beginPath();ctx.arc(x,y,52,0,Math.PI*2);ctx.clip();
-        if(pic)ctx.drawImage(pic,x-52,y-52,104,104);else{ctx.fillStyle=tier.className==='rank-scarlet'?'#9d2339':tier.className==='rank-gold'?'#916516':tier.className==='rank-silver'?'#607681':'#286b32';ctx.fillRect(x-52,y-52,104,104);ctx.fillStyle='#fff';ctx.font='bold 46px Arial';ctx.textAlign='center';ctx.fillText(String(player.name||'?').slice(0,1).toUpperCase(),x,y+16);}ctx.restore();
-        ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 24px Arial';ctx.fillText(String(player.name||'Jogador').slice(0,20),x,y+87);ctx.fillStyle=mismatch?'#ff8790':'#ffe26b';ctx.font='bold 20px Arial';ctx.fillText(`${gamePlanEffectiveOvr(player,role)} OVR${mismatch?' · −30%':''}`,x,y+114);ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='16px Arial';ctx.fillText(label,x,y-70);
+        if(pic)ctx.drawImage(pic,x-52,y-52,104,104);else{ctx.fillStyle=tier.className==='rank-scarlet'?'#9d2339':tier.className==='rank-gold'?'#916516':tier.className==='rank-silver'?'#607681':'#286b32';ctx.fillRect(x-52,y-52,104,104);ctx.fillStyle='#fff';ctx.font='bold 46px Arial';ctx.textAlign='center';ctx.fillText(playerCardName(player).slice(0,1).toUpperCase(),x,y+16);}ctx.restore();
+        ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 24px Arial';ctx.fillText(playerCardName(player).slice(0,20),x,y+87);ctx.fillStyle=mismatch?'#ff8790':'#ffe26b';ctx.font='bold 20px Arial';ctx.fillText(`${gamePlanEffectiveOvr(player,role)} OVR${mismatch?' · −30%':''}`,x,y+114);ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='16px Arial';ctx.fillText(label,x,y-70);
       }
       ctx.fillStyle='#f5c400';ctx.textAlign='left';ctx.font='900 30px Arial';ctx.fillText(`BANCO (${substitutes.length})`,80,1190);
-      ctx.fillStyle='#e8eeea';ctx.font='22px Arial';substitutes.forEach((player,index)=>{const column=index<benchRows?0:1,row=index%benchRows;ctx.fillText(`${index+1}. ${String(player.name||'Jogador').slice(0,25)} · ${calcOVR(player)} OVR`,90+column*540,1235+row*34);});
+      ctx.fillStyle='#e8eeea';ctx.font='22px Arial';substitutes.forEach((player,index)=>{const column=index<benchRows?0:1,row=index%benchRows;ctx.fillText(`${index+1}. ${playerCardName(player).slice(0,25)} · ${calcOVR(player)} OVR`,90+column*540,1235+row*34);});
       ctx.fillStyle='#89958e';ctx.textAlign='center';ctx.font='16px Arial';ctx.fillText('Futmancos · Seu plano de jogo',600,canvas.height-25);
       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
       if(!blob)return alert('Não foi possível gerar a imagem neste aparelho.');
@@ -3674,6 +3718,7 @@
       sorted.forEach(p => {
         const ovr = calcOVR(p);
         const rank = getCardRank(ovr);
+        const cardName = gamePlanEscape(playerCardName(p));
 
         const cardPhoto = myCardImageSource(p), cutoutPhoto = useLargeCardPhoto(p);
         const photoStyle = cardPhoto && !cutoutPhoto ? `style="background-image: url(${cardPhoto})"` : '';
@@ -3699,8 +3744,10 @@
             <div class="rank-player-stage my-2 relative flex h-48 justify-center">${playerPhotoMarkup}</div>
 
             <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
-              <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>
+              <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${cardName}</h3>
             </div>
+
+            <div class="grid grid-cols-3 gap-1 pb-1 mb-1 text-center text-[8px] font-bold uppercase tracking-wide text-gray-200"><span>IDADE<b class="block rank-accent">${p.age ? `${gamePlanEscape(p.age)} anos` : '—'}</b></span><span>ALTURA<b class="block rank-accent">${playerHeightCardLabel(p.height)}</b></span><span>MELHOR PÉ<b class="block rank-accent">${playerFootCardLabel(p.foot)}</b></span></div>
 
             <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
               <div class="flex justify-between"><span>RIT</span><span class="rank-accent">${calcAttribute(p.ritVotes)}</span></div>
@@ -4046,7 +4093,7 @@
       const adminCode = document.getElementById('regAdminCode').value.trim();
       if (role === 'admin' && !adminCode) { alert('Solicite e informe o código temporário aprovado pela administração.'); return; }
       const payload = {
-        name: document.getElementById('regName').value.trim(), password: document.getElementById('regPassword').value,
+        name: document.getElementById('regName').value.trim(), nickname: document.getElementById('regNickname').value.trim(), password: document.getElementById('regPassword').value,
         email: document.getElementById('regEmail').value.trim(), phone: document.getElementById('regPhone').value.trim(),
         cpf: document.getElementById('regCpf').value.replace(/\D/g, ''),
         emergencyContactName: document.getElementById('regEmergencyName').value.trim(),
@@ -4057,6 +4104,7 @@
         shirt: Number(document.getElementById('regShirtNum').value) || 0,
         role, adminCode
       };
+      if (!payload.nickname || payload.nickname.length > 24) return alert('Informe um apelido com até 24 caracteres para sua cartinha.');
       if (!/^\d{11}$/.test(payload.cpf)) return alert('Informe um CPF válido com 11 números.');
       if (!payload.emergencyContactName || !payload.emergencyContactPhone) return alert('Informe o nome e o telefone do contato de emergência.');
       if (payload.associationAnswer.toLocaleLowerCase('pt-BR') !== 'isaac') return alert('Resposta incorreta. O cadastro é exclusivo para pessoas ligadas à associação.');
@@ -4068,7 +4116,7 @@
           password: payload.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name: payload.name, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt, cpf: payload.cpf, emergency_contact_name: payload.emergencyContactName, emergency_contact_phone: payload.emergencyContactPhone, association_answer: payload.associationAnswer }
+            data: { name: payload.name, nickname: payload.nickname, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt, cpf: payload.cpf, emergency_contact_name: payload.emergencyContactName, emergency_contact_phone: payload.emergencyContactPhone, association_answer: payload.associationAnswer }
           }
         });
         if (error) throw error;
@@ -4080,7 +4128,7 @@
           return;
         }
         const createdPlayer = players.find(player => String(player.email || '').toLowerCase() === payload.email.toLowerCase());
-        if (createdPlayer) createdPlayer.shirt = payload.shirt;
+        if (createdPlayer) { createdPlayer.shirt = payload.shirt; createdPlayer.nickname = payload.nickname; }
         await redeemPendingAdminCode();
         let user;
         try { user = (await apiRequest('/auth/sync', { method: 'POST', body: '{}' })).user; }

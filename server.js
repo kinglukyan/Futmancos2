@@ -87,7 +87,7 @@ const saoPauloDay = (date = new Date()) => Number(new Intl.DateTimeFormat('en-US
 }).format(date));
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
 const userPublic = row => ({
-  id: row.id, name: row.name, email: row.email, phone: row.phone, age: row.age,
+  id: row.id, name: row.name, nickname: row.nickname || '', email: row.email, phone: row.phone, age: row.age,
   pos: row.position, foot: row.foot, height: row.height, shirt: Number(row.shirt_number) || 0, photo: row.photo || '',
   isAdmin: !!row.is_admin, paidMonth: row.paid_month || ''
 });
@@ -250,6 +250,12 @@ app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
     profile = foundProfile;
     if (!profile) return res.status(409).json({ error: 'Perfil não encontrado. Verifique se a migração de perfis foi executada no Supabase.' });
     const metadata = authData.user.user_metadata || {};
+    const signupNickname = String(metadata.nickname || '').trim().slice(0, 24);
+    if (!String(profile.nickname || '').trim() && signupNickname) {
+      const { data: updatedProfile, error: nicknameError } = await supabase.from('profiles').update({ nickname: signupNickname }).eq('id', profile.id).select('*').single();
+      if (nicknameError) throw nicknameError;
+      profile = updatedProfile;
+    }
     const rawCpf = String(metadata.cpf || '').replace(/\D/g, '');
     if (!profile.cpf_hash && (rawCpf || metadata.emergency_contact_name || metadata.emergency_contact_phone || metadata.association_answer)) {
       if (String(metadata.association_answer || '').trim().toLocaleLowerCase('pt-BR') !== 'isaac') return res.status(403).json({ error: 'Resposta de validação da associação inválida.' });
@@ -288,6 +294,17 @@ app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, nex
       const babaAccess = req.user.is_admin || String(req.user.position || '').toLowerCase().includes('goleiro') || billingStatus(req.user, await getFee()).status === 'paid';
       if (!babaAccess) { state.presentPlayers = []; state.checkedInPlayers = []; }
       state.players = Array.isArray(state.players) ? state.players.filter(player => !isDemoMember(player)) : [];
+      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id,email,name,nickname,phone,age,position,foot,height,shirt_number,photo').order('name');
+      if (profilesError) throw profilesError;
+      for (const profile of profiles || []) {
+        if (isDemoMember(profile)) continue;
+        let player = state.players.find(item => [item.id, item.serverId, item.authUserId].some(id => id != null && String(id) === String(profile.id)) || String(item.email || '').toLowerCase() === String(profile.email || '').toLowerCase());
+        if (!player) {
+          player = { id: profile.id, goals: 0, assists: 0, saves: 0, matches: 0, days: 0, ritVotes: [70], driVotes: [70], chuVotes: [70], defVotes: [70], pasVotes: [70], fisVotes: [70], voteRecords: [] };
+          state.players.push(player);
+        }
+        Object.assign(player, { id: profile.id, serverId: profile.id, authUserId: profile.id, name: profile.name, nickname: profile.nickname || '', email: profile.email, phone: profile.phone || '', age: Number(profile.age) || 0, pos: profile.position || 'Meio-Campo', foot: profile.foot || 'Direita', height: Number(profile.height) || 1.7, shirt: Number(profile.shirt_number) || 0, photo: profile.photo || player.photo || '' });
+      }
       if (Array.isArray(state.transactions)) state.transactions = state.transactions.filter(item => String(item.desc || '') !== 'Mensalidade Lukyan');
       const rosterIds = new Set((row.state_json?.players || []).filter(isDemoMember).map(player => String(player.id)));
       if (Array.isArray(state.presentPlayers)) state.presentPlayers = state.presentPlayers.filter(id => !rosterIds.has(String(id)));
@@ -1023,7 +1040,7 @@ app.put('/api/profile/game-plan', authenticate, requireDatabase, async (req, res
     for (let index = 1; index <= 6; index++) {
       const position = submittedPositions?.[`custom${index}`];
       const x = Number(position?.x), y = Number(position?.y);
-      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 10 || x > 90 || y < 10 || y > 82) return res.status(400).json({ error: 'As posições personalizadas precisam ficar dentro do campo.' });
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 8 || x > 92 || y < 8 || y > 82) return res.status(400).json({ error: 'As posições personalizadas precisam ficar dentro do campo.' });
       positions[`custom${index}`] = { x, y };
     }
   }
@@ -1052,6 +1069,25 @@ app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatab
     const { error } = await supabase.from('profiles').update({ photo }).eq('id', member.id);
     if (error) throw error;
     res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.put('/api/admin/members/:id/profile', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const name = String(req.body?.name || '').trim();
+  const nickname = String(req.body?.nickname || '').trim().slice(0, 24);
+  const age = Number(req.body?.age), height = Number(req.body?.height);
+  const position = String(req.body?.position || '');
+  const foot = String(req.body?.foot || '');
+  if (!name || name.length > 40 || !Number.isInteger(age) || age < 10 || age > 100 || !Number.isFinite(height) || height < 1.2 || height > 2.3 || !['Goleiro','Zagueiro','Lateral','Meio-Campo','Volante','Atacante'].includes(position) || !['Direita','Esquerda','Ambidestro'].includes(foot)) return res.status(400).json({ error: 'Confira nome, apelido, idade, posição, altura e melhor pé.' });
+  try {
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,nickname,age,position,foot,height').eq('id', req.params.id).maybeSingle();
+    if (findError) throw findError;
+    if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    const updated = { name, nickname, age, position, foot, height: Number(height.toFixed(2)) };
+    const { error } = await supabase.from('profiles').update(updated).eq('id', member.id);
+    if (error) throw error;
+    await auditAdminAction(req.user, 'member_profile_updated', 'member', member.id, `Dados e apelido de ${name} atualizados.`, { before: member, after: updated });
+    res.json({ ok: true, profile: updated });
   } catch (error) { next(error); }
 });
 
