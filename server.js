@@ -42,13 +42,16 @@ function isValidCpf(value) {
 async function sendPushUsers(userIds, eventKey, notification) {
   if (!pushEnabled || !supabase || !userIds.length) return;
   const uniqueIds = [...new Set(userIds.filter(Boolean))];
-  const [{ data: subscriptions, error: subError }, { data: sentRows, error: sentError }] = await Promise.all([
+  const [{ data: subscriptions, error: subError }, { data: sentRows, error: sentError }, { data: preferenceRows, error: preferenceError }] = await Promise.all([
     supabase.from('push_subscriptions').select('user_id,endpoint,subscription').in('user_id', uniqueIds),
-    supabase.from('notification_deliveries').select('user_id').eq('event_key', eventKey).in('user_id', uniqueIds)
+    supabase.from('notification_deliveries').select('user_id').eq('event_key', eventKey).in('user_id', uniqueIds),
+    supabase.from('member_notification_preferences').select('user_id,preferences').in('user_id', uniqueIds)
   ]);
-  if (subError) throw subError; if (sentError) throw sentError;
+  if (subError) throw subError; if (sentError) throw sentError; if (preferenceError) throw preferenceError;
   const alreadySent = new Set((sentRows || []).map(row => row.user_id));
-  const targets = (subscriptions || []).filter(item => !alreadySent.has(item.user_id));
+  const preferencesByUser = new Map((preferenceRows || []).map(row => [row.user_id, row.preferences || {}]));
+  const category = String(notification.category || 'baba');
+  const targets = (subscriptions || []).filter(item => !alreadySent.has(item.user_id) && preferencesByUser.get(item.user_id)?.[category] !== false);
   const succeeded = new Set();
   await Promise.all(targets.map(async item => {
     try { await webpush.sendNotification(item.subscription, JSON.stringify(notification)); succeeded.add(item.user_id); }
@@ -102,6 +105,15 @@ async function setting(key) {
 }
 async function saveSetting(key, value) {
   const { error } = await supabase.from('settings').upsert({ key, value: String(value) }, { onConflict: 'key' });
+  if (error) throw error;
+}
+async function recordCashTransaction(transaction) {
+  const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+  if (readError) throw readError;
+  const state = row?.state_json || {}, entries = Array.isArray(state.transactions) ? state.transactions : [];
+  if (!entries.some(entry => String(entry.id) === String(transaction.id))) state.transactions = [transaction, ...entries];
+  else state.transactions = entries;
+  const { error } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
   if (error) throw error;
 }
 async function getFee() {
@@ -161,6 +173,22 @@ app.get('/api/me/guest-code', authenticate, requireDatabase, async (req, res, ne
     return res.status(503).json({ error: 'Não foi possível gerar um código agora. Tente novamente.' });
   } catch (error) { next(error); }
 });
+app.get('/api/me/notification-preferences', authenticate, requireDatabase, async (req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('member_notification_preferences').select('preferences').eq('user_id', req.user.id).maybeSingle();
+    if (error) throw error;
+    res.json({ preferences: { baba: true, payments: true, votes: true, ...(data?.preferences || {}) } });
+  } catch (error) { next(error); }
+});
+app.put('/api/me/notification-preferences', authenticate, requireDatabase, async (req, res, next) => {
+  const input = req.body?.preferences || {};
+  const preferences = Object.fromEntries(['baba', 'payments', 'votes'].map(key => [key, input[key] !== false]));
+  try {
+    const { error } = await supabase.from('member_notification_preferences').upsert({ user_id: req.user.id, preferences, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) throw error;
+    res.json({ preferences });
+  } catch (error) { next(error); }
+});
 app.get('/api/push/public-key', (_req, res) => res.json({ enabled: pushEnabled, publicKey: pushEnabled ? vapidPublicKey : '' }));
 app.post('/api/push/subscribe', authenticate, requireDatabase, async (req, res, next) => {
   const subscription = req.body?.subscription;
@@ -198,7 +226,7 @@ app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
 app.get('/api/payments/status', authenticate, requireDatabase, async (req, res, next) => {
   try {
     const status = billingStatus(req.user, await getFee());
-    if (['pending', 'overdue'].includes(status.status)) await sendPushUsers([req.user.id], `billing-${status.status}:${status.month}`, { title: status.status === 'overdue' ? 'Mensalidade em atraso' : 'Mensalidade pendente', body: status.status === 'overdue' ? 'Fale com um administrador para regularizar o pagamento.' : `A mensalidade vence no dia ${status.dueDay}. Confira a tela Mensalidades.`, url: '/' });
+    if (['pending', 'overdue'].includes(status.status)) await sendPushUsers([req.user.id], `billing-${status.status}:${status.month}`, { category: 'payments', title: status.status === 'overdue' ? 'Mensalidade em atraso' : 'Mensalidade pendente', body: status.status === 'overdue' ? 'Fale com um administrador para regularizar o pagamento.' : `A mensalidade vence no dia ${status.dueDay}. Confira a tela Mensalidades.`, url: '/' });
     res.json(status);
   } catch (error) { next(error); }
 });
@@ -246,7 +274,7 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     if (gameWasChanged && state.nextGame?.date) {
       const description = [state.nextGame.name, state.nextGame.date, state.nextGame.time, state.nextGame.address].filter(Boolean).join(' · ');
       const eventKey = `new-baba:${createHash('sha256').update(JSON.stringify(state.nextGame)).digest('hex').slice(0, 32)}`;
-      await sendPushAll(eventKey, { title: 'Novo baba marcado ou atualizado', body: description || 'Confira a data e o local do próximo baba.', url: '/' }, req.user.id);
+      await sendPushAll(eventKey, { category: 'baba', title: 'Novo baba marcado ou atualizado', body: description || 'Confira a data e o local do próximo baba.', url: '/' }, req.user.id);
     }
     res.json({ ok: true, updatedAt });
   } catch (error) { next(error); }
@@ -280,6 +308,7 @@ app.post('/api/guests', requireDatabase, async (req, res, next) => {
   if (attempt.count >= 15) return res.status(429).json({ error: 'Muitas tentativas de código. Aguarde alguns minutos e tente novamente.' });
   attempt.count++; guestInviteAttempts.set(attemptKey, attempt);
   try {
+    const guestFee = Number(await setting('guest_daily_fee')) || 0;
     const { data: codeRow, error: codeError } = await supabase.from('member_guest_codes').select('member_id').eq('code', invitationCode).maybeSingle();
     if (codeError) throw codeError;
     if (!codeRow) return res.status(400).json({ error: 'Código de convite não encontrado. Peça ao associado para conferir o código no Perfil.' });
@@ -287,7 +316,8 @@ app.post('/api/guests', requireDatabase, async (req, res, next) => {
     if (inviterError) throw inviterError;
     if (!inviter || isDemoMember(inviter)) return res.status(400).json({ error: 'Selecione um associado válido como responsável pelo convite.' });
     const { data: guest, error } = await supabase.from('baba_guests').insert({
-      name, cpf_hash: guestCpfHash(cpf), cpf_encrypted: encryptGuestCpf(cpf), cpf_last4: cpf.slice(-4), age, invited_by: inviter.id
+      name, cpf_hash: guestCpfHash(cpf), cpf_encrypted: encryptGuestCpf(cpf), cpf_last4: cpf.slice(-4), age, invited_by: inviter.id,
+      payment_status: 'pending', payment_amount: guestFee
     }).select('id,name,age,created_at').single();
     if (error?.code === '23505') return res.status(409).json({ error: 'Este CPF já está cadastrado como convidado. Fale com a administração se precisar corrigir os dados.' });
     if (error) throw error;
@@ -510,6 +540,29 @@ app.post('/api/admin/baba/draws', authenticate, requireAdmin, requireDatabase, a
     res.status(201).json({ draw: { ...drawData, id, gameDay, drawOrder, selectedCount, finalized: false } });
   } catch (error) { next(error); }
 });
+app.put('/api/admin/baba/draws/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const submitted = req.body?.players, assignedKeeperIds = Array.isArray(req.body?.assignedKeeperIds) ? req.body.assignedKeeperIds.map(String) : [];
+  if (!Array.isArray(submitted) || assignedKeeperIds.length !== 2 || new Set(assignedKeeperIds).size !== 2) return res.status(400).json({ error: 'Informe os times e dois goleiros diferentes.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('baba_draws').select('id,game_day,selected_count,draw_order,draw_data,finalized').eq('id', req.params.id).maybeSingle();
+    if (readError) throw readError;
+    if (!row) return res.status(404).json({ error: 'Sorteio não encontrado.' });
+    if (row.finalized) return res.status(409).json({ error: 'Partida já finalizada; não é possível refazer os times.' });
+    const current = row.draw_data?.players || [], currentIds = current.map(player => String(player.userId));
+    const ids = submitted.map(player => String(player.userId || ''));
+    if (ids.length !== row.selected_count || new Set(ids).size !== ids.length || ids.some(id => !currentIds.includes(id)) || currentIds.some(id => !ids.includes(id))) return res.status(400).json({ error: 'Refazer os times mantém exatamente os mesmos jogadores sorteados.' });
+    const byId = new Map(current.map(player => [String(player.userId), player]));
+    const players = submitted.map(item => {
+      const player = byId.get(String(item.userId));
+      return { ...player, ovr: Math.max(1, Math.min(99, Number(item.ovr) || player.ovr || 70)), team: item.team === 'B' ? 'B' : item.team === 'A' ? 'A' : '', isKeeper: assignedKeeperIds.includes(String(item.userId)) };
+    });
+    if (players.some(player => !player.team) || assignedKeeperIds.some(id => !ids.includes(id)) || players.filter(player => player.isKeeper && player.team === 'A').length !== 1 || players.filter(player => player.isKeeper && player.team === 'B').length !== 1) return res.status(400).json({ error: 'O sorteio deve ter um goleiro em cada time.' });
+    const drawData = { ...row.draw_data, players, assignedKeeperIds };
+    const { error } = await supabase.from('baba_draws').update({ draw_data: drawData }).eq('id', row.id).eq('finalized', false);
+    if (error) throw error;
+    res.json({ ok: true, draw: { ...drawData, id: row.id, gameDay: row.game_day, drawOrder: row.draw_order, selectedCount: row.selected_count, finalized: false } });
+  } catch (error) { next(error); }
+});
 app.put('/api/admin/baba/draws/:id/finalize', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const id = String(req.params.id || ''), winner = String(req.body?.winner || ''), stats = req.body?.stats;
   if (!['A', 'B', 'draw'].includes(winner) || !Array.isArray(stats)) return res.status(400).json({ error: 'Escolha o time vencedor e informe os dados dos jogadores.' });
@@ -528,7 +581,7 @@ app.put('/api/admin/baba/draws/:id/finalize', authenticate, requireAdmin, requir
     const scoreA = players.filter(player => player.team === 'A').reduce((sum, player) => sum + player.goals, 0);
     const scoreB = players.filter(player => player.team === 'B').reduce((sum, player) => sum + player.goals, 0);
     const date = new Date(`${row.game_day}T12:00:00`).toLocaleDateString('pt-BR');
-    const match = { id, gameDay: row.game_day, date, scoreA, scoreB, winner, teamA: players.filter(player => player.team === 'A').map(player => player.name), teamB: players.filter(player => player.team === 'B').map(player => player.name), checkedInIds: players.map(player => player.userId), checkedInEmails: players.map(player => player.email), checkedInPlayersData: players.map(player => ({ email: player.email, name: player.name, pos: player.position })), stats: players.map(({ userId, email, name, team, goals, assists, saves }) => ({ playerId: userId, email, name, team, goals, assists, saves })), votingOpen: false, drawOrder: row.draw_data?.drawOrder || 0 };
+    const match = { id, gameDay: row.game_day, date, scoreA, scoreB, winner, teamA: players.filter(player => player.team === 'A').map(player => player.name), teamB: players.filter(player => player.team === 'B').map(player => player.name), checkedInIds: players.map(player => player.userId), checkedInEmails: players.map(player => player.email), checkedInPlayersData: players.map(player => ({ email: player.email, name: player.name, pos: player.position })), stats: players.map(({ userId, email, name, team, goals, assists, saves, isKeeper, position }) => ({ playerId: userId, email, name, team, goals, assists, saves, isKeeper, position })), votingOpen: false, drawOrder: row.draw_data?.drawOrder || 0 };
     const drawData = { ...row.draw_data, players, winner, scoreA, scoreB };
     const [{ error: drawError }, { error: matchError }] = await Promise.all([
       supabase.from('baba_draws').update({ draw_data: drawData, finalized: true }).eq('id', id),
@@ -559,7 +612,7 @@ app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requi
     const { data, error } = await supabase.from('baba_matches').update({ voting_open: true }).eq('game_day', date).select('id');
     if (error) throw error;
     if (!data.length) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
-    await sendPushAll(`votes-open:${date}`, { title: 'Votação das cartinhas liberada', body: 'O ADM encerrou os jogos do dia. Avalie as cartinhas dos jogadores que participaram.', url: '/' }, req.user.id);
+    await sendPushAll(`votes-open:${date}`, { category: 'votes', title: 'Votação das cartinhas liberada', body: 'O ADM encerrou os jogos do dia. Avalie as cartinhas dos jogadores que participaram.', url: '/' }, req.user.id);
     res.json({ ok: true, games: data.length });
   } catch (error) { next(error); }
 });
@@ -573,7 +626,7 @@ app.get('/api/admin/members', authenticate, requireAdmin, requireDatabase, async
 });
 app.get('/api/admin/guests', authenticate, requireAdmin, requireDatabase, async (_req, res, next) => {
   try {
-    const { data: guests, error } = await supabase.from('baba_guests').select('id,name,cpf_last4,age,invited_by,created_at').order('created_at', { ascending: false });
+    const { data: guests, error } = await supabase.from('baba_guests').select('id,name,cpf_last4,age,invited_by,created_at,payment_status,payment_amount').order('created_at', { ascending: false });
     if (error) throw error;
     const inviterIds = [...new Set((guests || []).map(guest => guest.invited_by).filter(Boolean))];
     const { data: profiles, error: profileError } = inviterIds.length
@@ -582,6 +635,20 @@ app.get('/api/admin/guests', authenticate, requireAdmin, requireDatabase, async 
     if (profileError) throw profileError;
     const names = new Map((profiles || []).map(profile => [profile.id, profile.name]));
     res.json({ guests: (guests || []).map(guest => ({ ...guest, cpfMasked: `***.***.***-${guest.cpf_last4}`, invitedByName: names.get(guest.invited_by) || 'Associado removido' })) });
+  } catch (error) { next(error); }
+});
+app.put('/api/admin/guests/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: guest, error: readError } = await supabase.from('baba_guests').select('id,name,payment_status,payment_amount,created_at').eq('id', req.params.id).maybeSingle();
+    if (readError) throw readError;
+    if (!guest) return res.status(404).json({ error: 'Convidado não encontrado.' });
+    if (guest.payment_status !== 'paid') {
+      const { error } = await supabase.from('baba_guests').update({ payment_status: 'paid' }).eq('id', guest.id);
+      if (error) throw error;
+    }
+    const date = new Date().toISOString().slice(0, 10);
+    await recordCashTransaction({ id: `guest-${guest.id}`, type: 'entrada', category: 'Diária Convidado', value: Number(guest.payment_amount) || 0, desc: `Pix convidado — ${guest.name}`, date });
+    res.json({ ok: true, paymentStatus: 'paid' });
   } catch (error) { next(error); }
 });
 app.delete('/api/admin/guests/:id', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -709,14 +776,16 @@ app.put('/api/admin/members/:id/shirt-number', authenticate, requireAdmin, requi
 
 app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id,position').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,position,paid_month').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
     if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const month = monthKey();
     const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
     if (error) throw error;
-    res.json({ ok: true, month, status: 'paid' });
+    const amount = await getFee();
+    await recordCashTransaction({ id: `membership-${member.id}-${month}`, type: 'entrada', category: 'Mensalidade', value: amount, desc: `Mensalidade ${month} — ${member.name}`, date: `${month}-01` });
+    res.json({ ok: true, month, status: 'paid', amount });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/monthly-fee', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -765,15 +834,15 @@ async function checkScheduledPushes() {
     const nextGame = stateRow?.state_json?.nextGame;
     if (nextGame?.date === today) {
       const label = [nextGame.name, nextGame.time, nextGame.address].filter(Boolean).join(' · ');
-      await sendPushAll(`baba-day:${today}`, { title: 'Hoje tem baba!', body: label || 'Confira a Central Baba para ver o local e confirmar presença.', url: '/' });
+      await sendPushAll(`baba-day:${today}`, { category: 'baba', title: 'Hoje tem baba!', body: label || 'Confira a Central Baba para ver o local e confirmar presença.', url: '/' });
     }
     const { data: members, error: membersError } = await supabase.from('profiles').select('id,email,name,position,paid_month,is_admin');
     if (membersError) throw membersError;
     const fee = await getFee();
     for (const member of (members || []).filter(row => !isDemoMember(row))) {
       const status = billingStatus(member, fee).status;
-      if (status === 'pending' && dayNumber <= 12) await sendPushUsers([member.id], `billing-pending:${month}`, { title: 'Mensalidade pendente', body: 'A mensalidade está disponível e vence no dia 12. Confira os dados Pix no app.', url: '/' });
-      else if (status === 'overdue' && dayNumber > 12) await sendPushUsers([member.id], `billing-overdue:${month}`, { title: 'Mensalidade em atraso', body: 'Fale com um administrador pelo WhatsApp para regularizar o pagamento.', url: '/' });
+      if (status === 'pending' && dayNumber <= 12) await sendPushUsers([member.id], `billing-pending:${month}`, { category: 'payments', title: 'Mensalidade pendente', body: 'A mensalidade está disponível e vence no dia 12. Confira os dados Pix no app.', url: '/' });
+      else if (status === 'overdue' && dayNumber > 12) await sendPushUsers([member.id], `billing-overdue:${month}`, { category: 'payments', title: 'Mensalidade em atraso', body: 'Fale com um administrador pelo WhatsApp para regularizar o pagamento.', url: '/' });
     }
   } catch (error) { console.warn('Não foi possível verificar os avisos agendados:', error.message); }
 }

@@ -353,7 +353,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-2">
           <div class="flex items-center gap-2 text-brand-lightGreen">
             <i data-lucide="map-pin" class="w-5 h-5"></i>
@@ -413,18 +413,10 @@
         </div>
       </div>
 
-      <div class="bg-brand-cardBg border border-sky-500/30 p-3 rounded-2xl space-y-2">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
-          <div><h3 class="font-teko text-lg text-sky-300">CHECK-IN POR PROXIMIDADE</h3><p id="autoCheckinStatus" class="text-[11px] text-gray-400">Ative para permitir que este aparelho confirme sua chegada à arena.</p></div>
-          <button type="button" id="btnAutoCheckin" onclick="toggleLocationAutoCheckin()" class="bg-sky-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl">Ativar localização</button>
-        </div>
-        <p class="text-[10px] text-gray-500">A localização só é verificada após sua autorização e enquanto esta página estiver aberta. O site não guarda suas coordenadas; o check-in só é enviado ao entrar no raio configurado.</p>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="font-teko text-xl text-white">CONFIRMADOS NO GRUPO (<span id="countPresence">0</span>)</h3>
+            <h3 class="font-teko text-xl text-white">PRESENÇA CONFIRMADA · AGUARDANDO CHECK-IN (<span id="countPresence">0</span>)</h3>
             <button onclick="exportPresenceList()" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1"><i data-lucide="share-2" class="w-3.5 h-3.5"></i> Copiar</button>
           </div>
           <div id="presenceList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar"></div>
@@ -433,6 +425,11 @@
           <h3 class="font-teko text-xl text-emerald-400">JOGADORES DISPONÍVEIS / CHECK-IN (<span id="countCheckIn">0</span>)</h3>
           <p class="text-[10px] text-gray-400">Jogadores com check-in ficam disponíveis para o registro pós-jogo e para votar.</p>
           <div id="checkInList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar"></div>
+        </div>
+        <div class="bg-brand-cardBg border border-rose-500/30 p-4 rounded-2xl space-y-2">
+          <h3 class="font-teko text-xl text-rose-300">AINDA NÃO RESPONDERAM (<span id="countNoResponse">0</span>)</h3>
+          <p class="text-[10px] text-gray-400">Associados sem confirmação de presença para este baba.</p>
+          <div id="noResponseList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto no-scrollbar"></div>
         </div>
       </div>
 
@@ -443,9 +440,10 @@
       </div>
 
       <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-sky-300">SORTEIOS DO BABA</h3><div id="babaDrawResults" class="space-y-2"></div></div>
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-white">RESUMO DOS JOGOS DO DIA</h3><div id="babaMatchSummaries" class="space-y-2"></div></div>
 <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
   <div><h3 class="font-teko text-2xl text-amber-400">SORTEAR TIMES E FECHAR RESULTADOS</h3><p class="text-xs text-gray-400">Os times são balanceados pelo OVR das cartinhas. Quem ainda não foi sorteado tem prioridade no próximo sorteio do dia. Registre todos os sorteios e, ao final, informe os resultados juntos.</p></div>
-  <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="loadBabaDraws(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
+  <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="onAdminMatchDateChange(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
     <label class="text-[10px] text-gray-400">Quantidade total de jogadores<input id="drawPlayerCount" type="number" min="2" max="30" value="10" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
     <fieldset id="drawKeeperOverrideWrap" class="sm:col-span-2 border border-sky-900 rounded-xl p-3"><legend class="px-1 text-[10px] text-sky-200">GOLEIROS DOS DOIS TIMES</legend><div class="grid sm:grid-cols-2 gap-2"><label class="text-[10px] text-gray-400">Goleiro · Time Verde<select id="drawKeeperOverrideA" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label><label class="text-[10px] text-gray-400">Goleiro · Time Preto<select id="drawKeeperOverrideB" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label></div><p class="mt-2 text-[10px] text-gray-500">Selecione dois jogadores diferentes. Goleiros já confirmados aparecem selecionados; se faltar algum, escolha quem vai assumir a posição.</p></fieldset>
@@ -477,9 +475,6 @@
             <span id="profShirt" class="bg-brand-green text-black font-bold px-2 py-0.5 rounded text-xs font-teko text-lg">#0</span>
           </div>
           <p id="profDetails" class="text-xs text-gray-400">Meio-Campo • Destro</p>
-          <button onclick="openEditProfileModal()" class="mt-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 mx-auto sm:mx-0 transition">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar Meus Dados
-          </button>
         </div>
         
         <div class="bg-black/50 p-3 rounded-xl border border-gray-800 text-center w-full sm:w-auto flex flex-col items-center gap-2">
@@ -494,31 +489,43 @@
       <div id="memberGuestCodePanel" class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
         <h3 class="font-teko text-2xl text-sky-300">CÓDIGO PARA CONVIDAR</h3>
         <p class="text-xs text-gray-400">Compartilhe este código de seis dígitos com seu convidado para ele fazer o cadastro. Não é um código de acesso à conta.</p>
-        <div class="flex items-center gap-3"><strong id="memberGuestCode" class="font-mono tracking-[0.3em] text-2xl text-white">••••••</strong><button type="button" onclick="copyMemberGuestCode()" class="bg-sky-800 text-white px-3 py-2 rounded-lg text-xs font-bold">Copiar</button></div>
+        <div class="flex flex-wrap items-center gap-3"><strong id="memberGuestCode" class="font-mono tracking-[0.3em] text-2xl text-white">••••••</strong><button type="button" onclick="copyMemberGuestCode()" class="bg-sky-800 text-white px-3 py-2 rounded-lg text-xs font-bold">Copiar</button><button type="button" onclick="shareMemberGuestCode()" class="bg-emerald-800 text-white px-3 py-2 rounded-lg text-xs font-bold">Compartilhar</button></div>
         <p id="memberGuestCodeStatus" class="text-xs text-gray-400" aria-live="polite"></p>
       </div>
-      <div id="passkeySettings" class="hidden bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
-        <div><h3 class="font-teko text-2xl text-emerald-300">ENTRADA COM BIOMETRIA</h3><p class="text-xs text-gray-400">Cadastre uma chave de acesso neste aparelho para entrar com digital, Face ID, PIN ou bloqueio de tela. A associação não recebe nem guarda sua biometria.</p></div>
-        <button id="registerPasskeyBtn" type="button" onclick="registerDevicePasskey()" class="w-full sm:w-auto bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar biometria neste aparelho</button>
-        <p class="text-xs text-gray-500">Se aparecer “Passkeys are disabled”, o administrador do projeto precisa ativar Passkeys em Authentication → Passkeys no Supabase.</p>
-        <p id="passkeyStatus" class="text-xs text-gray-400" aria-live="polite"></p>
-        <div id="passkeyList" class="space-y-2"></div>
-      </div>
-      <div id="profileNotifications" class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
-        <h3 class="font-teko text-2xl text-sky-300">AVISOS NO CELULAR</h3>
-        <p class="text-xs text-gray-400">Receba avisos de novo baba, mensalidade e votação. No iPhone, instale o app na Tela de Início antes de ativar.</p>
-        <button id="enableNotificationsBtn" type="button" onclick="enableFutmancosNotifications()" class="bg-sky-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar avisos neste aparelho</button>
-        <p id="notificationStatus" class="text-xs text-gray-400" aria-live="polite"></p>
-      </div>
-      <form onsubmit="handleChangePassword(event)" class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-white">TROCAR MINHA SENHA</h3>
-        <p class="text-xs text-gray-400">Confirme sua senha atual para definir uma nova.</p>
-        <input id="currentPassword" type="password" autocomplete="current-password" required placeholder="Senha atual" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
-        <input id="newPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Nova senha (mínimo 10 caracteres)" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
-        <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Confirme a nova senha" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
-        <button class="bg-gray-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Atualizar senha</button>
-        <p id="changePasswordStatus" class="text-xs text-gray-400" aria-live="polite"></p>
-      </form>
+      <details id="profileSettings" class="bg-brand-cardBg border border-gray-800 rounded-2xl overflow-hidden">
+        <summary class="cursor-pointer list-none p-4 flex justify-between items-center font-teko text-2xl text-brand-lightGreen"><span>⚙ CONFIGURAÇÕES DA CONTA</span><span class="text-xs text-gray-400">Abrir / fechar</span></summary>
+        <div class="p-4 pt-0 space-y-4">
+          <button onclick="openEditProfileModal()" class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-4 py-3 rounded-xl">Editar dados, foto e camisa</button>
+          <div class="bg-black/30 border border-sky-500/30 p-4 rounded-2xl space-y-2">
+            <h3 class="font-teko text-2xl text-sky-300">CHECK-IN POR LOCALIZAÇÃO</h3>
+            <p id="autoCheckinStatus" class="text-xs text-gray-400">Ative para confirmar sua chegada quando estiver perto da arena. O aparelho só será acompanhado enquanto esta página estiver aberta.</p>
+            <button type="button" id="btnAutoCheckin" onclick="toggleLocationAutoCheckin()" class="bg-sky-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar localização</button>
+          </div>
+          <div id="passkeySettings" class="hidden bg-black/30 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
+            <div><h3 class="font-teko text-2xl text-emerald-300">ENTRADA COM BIOMETRIA</h3><p class="text-xs text-gray-400">Cadastre uma chave neste aparelho para entrar com digital, Face ID, PIN ou bloqueio de tela.</p></div>
+            <button id="registerPasskeyBtn" type="button" onclick="registerDevicePasskey()" class="bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar biometria neste aparelho</button>
+            <p class="text-xs text-gray-500">Se aparecer “Passkeys are disabled”, o administrador do projeto precisa ativar Passkeys em Authentication → Passkeys no Supabase.</p>
+            <p id="passkeyStatus" class="text-xs text-gray-400" aria-live="polite"></p><div id="passkeyList" class="space-y-2"></div>
+          </div>
+          <div id="profileNotifications" class="bg-black/30 border border-sky-500/30 p-4 rounded-2xl space-y-3">
+            <h3 class="font-teko text-2xl text-sky-300">NOTIFICAÇÕES</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-300">
+              <label><input type="checkbox" data-notification-preference="baba" checked onchange="saveNotificationPreferences()"> Babas e presença</label>
+              <label><input type="checkbox" data-notification-preference="payments" checked onchange="saveNotificationPreferences()"> Mensalidades</label>
+              <label><input type="checkbox" data-notification-preference="votes" checked onchange="saveNotificationPreferences()"> Votação</label>
+            </div>
+            <button id="enableNotificationsBtn" type="button" onclick="enableFutmancosNotifications()" class="bg-sky-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Ativar avisos neste aparelho</button>
+            <p id="notificationStatus" class="text-xs text-gray-400" aria-live="polite"></p>
+          </div>
+          <form onsubmit="handleChangePassword(event)" class="bg-black/30 border border-gray-800 p-4 rounded-2xl space-y-3">
+            <h3 class="font-teko text-2xl text-white">TROCAR MINHA SENHA</h3>
+            <input id="currentPassword" type="password" autocomplete="current-password" required placeholder="Senha atual" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+            <input id="newPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Nova senha (mínimo 10 caracteres)" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+            <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Confirme a nova senha" class="w-full bg-black border border-gray-800 rounded-xl p-3 text-sm">
+            <button class="bg-gray-700 text-white font-bold text-xs px-4 py-3 rounded-xl">Atualizar senha</button><p id="changePasswordStatus" class="text-xs text-gray-400" aria-live="polite"></p>
+          </form>
+        </div>
+      </details>
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div class="bg-brand-cardBg border border-gray-800 p-3 rounded-xl text-center">
@@ -809,6 +816,8 @@
           </div>
         </div>
 
+        <label class="block max-w-xs text-[10px] text-gray-400">Filtrar histórico por mês<input id="financeMonthFilter" type="month" onchange="renderFinanceModule()" class="mt-1 w-full bg-black border border-gray-800 rounded-lg p-2 text-xs text-white"></label>
+
         <form onsubmit="handleTransactionSubmit(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-black/40 p-3 rounded-xl border border-gray-800">
           <div>
             <label class="text-[10px] text-gray-400 block mb-0.5">Tipo</label>
@@ -1043,6 +1052,7 @@
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
     let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
     let sharedVotesByPlayer = {}, sharedMyVotes = [];
+    let notificationPreferences = { baba: true, payments: true, votes: true };
     let locationWatchId = null, locationAutoCheckinBusy = false;
     
 
@@ -1240,7 +1250,7 @@
         }
         sharedAttendanceInitialized = true;
         await refreshGuestAttendance();
-        saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton(); renderResenhaTab();
+        saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderTeamDraws(); updatePresenceButton(); renderResenhaTab();
       } catch (error) { console.warn('Presença compartilhada indisponível.', error); }
     }
     function formatGuestCpf(input) {
@@ -1259,6 +1269,28 @@
       if (!/^\d{6}$/.test(code)) return loadMyGuestCode();
       try { await navigator.clipboard.writeText(code); const status = document.getElementById('memberGuestCodeStatus'); if (status) status.textContent = 'Código copiado.'; }
       catch { alert(`Seu código para convidar é ${code}`); }
+    }
+    async function shareMemberGuestCode() {
+      const code = document.getElementById('memberGuestCode')?.textContent || '';
+      if (!/^\d{6}$/.test(code)) return loadMyGuestCode();
+      const message = `Use meu código ${code} para se cadastrar como convidado da Futmancos.`;
+      try { if (navigator.share) await navigator.share({ title: 'Convite Futmancos', text: message }); else { await navigator.clipboard.writeText(message); alert('Convite copiado para compartilhar.'); } }
+      catch (error) { if (error.name !== 'AbortError') { try { await navigator.clipboard.writeText(message); alert('Convite copiado para compartilhar.'); } catch { alert(message); } } }
+    }
+    async function loadNotificationPreferences() {
+      if (!loggedUser) return;
+      try {
+        const result = await apiRequest('/me/notification-preferences');
+        notificationPreferences = { baba: true, payments: true, votes: true, ...(result.preferences || {}) };
+        document.querySelectorAll('[data-notification-preference]').forEach(input => { input.checked = notificationPreferences[input.dataset.notificationPreference] !== false; });
+      } catch (error) { console.warn('Não foi possível carregar as preferências de aviso.', error); }
+    }
+    async function saveNotificationPreferences() {
+      if (!loggedUser) return;
+      notificationPreferences = Object.fromEntries([...document.querySelectorAll('[data-notification-preference]')].map(input => [input.dataset.notificationPreference, input.checked]));
+      const status = document.getElementById('notificationStatus');
+      try { await apiRequest('/me/notification-preferences', { method: 'PUT', body: JSON.stringify({ preferences: notificationPreferences }) }); if (status) status.textContent = 'Preferências salvas para sua conta.'; }
+      catch (error) { if (status) status.textContent = `Não foi possível salvar as preferências: ${error.message}`; }
     }
     async function submitGuestRegistration(event) {
       event.preventDefault(); const form = event.target, status = document.getElementById('guestRegistrationStatus');
@@ -1402,8 +1434,9 @@
         if (!config.enabled || !config.publicKey) throw new Error('O servidor ainda não foi configurado para notificações push.');
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodePushKey(config.publicKey) });
+        await apiRequest('/me/notification-preferences', { method: 'PUT', body: JSON.stringify({ preferences: notificationPreferences }) });
         await apiRequest('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: subscription.toJSON() }) });
-        if (status) status.textContent = 'Avisos ativados neste aparelho. Você receberá notícias de babas, pagamentos e votações.';
+        if (status) status.textContent = 'Avisos ativados neste aparelho conforme as opções selecionadas.';
       } catch (error) { if (status) status.textContent = error.message || 'Não foi possível ativar os avisos.'; }
     }
 
@@ -1996,8 +2029,8 @@
       updateNavHighlight(secId);
 
       if (secId === 'resenha') renderResenhaTab();
-      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
-      if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); }
+      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); renderMatchHistory(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
+      if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); loadNotificationPreferences(); }
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); }
       if (secId === 'financeiro') refreshPaymentStatus();
@@ -2124,9 +2157,10 @@
       if (!container) return;
 
       container.innerHTML = '';
-      countEl.innerText = presentPlayers.length;
+      const awaitingCheckIn = presentPlayers.filter(id => !checkedInPlayers.some(checkinId => String(checkinId) === String(id)));
+      countEl.innerText = awaitingCheckIn.length;
 
-      presentPlayers.forEach(id => {
+      awaitingCheckIn.forEach(id => {
         const p = players.find(x => String(x.id) === String(id));
         if (p) {
           const escapedName = String(p.name || 'Jogador').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -2141,6 +2175,10 @@
         }
       });
       container.querySelectorAll('[data-admin-checkin]').forEach(button => button.onclick = () => adminConfirmCheckIn(button.dataset.adminCheckin));
+      const pending = (players || []).filter(player => !presentPlayers.some(id => String(id) === String(player.id)));
+      const pendingBox = document.getElementById('noResponseList'), pendingCount = document.getElementById('countNoResponse');
+      if (pendingCount) pendingCount.textContent = pending.length;
+      if (pendingBox) pendingBox.innerHTML = pending.length ? pending.map(player => `<span class="bg-rose-950/40 border border-rose-500/30 text-rose-200 px-2.5 py-1 rounded-xl text-xs">${String(player.name || 'Jogador').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))} (#${Number(player.shirt) || 0})</span>`).join('') : '<p class="text-xs text-gray-500">Todos responderam.</p>';
     }
 
     function renderCheckInList() {
@@ -2426,6 +2464,7 @@
       try { babaDraws = (await apiRequest(`/baba/draws?date=${encodeURIComponent(date)}`)).draws || []; renderTeamDraws(); }
       catch (error) { console.warn('Sorteios compartilhados indisponíveis.', error); }
     }
+    async function onAdminMatchDateChange(date) { await loadBabaDraws(date); await loadSharedMatchHistory(); renderMatchHistory(); }
     function drawCandidates() {
       return checkedInPlayers.map(id => players.find(player => String(player.id) === String(id))).filter(player => player?.serverId && /^[0-9a-f-]{36}$/i.test(String(player.serverId)));
     }
@@ -2456,7 +2495,11 @@
         const playerLabel = player => `${safe(player.name)}${player.isKeeper || keeperIds.has(String(player.userId)) || String(player.position || '').toLowerCase().includes('goleiro') ? ' 🧤' : ''}`;
         return `<div class="bg-black/40 border border-gray-800 rounded-xl p-3"><div class="flex justify-between gap-2 text-xs"><strong>Sorteio ${draw.drawOrder}</strong><span class="text-gray-400">${winnerText}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><div class="text-emerald-300 text-xs"><strong>TIME VERDE · OVR ${score({players:a})}</strong><p>${a.map(playerLabel).join(', ')}</p></div><div class="text-amber-300 text-xs"><strong>TIME PRETO · OVR ${score({players:b})}</strong><p>${b.map(playerLabel).join(', ')}</p></div></div></div>`;
       };
-      [publicBox, adminBox].forEach(box => { if (!box) return; box.innerHTML = babaDraws.length ? babaDraws.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum time sorteado para esta data.</p>'; });
+      if (publicBox) publicBox.innerHTML = babaDraws.length ? babaDraws.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum time sorteado para esta data.</p>';
+      if (adminBox) {
+        adminBox.innerHTML = babaDraws.length ? babaDraws.map(draw => `<div class="space-y-2">${card(draw)}${!draw.finalized ? `<button type="button" data-redraw-draw="${String(draw.id).replace(/[^\w-]/g, '')}" class="text-[10px] text-sky-200 border border-sky-800 rounded-lg px-3 py-2">Refazer times (mesmos jogadores)</button>` : ''}</div>`).join('') : '<p class="text-xs text-gray-500">Nenhum time sorteado para esta data.</p>';
+        adminBox.querySelectorAll('[data-redraw-draw]').forEach(button => button.onclick = () => redrawSavedMatch(button.dataset.redrawDraw));
+      }
       if (!finalizeBox) return;
       finalizeBox.replaceChildren();
       const pending = babaDraws.filter(draw => !draw.finalized);
@@ -2475,6 +2518,35 @@
       });
     }
     function shuffleItems(items) { const copy = items.slice(); for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; }
+    function footballPositionGroup(player) {
+      const position = String(player.position || player.pos || '').toLowerCase();
+      if (player.isKeeper || position.includes('goleiro')) return 'keeper';
+      if (position.includes('zague') || position.includes('later') || position.includes('defens')) return 'defense';
+      if (position.includes('atac') || position.includes('ponta') || position.includes('centroav')) return 'attack';
+      return 'midfield';
+    }
+    function balanceDraftPlayers(draftedPlayers, keeperIds) {
+      const ids = new Set(keeperIds.map(String)), teams = { A: [], B: [] }, roleCounts = { A: { defense: 0, midfield: 0, attack: 0 }, B: { defense: 0, midfield: 0, attack: 0 } }, totals = { A: 0, B: 0 };
+      const keepers = keeperIds.map(id => draftedPlayers.find(player => String(player.userId || player.serverId || player.id) === String(id)));
+      if (keepers.length !== 2 || keepers.some(player => !player)) throw new Error('Escolha dois goleiros que estejam entre os jogadores deste sorteio.');
+      keepers.forEach((player, index) => { const team = index === 0 ? 'A' : 'B', rating = Number(player.ovr) || calcOVR(player); teams[team].push({ ...player, team, isKeeper: true, ovr: rating }); totals[team] += rating; });
+      const outfield = draftedPlayers.filter(player => !ids.has(String(player.userId || player.serverId || player.id))).map(player => ({ ...player, ovr: Number(player.ovr) || calcOVR(player) })).sort((a, b) => b.ovr - a.ovr || Math.random() - 0.5);
+      outfield.forEach(player => {
+        const group = footballPositionGroup(player);
+        const cost = team => {
+          const other = team === 'A' ? 'B' : 'A';
+          const nextTotal = totals[team] + player.ovr;
+          const ovrGap = Math.abs(nextTotal - totals[other]);
+          const positionGap = group === 'keeper' ? 0 : Math.abs(roleCounts[team][group] + 1 - roleCounts[other][group]);
+          const playerGap = Math.abs(teams[team].length + 1 - teams[other].length);
+          return ovrGap + positionGap * 16 + playerGap * 5;
+        };
+        const team = cost('A') === cost('B') ? (Math.random() < 0.5 ? 'A' : 'B') : cost('A') < cost('B') ? 'A' : 'B';
+        teams[team].push({ ...player, team, isKeeper: false }); totals[team] += player.ovr;
+        if (group !== 'keeper') roleCounts[team][group]++;
+      });
+      return [...teams.A, ...teams.B].map(player => ({ userId: player.userId || player.serverId || player.id, ovr: player.ovr, team: player.team, isKeeper: player.isKeeper }));
+    }
     async function createBalancedTeamDraw() {
       if (!loggedUser?.isAdmin) return alert('Apenas ADM pode sortear os times.');
       const gameDay = document.getElementById('adminMatchDate').value || localDateKey();
@@ -2490,16 +2562,33 @@
       const rest = shuffleItems(pool.filter(player => previouslyDrawn.has(String(player.serverId))));
       const picked = [...selectedKeepers, ...fresh, ...rest].slice(0, count);
       if (picked.length !== count) return alert('Não há jogadores suficientes com check-in para este sorteio.');
-      const ovr = player => calcOVR(player), sums = { A: 0, B: 0 }, assigned = [];
-      selectedKeepers.forEach((player, index) => { const team = index === 0 ? 'A' : 'B'; sums[team] += ovr(player); assigned.push({ userId: player.serverId, ovr: ovr(player), team, isKeeper: true }); });
-      shuffleItems(picked.filter(player => !assignedKeeperIds.includes(String(player.serverId)))).sort((a,b) => ovr(b)-ovr(a)).forEach(player => {
-        const team = sums.A <= sums.B ? 'A' : 'B'; sums[team] += ovr(player); assigned.push({ userId: player.serverId, ovr: ovr(player), team, isKeeper: false });
-      });
+      const assigned = balanceDraftPlayers(picked.map(player => ({ ...player, userId: player.serverId, ovr: calcOVR(player) })), assignedKeeperIds);
+      const sums = { A: assigned.filter(player => player.team === 'A').reduce((sum, player) => sum + player.ovr, 0), B: assigned.filter(player => player.team === 'B').reduce((sum, player) => sum + player.ovr, 0) };
       try {
         const result = await apiRequest('/admin/baba/draws', { method: 'POST', body: JSON.stringify({ gameDay, selectedCount: count, assignedKeeperIds, players: assigned }) });
         babaDraws.push(result.draw); renderTeamDraws();
         const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Sorteio ${result.draw.drawOrder} salvo para todos os dispositivos. Overall dos times: ${sums.A} × ${sums.B}.`;
       } catch (error) { alert(error.message); }
+    }
+    async function redrawSavedMatch(drawId) {
+      if (!loggedUser?.isAdmin) return alert('Apenas ADM pode refazer os times.');
+      const draw = babaDraws.find(item => String(item.id) === String(drawId));
+      if (!draw || draw.finalized) return alert('Este sorteio já foi finalizado e não pode ser refeito.');
+      if (!confirm(`Refazer os times do sorteio ${draw.drawOrder} antes do início do jogo? Os mesmos jogadores serão mantidos.`)) return;
+      try {
+        let keeperIds = draw.assignedKeeperIds || [draw.assignedKeeperId, ...draw.players.filter(player => String(player.position || '').toLowerCase().includes('goleiro')).map(player => player.userId)].filter(Boolean).map(String).slice(0, 2);
+        if (keeperIds.length !== 2) {
+          const natural = draw.players.filter(player => String(player.position || '').toLowerCase().includes('goleiro')).map(player => String(player.userId));
+          keeperIds = [...natural];
+          draw.players.forEach(player => { if (keeperIds.length < 2 && !keeperIds.includes(String(player.userId))) keeperIds.push(String(player.userId)); });
+        }
+        const playersWithPositions = draw.players.map(player => ({ ...player, pos: player.position }));
+        const players = balanceDraftPlayers(playersWithPositions, keeperIds);
+        const result = await apiRequest(`/admin/baba/draws/${encodeURIComponent(draw.id)}`, { method: 'PUT', body: JSON.stringify({ players, assignedKeeperIds: keeperIds }) });
+        const index = babaDraws.findIndex(item => String(item.id) === String(draw.id)); if (index >= 0) babaDraws[index] = result.draw;
+        renderTeamDraws();
+        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Times do sorteio ${draw.drawOrder} refeitos e salvos. Os mesmos jogadores foram mantidos.`;
+      } catch (error) { alert(`Não foi possível refazer os times: ${error.message}`); }
     }
     async function saveDayDrawResults() {
       if (!loggedUser?.isAdmin) return alert('Apenas ADM pode salvar os resultados.');
@@ -2703,29 +2792,46 @@
     }
 
     function renderMatchHistory() {
-      const container = document.getElementById('matchHistoryList');
+      const container = document.getElementById('babaMatchSummaries');
       if (!container) return;
-
-      container.innerHTML = '';
-      if (matchHistory.length === 0) {
-        container.innerHTML = '<p class="text-xs text-gray-500 italic">Nenhuma partida registrada no histórico.</p>';
+      const summaryDate = loggedUser?.isAdmin ? (document.getElementById('adminMatchDate')?.value || activeBabaDate) : activeBabaDate;
+      let games = matchHistory.filter(match => !match.gameDay || match.gameDay === summaryDate);
+      if (!loggedUser?.isAdmin && !games.length && matchHistory.length) {
+        const dates = matchHistory.map(match => String(match.gameDay || '')).filter(Boolean).sort();
+        const latestDate = dates[dates.length - 1];
+        if (latestDate) games = matchHistory.filter(match => match.gameDay === latestDate);
+      }
+      container.replaceChildren();
+      if (games.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic">Nenhum resultado salvo para este dia.</p>';
         return;
       }
-
-      matchHistory.forEach(m => {
-        container.innerHTML += `
-          <div class="bg-black/50 border border-gray-800 p-2.5 rounded-xl flex justify-between items-center text-xs">
-            <div>
-              <span class="text-[10px] text-gray-400 block">${m.date}</span>
-              <p class="font-bold text-gray-200">Verde ${m.scoreA} x ${m.scoreB} Preto</p>
-            </div>
-            <div class="text-right text-[10px] text-gray-400">
-              <span class="text-emerald-400 block">${m.teamA.join(', ')}</span>
-              <span class="text-amber-400 block">${m.teamB.join(', ')}</span>
-            </div>
-          </div>
-        `;
+      games.forEach(m => {
+        const card = document.createElement('div'); card.className = 'bg-black/50 border border-gray-800 p-3 rounded-xl space-y-2';
+        const heading = document.createElement('div'); heading.className = 'flex justify-between items-center gap-2';
+        const title = document.createElement('strong'); title.className = 'text-sm text-white'; title.textContent = `${m.date || m.gameDay || ''} · Verde ${Number(m.scoreA) || 0} × ${Number(m.scoreB) || 0} Preto`;
+        const share = document.createElement('button'); share.type = 'button'; share.className = 'bg-emerald-800/60 text-emerald-200 px-3 py-2 rounded-lg text-[10px] font-bold'; share.textContent = 'Compartilhar resumo'; share.onclick = () => shareMatchSummary(m.id);
+        heading.append(title, share); card.append(heading);
+        const teams = document.createElement('p'); teams.className = 'text-[10px] text-gray-300'; teams.textContent = `Verde: ${(m.teamA || []).join(', ')} · Preto: ${(m.teamB || []).join(', ')}`; card.append(teams);
+        const keepers = (m.stats || []).filter(player => player.isKeeper).map(player => `${player.name} (${player.team === 'A' ? 'Verde' : 'Preto'})`);
+        if (keepers.length) { const keeperLine = document.createElement('p'); keeperLine.className = 'text-[10px] text-sky-300'; keeperLine.textContent = `Goleiros: ${keepers.join(', ')}`; card.append(keeperLine); }
+        container.append(card);
       });
+    }
+    async function shareMatchSummary(matchId) {
+      const match = matchHistory.find(item => String(item.id) === String(matchId)); if (!match) return alert('Partida não encontrada no histórico.');
+      const stats = Array.isArray(match.stats) ? match.stats : [];
+      const lines = [
+        `FUTMANCOS · RESUMO DO BABA`, match.date || match.gameDay || '',
+        `TIME VERDE ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0} TIME PRETO`,
+        `Vencedor: ${match.winner === 'draw' ? 'Empate' : match.winner === 'A' ? 'Time Verde' : match.winner === 'B' ? 'Time Preto' : 'não informado'}`,
+        `Goleiros: ${stats.filter(player => player.isKeeper).map(player => `${player.name} (${player.team === 'A' ? 'Verde' : 'Preto'})`).join(', ') || 'não informados'}`,
+        `Verde: ${(match.teamA || []).join(', ')}`, `Preto: ${(match.teamB || []).join(', ')}`,
+        'Estatísticas:', ...stats.map(player => `${player.name}: ${player.goals || 0} gol(s), ${player.assists || 0} assistência(s), ${player.saves || 0} defesa(s)`)
+      ].filter(Boolean);
+      const text = lines.join('\n');
+      try { if (navigator.share) await navigator.share({ title: 'Resumo do baba Futmancos', text }); else { await navigator.clipboard.writeText(text); alert('Resumo copiado. Cole em uma conversa para compartilhar.'); } }
+      catch (error) { if (error.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); alert('Resumo copiado para compartilhar.'); } catch { alert(text); } } }
     }
 
     function renderProfile() {
@@ -2760,17 +2866,18 @@
       } else {
         myMatches.forEach(m => {
           historyContainer.innerHTML += `
-          <div class="bg-black/50 border border-gray-800 p-2.5 rounded-xl flex justify-between items-center text-xs">
+          <div class="bg-black/50 border border-gray-800 p-2.5 rounded-xl flex justify-between items-center gap-2 text-xs">
               <div>
                 <span class="text-[10px] text-gray-400 block">${m.date}</span>
                 <p class="font-bold text-gray-200">Verde ${m.scoreA} x ${m.scoreB} Preto</p>
                 <p class="text-[10px] text-gray-400">${(() => { const stat = (m.stats || []).find(x => String(x.email || '').toLowerCase() === String(loggedUser.email || '').toLowerCase() || x.name === loggedUser.name); return stat ? `${stat.goals || 0} gols · ${stat.assists || 0} assistências · ${stat.saves || 0} defesas` : 'Participação registrada'; })()}</p>
               </div>
-              <span class="text-brand-lightGreen font-bold">Participou</span>
+              <div class="text-right"><span class="text-brand-lightGreen font-bold block">Participou</span><button type="button" data-share-match="${String(m.id).replace(/[^\w-]/g, '')}" class="mt-1 text-sky-200 border border-sky-900 px-2 py-1 rounded text-[9px]">Compartilhar</button></div>
             </div>
           `;
         });
       }
+      historyContainer.querySelectorAll('[data-share-match]').forEach(button => button.onclick = () => shareMatchSummary(button.dataset.shareMatch));
       loadProfileVoteHistory();
 
       lucide.createIcons();
@@ -2891,7 +2998,8 @@
         guests.forEach(guest => {
           const row = document.createElement('div'); row.className = 'flex flex-wrap justify-between items-center gap-2 bg-black/40 border border-gray-800 p-3 rounded-xl';
           const info = document.createElement('div'); const name = document.createElement('strong'); name.className = 'block text-sm'; name.textContent = guest.name;
-          const detail = document.createElement('span'); detail.className = 'text-[10px] text-gray-400'; detail.textContent = `${guest.cpfMasked} · ${guest.age} anos · Convidou: ${guest.invitedByName}`; info.append(name, detail); row.append(info);
+          const detail = document.createElement('span'); detail.className = 'text-[10px] text-gray-400'; detail.textContent = `${guest.cpfMasked} · ${guest.age} anos · Convidou: ${guest.invitedByName} · Pix: ${guest.payment_status === 'paid' ? `PAGO (R$ ${Number(guest.payment_amount || 0).toFixed(2)})` : `PENDENTE (R$ ${Number(guest.payment_amount || 0).toFixed(2)})`}`; info.append(name, detail); row.append(info);
+          if (guest.payment_status !== 'paid') { const pay = document.createElement('button'); pay.type = 'button'; pay.textContent = 'Confirmar Pix'; pay.className = 'bg-emerald-800 text-emerald-100 px-3 py-2 rounded-lg text-xs font-bold'; pay.onclick = () => confirmGuestPayment(guest.id, guest.name); row.append(pay); }
           const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Excluir'; remove.className = 'bg-rose-900/50 text-rose-200 px-3 py-2 rounded-lg text-xs font-bold'; remove.onclick = () => deleteGuest(guest.id, guest.name); row.append(remove); list.append(row);
         });
       } catch (error) { list.textContent = error.message; }
@@ -2901,14 +3009,20 @@
       try { await apiRequest(`/admin/guests/${encodeURIComponent(id)}`, { method: 'DELETE' }); await refreshAdminGuests(); await refreshGuestAttendance(); }
       catch (error) { alert(error.message); }
     }
+    async function confirmGuestPayment(id, name) {
+      if (!loggedUser?.isAdmin || !confirm(`Você conferiu o comprovante Pix de ${name}? O valor será registrado como entrada no caixa.`)) return;
+      try { await apiRequest(`/admin/guests/${encodeURIComponent(id)}/payment`, { method: 'PUT', body: '{}' }); await loadSharedAppState(false); renderFinanceModule(); await refreshAdminGuests(); }
+      catch (error) { alert(error.message || 'Não foi possível confirmar o Pix do convidado.'); }
+    }
     async function confirmMemberPayment(memberId) {
       if (!loggedUser?.isAdmin) return alert('Apenas administradores podem confirmar pagamentos.');
       if (!confirm('Você conferiu o comprovante Pix e deseja confirmar a mensalidade deste mês?')) return;
       try {
         await apiRequest(`/admin/members/${encodeURIComponent(memberId)}/payment`, { method: 'PUT', body: '{}' });
+        await loadSharedAppState(false);
         const member = players.find(player => String(player.serverId ?? player.id) === String(memberId));
         if (member) { member.paid = true; member.paymentStatus = 'paid'; }
-        renderMemberList(); await refreshPaymentStatus();
+        renderMemberList(); renderFinanceModule(); await refreshPaymentStatus();
         alert('Pagamento confirmado para este mês.');
       } catch (error) { alert(error.message || 'Não foi possível confirmar o pagamento.'); }
     }
@@ -3178,25 +3292,38 @@
       const list = document.getElementById('finHistoryList');
       if (!list) return;
 
+      const monthFilter = document.getElementById('financeMonthFilter')?.value || '';
+      const transactionMonth = value => {
+        const raw = String(value || '');
+        if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
+        const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        return match ? `${match[3]}-${match[2].padStart(2, '0')}` : '';
+      };
+      const visibleTransactions = transactions.filter(transaction => !monthFilter || transactionMonth(transaction.date) === monthFilter);
       let inVal = 0, outVal = 0;
       list.innerHTML = '';
 
-      transactions.forEach(t => {
-        if (t.type === 'entrada') inVal += t.value;
-        else outVal += t.value;
+      visibleTransactions.forEach(t => {
+        const isIncome = t.type === 'entrada';
+        if (isIncome) inVal += Number(t.value) || 0;
+        else outVal += Number(t.value) || 0;
+        const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        const rawDate = String(t.date || '');
+        const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? new Date(`${rawDate}T12:00:00`).toLocaleDateString('pt-BR') : rawDate;
 
         list.innerHTML += `
           <div class="flex justify-between items-center bg-black/40 p-2 rounded-lg text-xs border border-gray-800">
             <div>
-              <span class="font-bold text-white block">${t.desc}</span>
-              <span class="text-[10px] text-gray-400">${t.date} • ${t.category}</span>
+              <span class="font-bold text-white block">${safe(t.desc)}</span>
+              <span class="text-[10px] text-gray-400">${safe(dateLabel)} • ${safe(t.category)}</span>
             </div>
-            <div class="flex items-center gap-2"><span class="font-bold ${t.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'}">
-              ${t.type === 'entrada' ? '+' : '-'} R$ ${Number(t.value || 0).toFixed(2)}
+            <div class="flex items-center gap-2"><span class="font-bold ${isIncome ? 'text-emerald-400' : 'text-rose-400'}">
+              ${isIncome ? '+' : '-'} R$ ${(Number(t.value) || 0).toFixed(2)}
             </span>${loggedUser?.isAdmin ? `<button type="button" data-delete-transaction="${String(t.id).replace(/[^\w-]/g, '')}" class="text-rose-300 border border-rose-900 px-2 py-1 rounded text-[10px]">Apagar</button>` : ''}</div>
           </div>
         `;
       });
+      if (!visibleTransactions.length) list.innerHTML = '<p class="text-xs text-gray-500">Nenhuma movimentação neste mês.</p>';
 
       list.querySelectorAll('[data-delete-transaction]').forEach(button => button.onclick = () => deleteCashTransaction(button.dataset.deleteTransaction));
 

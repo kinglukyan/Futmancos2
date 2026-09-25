@@ -12,6 +12,7 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 4. `supabase/migrations/202609240003_gallery.sql` (cria o bucket pÃºblico de leitura; envio e exclusÃ£o ficam restritos a ADM pela API).
 5. `supabase/migrations/202609240004_guests_and_guest_fees.sql` (convidados, presença/check-in e configurações de valores).
 6. `supabase/migrations/202609240005_draws_codes_push.sql` (códigos de convite, sorteios persistentes e notificações push).
+7. `supabase/migrations/202609240006_preferences_finance.sql` (preferências de notificação e acompanhamento do Pix de convidados).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 
@@ -59,6 +60,8 @@ A migração 202609240005_draws_codes_push.sql cria um código aleatório indivi
 
 Na Central Baba, ADM escolhe a quantidade de jogadores com check-in, sorteia times balanceados pelo OVR e salva cada sorteio. Jogadores que ainda não saíram em sorteios daquele dia têm prioridade. Cada time tem um goleiro: os goleiros confirmados aparecem pré-selecionados; se faltar algum, o ADM escolhe outro jogador para assumir a posição. Ao final dos jogos, preencha gols, assistências, defesas e vencedor de cada sorteio; só depois encerre o dia para abrir a votação.
 
-Para gerar as chaves VAPID, com Node.js instalado, abra a pasta `scripts` e dê dois cliques em `gerar-vapid.bat`. Copie as três linhas exibidas em **Environment** no Render. Não publique nem compartilhe `VAPID_PRIVATE_KEY`; mantenha essas chaves entre as publicações. Depois instale o app no celular, entre na conta, abra **Perfil** e toque em **Ativar avisos neste aparelho**. Os avisos incluem baba novo, dia do baba, mensalidade pendente/atrasada e abertura da votação.
+Para gerar as chaves VAPID, com Node.js instalado, abra a pasta `scripts` e dê dois cliques em `gerar-vapid.bat`. Copie as três linhas exibidas em **Environment** no Render. Não publique nem compartilhe `VAPID_PRIVATE_KEY`; mantenha essas chaves entre as publicações. Depois instale o app no celular, entre na conta, abra **Perfil > Configurações da conta** e toque em **Ativar avisos neste aparelho**. Em Perfil, cada associado pode escolher avisos de baba, mensalidade e votação.
+
+O perfil tem um painel recolhível de configurações para editar dados, foto, localização/check-in, biometria, notificações e senha. No ADM, o caixa filtra por mês; mensalidades e Pix de convidados confirmados entram no histórico compartilhado. Registre custos reais de confraternização como saída na categoria **Resenha / Churrasco**.
 
 No Render gratuito, o servidor pode dormir quando não recebe acessos. Eventos acionados por ações no site (novo baba, votação e pagamento) são enviados quando ocorrem; lembretes de data e mensalidade dependem de o serviço estar acordado no horário da verificação.
