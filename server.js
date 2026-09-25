@@ -127,7 +127,6 @@ async function getFee() {
   return Number(await setting('monthly_fee')) || Number(env('MONTHLY_FEE', '50.00'));
 }
 function billingStatus(row, fee, now = new Date()) {
-  if (String(row?.position || '').toLowerCase().includes('goleiro')) return { status: 'exempt', month: monthKey(now), paidMonth: row.paid_month || '', dueDay: 12, fee: 0 };
   const month = monthKey(now), day = saoPauloDay(now);
   if (row.paid_month === month) return { status: 'paid', month, paidMonth: row.paid_month, dueDay: 12, fee };
   return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month || '', dueDay: 12, fee };
@@ -300,7 +299,6 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     monthlyFee: Number(incoming.monthlyFee) || await getFee(),
     nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null,
     associationGallery: Array.isArray(incoming.associationGallery) ? incoming.associationGallery.slice(0, 100).filter(item => item && typeof item.url === 'string' && item.url.startsWith('https://')) : [],
-    keeperCosts: Array.isArray(incoming.keeperCosts) ? incoming.keeperCosts.slice(0, 100).filter(item => item && typeof item.title === 'string') : []
   };
   try {
     const { data: previous, error: previousError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
@@ -991,10 +989,9 @@ app.put('/api/admin/members/:id/shirt-number', authenticate, requireAdmin, requi
 
 app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,position,paid_month').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,paid_month').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
-    if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const month = monthKey();
     const alreadyPaid = member.paid_month === month;
     const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
@@ -1010,12 +1007,11 @@ app.put('/api/admin/monthly-fee', authenticate, requireAdmin, requireDatabase, a
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000) return res.status(400).json({ error: 'Informe um valor mensal válido.' });
   try {
     const guestFee = Number(req.body?.guestFee ?? await setting('guest_daily_fee') ?? 0);
-    const keeperFee = Number(req.body?.keeperFee ?? await setting('keeper_event_fee') ?? 0);
-    if (!Number.isFinite(guestFee) || guestFee < 0 || guestFee > 5000 || !Number.isFinite(keeperFee) || keeperFee < 0 || keeperFee > 5000) return res.status(400).json({ error: 'Informe valores válidos para convidado e custos de goleiro.' });
+    if (!Number.isFinite(guestFee) || guestFee < 0 || guestFee > 5000) return res.status(400).json({ error: 'Informe um valor válido para a diária do convidado.' });
     const fee = Math.round(amount * 100) / 100;
-    const guestDailyFee = Math.round(guestFee * 100) / 100, keeperEventFee = Math.round(keeperFee * 100) / 100;
-    await Promise.all([saveSetting('monthly_fee', fee), saveSetting('guest_daily_fee', guestDailyFee), saveSetting('keeper_event_fee', keeperEventFee)]);
-    res.json({ monthlyFee: fee, guestFee: guestDailyFee, keeperFee: keeperEventFee });
+    const guestDailyFee = Math.round(guestFee * 100) / 100;
+    await Promise.all([saveSetting('monthly_fee', fee), saveSetting('guest_daily_fee', guestDailyFee)]);
+    res.json({ monthlyFee: fee, guestFee: guestDailyFee });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -1031,8 +1027,8 @@ app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, 
 });
 app.get('/api/config', requireDatabase, async (_req, res, next) => {
   try {
-    const [monthlyFee, guestFee, keeperFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('pix_key'), setting('pix_qr_data_url')]);
-    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, keeperFee: Number(keeperFee) || 0, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
+    const [monthlyFee, guestFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('pix_key'), setting('pix_qr_data_url')]);
+    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
   } catch (error) { next(error); }
 });
 

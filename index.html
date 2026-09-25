@@ -47,7 +47,11 @@
     }
     button[class*="bg-brand-green"], button[class*="bg-emerald-"] { background-image: linear-gradient(120deg, #4caf50 0%, #15966f 52%, #075b52 100%) !important; }
     button[class*="bg-sky-"], button[class*="bg-blue-"] { background-image: linear-gradient(120deg, #38bdf8 0%, #2563eb 55%, #1e3a8a 100%) !important; }
-    button[class*="bg-amber-"], button[class*="bg-yellow-"] { background-image: linear-gradient(120deg, #fde047 0%, #f59e0b 55%, #b45309 100%) !important; }
+    button[class~="bg-amber-300"], button[class~="bg-amber-400"], button[class~="bg-amber-500"], button[class~="bg-amber-600"],
+    button[class~="bg-yellow-300"], button[class~="bg-yellow-400"], button[class~="bg-yellow-500"], button[class~="bg-yellow-600"], button[class~="bg-amber-500/20"], button[class~="bg-yellow-500/20"] {
+      background-image: linear-gradient(120deg, #fde047 0%, #f59e0b 55%, #b45309 100%) !important;
+      color: #000 !important;
+    }
     button[class*="bg-rose-"], button[class*="bg-red-"] { background-image: linear-gradient(120deg, #fb7185 0%, #e11d48 55%, #881337 100%) !important; }
     button[class*="bg-pink-"] { background-image: linear-gradient(120deg, #f472b6 0%, #db2777 55%, #831843 100%) !important; }
     button[class*="bg-gray-800"], button[class*="bg-gray-900"], button[class*="bg-black"] { background-image: linear-gradient(120deg, #334155 0%, #1e293b 52%, #090d14 100%) !important; }
@@ -135,7 +139,6 @@
         <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
         <button id="nav-desk-eafc" onclick="navigate('eafc')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Cartinhas</button>
         <button id="nav-desk-financeiro" onclick="navigate('financeiro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Mensalidades</button>
-        <button id="nav-desk-custos" onclick="navigate('custos')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Custos</button>
         <button id="admNavBtn" onclick="navigate('adm')" class="nav-btn-desk text-amber-400 hover:text-amber-300 px-3 py-1.5 rounded-lg transition hidden">Painel ADM</button>
       </nav>
 
@@ -532,7 +535,7 @@
       <details id="profileSettings" class="bg-brand-cardBg border border-gray-800 rounded-2xl overflow-hidden">
         <summary class="cursor-pointer list-none p-4 flex justify-between items-center font-teko text-2xl text-brand-lightGreen"><span>⚙ CONFIGURAÇÕES DA CONTA</span><span class="text-xs text-gray-400">Abrir / fechar</span></summary>
         <div class="p-4 pt-0 space-y-4">
-          <button onclick="openEditProfileModal()" class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-4 py-3 rounded-xl">Editar dados, foto e camisa</button>
+          <button onclick="openEditProfileModal()" class="bg-amber-500 text-black border border-amber-500/40 text-xs font-bold px-4 py-3 rounded-xl">Editar dados, foto e camisa</button>
           <div class="bg-black/30 border border-sky-500/30 p-4 rounded-2xl space-y-2">
             <h3 class="font-teko text-2xl text-sky-300">CHECK-IN POR LOCALIZAÇÃO</h3>
             <p id="autoCheckinStatus" class="text-xs text-gray-400">Ative para confirmar sua chegada quando estiver perto da arena. O aparelho só será acompanhado enquanto esta página estiver aberta.</p>
@@ -664,15 +667,6 @@
       </div>
     </section>
 
-    <section id="sec-custos" class="hidden space-y-4">
-      <div class="bg-brand-cardBg border border-amber-500/30 p-5 rounded-2xl space-y-3 max-w-3xl mx-auto">
-        <h2 class="font-teko text-4xl text-amber-300">CUSTOS DE CHURRASCOS E CONFRA</h2>
-        <p class="text-xs text-gray-300">A conta de goleiro é isenta da mensalidade. Aqui ficam apenas contribuições opcionais para churrascos e confraternizações.</p>
-        <p id="keeperFeeInfo" class="text-sm text-amber-200"></p>
-        <div id="keeperCostsList" class="space-y-2"></div>
-      </div>
-    </section>
-
     <form id="recoveryPasswordForm" onsubmit="finishPasswordRecovery(event)" class="hidden fixed inset-0 z-[100] bg-black/80 p-4 flex items-center justify-center">
       <div class="w-full max-w-md bg-brand-cardBg border border-emerald-500/40 rounded-2xl p-5 space-y-3">
         <h3 class="font-teko text-3xl text-emerald-300">CRIAR NOVA SENHA</h3>
@@ -747,12 +741,11 @@
       <h2 class="font-teko text-3xl text-amber-400">PAINEL ADMINISTRATIVO</h2>
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
         <div><h3 class="font-teko text-2xl text-white">CENTRAL DE ADMINISTRAÇÃO</h3><p class="text-xs text-gray-400">Acesse cada área quando precisar. Abra uma seção para ver seus controles.</p></div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           <button type="button" onclick="openAdminSection('admBabaSection')" class="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3 text-left text-xs font-bold text-emerald-200">Baba e agenda</button>
           <button type="button" onclick="openAdminSection('admMembersSection')" class="rounded-xl border border-sky-500/30 bg-sky-950/30 p-3 text-left text-xs font-bold text-sky-200">Associados</button>
-          <button type="button" onclick="openAdminSection('admFinanceSection')" class="rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-left text-xs font-bold text-amber-200">Financeiro</button>
+          <button type="button" onclick="openAdminSection('admFinanceSection')" class="rounded-xl border border-amber-500/30 bg-amber-500 p-3 text-left text-xs font-bold text-black">Financeiro</button>
           <button type="button" onclick="openAdminSection('admResenhaSection')" class="rounded-xl border border-fuchsia-500/30 bg-fuchsia-950/30 p-3 text-left text-xs font-bold text-fuchsia-200">Resenha</button>
-          <button type="button" onclick="openAdminSection('admKeeperSection')" class="rounded-xl border border-teal-500/30 bg-teal-950/30 p-3 text-left text-xs font-bold text-teal-200">Goleiros</button>
           <button type="button" onclick="openAdminSection('admPerformanceSection')" class="rounded-xl border border-violet-500/30 bg-violet-950/30 p-3 text-left text-xs font-bold text-violet-200">Desempenho</button>
           <button type="button" onclick="openAdminSection('admAuditSection')" class="rounded-xl border border-gray-700 bg-black/30 p-3 text-left text-xs font-bold text-gray-200">Auditoria</button>
         </div>
@@ -904,11 +897,10 @@
           <h3 class="font-teko text-2xl text-white">DEFINIR VALOR DA MENSALIDADE</h3>
           <p class="text-xs text-gray-400">Define o valor cobrado de todos os associados (membros e ADMs pagantes).</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full sm:w-auto">
-          <label class="text-[10px] text-gray-400">Mensalidade<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
-          <label class="text-[10px] text-gray-400">Diária convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
-          <label class="text-[10px] text-gray-400">Contribuição goleiro<input type="number" min="0" step="0.01" id="admKeeperFeeInput" class="mt-1 bg-black border border-gray-800 rounded-xl p-2 text-xs text-white font-bold w-full"></label>
-          <button onclick="saveGlobalFee()" class="self-end bg-amber-500 text-black font-bold text-xs px-3 py-2 rounded-xl">Salvar valores</button>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-auto">
+          <label class="text-[10px] text-gray-400">Mensalidade (todos os associados)<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+          <label class="text-[10px] text-gray-400">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+          <button onclick="saveGlobalFee()" class="self-end rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-black">Salvar valores</button>
         </div>
       </div>
 
@@ -1016,18 +1008,6 @@
       </div>
 
       </div></details>
-      <details id="admKeeperSection" class="admin-module"><summary><span>🧤 Goleiros</span><small>Custos de churrascos e confraternizações</small></summary><div class="admin-module-content">      <div class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-amber-300">CUSTOS DE CHURRASCO / CONFRA PARA GOLEIROS</h3>
-        <form onsubmit="addKeeperCost(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input id="keeperCostTitle" required maxlength="70" placeholder="Ex.: Churrasco de outubro" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <input id="keeperCostAmount" required type="number" min="0" step="0.01" placeholder="Valor sugerido (R$)" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <input id="keeperCostDate" type="date" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <button class="sm:col-span-3 bg-amber-500 text-black font-bold text-xs p-2.5 rounded-xl">Publicar custo para goleiros</button>
-        </form>
-        <div id="adminKeeperCostsList" class="space-y-2"></div>
-      </div>
-
-      </div></details>
       <details id="admPerformanceSection" class="admin-module"><summary><span>📈 Desempenho</span><small>Estatísticas individuais dos atletas</small></summary><div class="admin-module-content">      <!-- GRÁFICO DE DESEMPENHO DOS ATLETAS -->
       <div class="bg-brand-cardBg border border-amber-500/30 p-4 md:p-6 rounded-2xl space-y-4">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-800 pb-3">
@@ -1107,7 +1087,6 @@
         <i data-lucide="wallet" class="w-5 h-5"></i>
         <span class="text-[10px]">Mensal.</span>
         </button>
-        <button id="nav-mob-custos" onclick="navigate('custos')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden"><i data-lucide="piggy-bank" class="w-5 h-5"></i><span class="text-[10px]">Custos</span></button>
       <button id="nav-mob-adm" onclick="navigate('adm')" class="mobile-nav-btn text-amber-400 flex flex-col items-center gap-0.5 hidden">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span class="text-[10px]">ADM</span>
@@ -1124,7 +1103,7 @@
     );
     let loggedUser = JSON.parse(localStorage.getItem('futmancos_loggedUser')) || null;
     let globalMonthlyFee = parseFloat(localStorage.getItem('futmancos_monthly_fee')) || 50.00;
-    let globalGuestFee = 0, globalKeeperFee = 0, guestAttendance = [];
+    let globalGuestFee = 0, guestAttendance = [];
     let currentGuestCheckoutName = '';
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
     let sharedBabaMode = 'presence';
@@ -1142,7 +1121,6 @@
     };
     let associationGallery = JSON.parse(localStorage.getItem('futmancos_gallery') || '[]');
     let galleryCarouselIndex = 0, galleryCarouselTimer = null;
-    let keeperCosts = JSON.parse(localStorage.getItem('futmancos_keeper_costs') || '[]');
     let lastSharedGameSnapshot = null;
     let sharedMatchesInitialized = false;
     let sharedAttendanceInitialized = false;
@@ -1234,7 +1212,6 @@
       localStorage.setItem('futmancos_monthly_fee', globalMonthlyFee);
       localStorage.setItem('futmancos_media_links', JSON.stringify(mediaLinks));
       localStorage.setItem('futmancos_gallery', JSON.stringify(associationGallery));
-      localStorage.setItem('futmancos_keeper_costs', JSON.stringify(keeperCosts));
       localStorage.setItem('futmancos_baba_date', activeBabaDate);
       if (!applyingSharedState && sharedStateReady && loggedUser?.isAdmin) { sharedStateDirty = true; localStorage.setItem('futmancos_shared_state_pending', '1'); scheduleSharedStateSave(); }
     }
@@ -1244,7 +1221,7 @@
         players: players.map(({ pass, password, ...player }) => player), arenas, transactions,
         presentPlayers, checkedInPlayers, matchHistory, mediaLinks, monthlyFee: globalMonthlyFee,
         nextGame: JSON.parse(localStorage.getItem('futmancos_next_game') || 'null'),
-        associationGallery, keeperCosts
+        associationGallery
       };
     }
     function scheduleSharedStateSave() {
@@ -1268,7 +1245,6 @@
       if (Array.isArray(state.checkedInPlayers)) checkedInPlayers = state.checkedInPlayers;
       if (state.mediaLinks && typeof state.mediaLinks === 'object') mediaLinks = state.mediaLinks;
       if (Array.isArray(state.associationGallery)) associationGallery = state.associationGallery;
-      if (Array.isArray(state.keeperCosts)) keeperCosts = state.keeperCosts;
       if (Number(state.monthlyFee) > 0) globalMonthlyFee = Number(state.monthlyFee);
       if (state.nextGame) {
         activeBabaDate = state.nextGame.date || activeBabaDate;
@@ -1276,7 +1252,7 @@
         renderNextGameInfo(state.nextGame);
       }
       saveState();
-      renderAssociationGallery(); renderKeeperCosts(); renderGuestPix();
+      renderAssociationGallery(); renderGuestPix();
       applyingSharedState = false;
     }
     async function loadSharedAppState(seedIfEmpty = false) {
@@ -1602,14 +1578,13 @@
       document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
       document.getElementById('admGlobalFeeInput').value = globalMonthlyFee;
       document.getElementById('admGuestFeeInput').value = globalGuestFee;
-      document.getElementById('admKeeperFeeInput').value = globalKeeperFee;
 
       if (mediaLinks.instagram) document.getElementById('admInstaLink').value = mediaLinks.instagram;
       if (document.getElementById('admYtLink')) document.getElementById('admYtLink').value = (mediaLinks.youtubeVideos || (mediaLinks.youtube ? [mediaLinks.youtube] : [])).join('\n');
       if (document.getElementById('admInstaPosts')) document.getElementById('admInstaPosts').value = (mediaLinks.instagramPosts || []).join('\n');
 
       navigate('resenha');
-      renderGalleryAdmin(); renderKeeperCosts(); setupRecoveryFlow();
+      renderGalleryAdmin(); setupRecoveryFlow();
       lucide.createIcons();
       startSharedSyncLoop();
     }
@@ -1855,7 +1830,6 @@
         const config = await apiRequest('/config');
         globalMonthlyFee = Number(config.monthlyFee) || globalMonthlyFee;
         globalGuestFee = Number(config.guestFee) || 0;
-        globalKeeperFee = Number(config.keeperFee) || 0;
         if (config.whatsapp) adminWhatsapp = String(config.whatsapp).replace(/\D/g, '');
         associationPixKey = config.pixKey || '';
         associationPixQrDataUrl = config.pixQrDataUrl || '';
@@ -1867,7 +1841,6 @@
         const guestSignup = document.getElementById('guestSignupDailyFee'); if (guestSignup) guestSignup.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         const guestDaily = document.getElementById('guestDailyFee'); if (guestDaily) guestDaily.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         const feeInput = document.getElementById('admGuestFeeInput'); if (feeInput) feeInput.value = globalGuestFee;
-        const keeperInput = document.getElementById('admKeeperFeeInput'); if (keeperInput) keeperInput.value = globalKeeperFee;
         const display = document.getElementById('displayMonthlyFee');
         if (display) display.innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
       } catch { /* A API ainda não está conectada. */ }
@@ -1999,19 +1972,18 @@
           const feeText = `R$ ${globalMonthlyFee.toFixed(2)}`;
           const feeDisplay = document.getElementById('displayMonthlyFee'); if (feeDisplay) feeDisplay.innerText = feeText;
         }
-        const exempt = status.status === 'exempt';
         const paid = status.status === 'paid';
         const late = status.status === 'overdue';
-        const label = exempt ? 'ISENTO — GOLEIRO' : paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
-        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
-        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        const label = paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
+        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
         const [year, month] = status.month.split('-');
-        if (line) line.innerText = exempt ? 'Goleiros são isentos da mensalidade. Os custos de confraternização ficam na tela Custos.' : paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
-        if (profileCycle) profileCycle.innerText = exempt ? 'Sem cobrança mensal.' : paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
-        if (payBox) payBox.classList.toggle('hidden', paid || exempt);
-        if (profilePay) profilePay.classList.toggle('hidden', paid || exempt);
-        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late || exempt); } });
-        if (!paid && !late && !exempt && Number(new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date())) >= 9) {
+        if (line) line.innerText = paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
+        if (profileCycle) profileCycle.innerText = paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
+        if (payBox) payBox.classList.toggle('hidden', paid);
+        if (profilePay) profilePay.classList.toggle('hidden', paid);
+        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late); } });
+        if (!paid && !late && Number(new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date())) >= 9) {
           const reminderKey = `futmancos-fee-reminder-${status.month}`;
           if (!localStorage.getItem(reminderKey)) { localStorage.setItem(reminderKey, '1'); showFutmancosNotice('Mensalidade próxima do vencimento', `O prazo para pagar termina no dia 12/${month}.`); }
         }
@@ -2034,7 +2006,6 @@
 
     function requestPixPayment() {
       if (!loggedUser) return openLoginModal();
-      if (isGoalkeeper(loggedUser)) return alert('Goleiros são isentos da mensalidade. Confira a tela Custos para confraternizações.');
       if (loggedUser.paymentStatus === 'paid') return alert('A mensalidade deste mês já consta como paga.');
       const date = new Date();
       const month = new Intl.DateTimeFormat('pt-BR', { month: '2-digit', timeZone: 'America/Sao_Paulo' }).format(date);
@@ -2108,10 +2079,6 @@
         document.querySelectorAll('.admin-stats-controls, .admin-results').forEach(el => el.classList.toggle('hidden', !loggedUser.isAdmin));
         document.querySelectorAll('.logged-only').forEach(el => el.classList.remove('hidden'));
         document.querySelectorAll('.guest-only').forEach(el => el.classList.add('hidden'));
-        document.getElementById('nav-desk-financeiro').classList.toggle('hidden', isGoalkeeper(loggedUser));
-        document.getElementById('nav-mob-financeiro').classList.toggle('hidden', isGoalkeeper(loggedUser));
-        document.getElementById('nav-desk-custos').classList.toggle('hidden', !isGoalkeeper(loggedUser));
-        document.getElementById('nav-mob-custos').classList.toggle('hidden', !isGoalkeeper(loggedUser));
 
         if (loggedUser.isAdmin) {
           document.getElementById('admNavBtn').classList.remove('hidden');
@@ -2146,14 +2113,12 @@
     }
     function navigate(secId) {
       if (loggedUser && secId === 'convidado') { alert('A aba de cadastro de convidados fica disponível para pessoas sem conta. Compartilhe seu código no Perfil.'); return navigate('perfil'); }
-      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custos'].includes(secId)) {
+      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro'].includes(secId)) {
         openLoginModal();
         return;
       }
 
       if (secId === 'adm' && !loggedUser?.isAdmin) { alert('Acesso restrito à administração.'); return; }
-      if (secId === 'custos' && !isGoalkeeper(loggedUser)) { alert('A área Custos é exclusiva para goleiros.'); return; }
-      if (secId === 'financeiro' && isGoalkeeper(loggedUser)) { navigate('custos'); return; }
       currentActiveTab = secId;
       document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
       document.getElementById(`sec-${secId}`).classList.remove('hidden');
@@ -2166,7 +2131,6 @@
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); refreshAdminAuditLog(); }
       if (secId === 'financeiro') refreshPaymentStatus();
-      if (secId === 'custos') renderKeeperCosts();
     }
 
     function updateNavHighlight(secId) {
@@ -3452,7 +3416,7 @@
 
       document.getElementById('memberCount').innerText = players.length;
       document.getElementById('countPaid').innerText = players.filter(x => x.paid).length;
-      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid && !isGoalkeeper(x)).length;
+      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid).length;
 
       if (tbody) tbody.innerHTML = '';
       if (mobileCards) mobileCards.innerHTML = '';
@@ -3460,9 +3424,8 @@
         const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
         const memberKey = escape(p.id);
         const editable = Boolean(loggedUser?.isAdmin) || String(p.id) === String(loggedUser?.id);
-        const exempt = isGoalkeeper(p);
-        const paymentText = exempt ? 'ISENTO' : p.paid ? 'PAGO' : 'PENDENTE';
-        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid && !exempt;
+        const paymentText = p.paid ? 'PAGO' : 'PENDENTE';
+        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid;
         const deleteAction = loggedUser?.isAdmin;
         const deletionKey = escape(p.serverId || p.authUserId || p.id);
         if (tbody) tbody.innerHTML += `
@@ -3470,9 +3433,9 @@
             <td class="p-2.5 font-bold text-white">${p.name} (#${p.shirt})</td>
             <td class="p-2.5 text-gray-300">${p.age} anos</td>
             <td class="p-2.5 text-gray-300">${p.pos}</td>
-            <td class="p-2.5 font-bold ${exempt || p.paid ? 'text-emerald-400' : 'text-rose-400'}">${paymentText}</td>
+            <td class="p-2.5 font-bold ${p.paid ? 'text-emerald-400' : 'text-rose-400'}">${paymentText}</td>
             <td class="p-2.5 text-center">
-              <button onclick="openMemberDetailModal('${memberKey}')" class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold">
+              <button onclick="openMemberDetailModal('${memberKey}')" class="bg-amber-500 text-black border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold">
                 Inspecionar
               </button>
             </td>
@@ -3485,9 +3448,9 @@
         `;
         if (mobileCards) mobileCards.innerHTML += `
           <article class="bg-black/35 border border-gray-800 rounded-xl p-3 space-y-2">
-            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${exempt || p.paid ? 'text-emerald-300' : 'text-rose-300'}">${paymentText}</span></div>
+            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${p.paid ? 'text-emerald-300' : 'text-rose-300'}">${paymentText}</span></div>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" data-member-inspect="${memberKey}" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Inspecionar</button>
+              <button type="button" data-member-inspect="${memberKey}" class="bg-amber-500 text-black border border-amber-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Inspecionar</button>
               ${editable ? `<button type="button" data-member-edit="${memberKey}" class="bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Editar dados</button>` : ''}
               ${paymentAction ? `<button type="button" data-member-payment="${escape(p.serverId)}" class="bg-emerald-600/20 text-emerald-200 border border-emerald-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Confirmar Pix</button>` : ''}
               ${deleteAction ? `<button type="button" data-member-delete="${deletionKey}" class="bg-rose-600/20 text-rose-200 border border-rose-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Excluir membro</button>` : ''}
@@ -3611,13 +3574,12 @@
       const amount = Number(document.getElementById('admGlobalFeeInput').value);
       try {
         const guestFee = Number(document.getElementById('admGuestFeeInput').value);
-        const keeperFee = Number(document.getElementById('admKeeperFeeInput').value);
-        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee, keeperFee }) });
-        globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee); globalKeeperFee = Number(data.keeperFee);
+        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee }) });
+        globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee);
         document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
         document.getElementById('guestSignupDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         document.getElementById('guestDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
-        renderGuestPix(); renderKeeperCosts();
+        renderGuestPix();
         alert('Valores da associação atualizados.');
       } catch (error) { alert(error.message); }
     }
@@ -3742,20 +3704,6 @@
         alert('Transação removida do caixa compartilhado.');
       } catch (error) { alert(error.message); }
     }
-    function renderKeeperCosts() {
-      const list = document.getElementById('keeperCostsList'), admin = document.getElementById('adminKeeperCostsList');
-      const fmt = amount => `R$ ${Number(amount || 0).toFixed(2).replace('.', ',')}`;
-      const feeInfo = document.getElementById('keeperFeeInfo'); if (feeInfo) feeInfo.textContent = globalKeeperFee > 0 ? `Contribuição de referência definida pela associação: R$ ${globalKeeperFee.toFixed(2).replace('.', ',')}. Os valores de cada evento aparecem abaixo.` : 'A associação ainda não definiu uma contribuição de referência.';
-      const card = item => `<div class="bg-black/40 border border-gray-800 p-3 rounded-xl flex justify-between gap-3 items-center"><div><strong class="text-sm">${String(item.title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</strong><p class="text-[10px] text-gray-400">${item.date ? new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR') : 'Data a confirmar'}</p></div><strong class="text-amber-300 text-sm">${fmt(item.amount)}</strong></div>`;
-      if (list) list.innerHTML = keeperCosts.length ? keeperCosts.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum custo de confraternização foi publicado.</p>';
-      if (admin) admin.innerHTML = keeperCosts.map(item => `<div class="flex justify-between items-center gap-2 bg-black/30 p-2 rounded-lg text-xs">${card(item)}<button onclick="deleteKeeperCost('${String(item.id).replace(/[^\w-]/g, '')}')" class="text-rose-300">Excluir</button></div>`).join('');
-    }
-    function addKeeperCost(event) {
-      event.preventDefault(); if (!loggedUser?.isAdmin) return alert('Apenas ADM pode publicar custos.');
-      keeperCosts.unshift({ id: crypto.randomUUID?.() || String(Date.now()), title: document.getElementById('keeperCostTitle').value.trim(), amount: Number(document.getElementById('keeperCostAmount').value), date: document.getElementById('keeperCostDate').value || '' });
-      event.target.reset(); saveState(); renderKeeperCosts(); showFutmancosNotice('Novo custo publicado', 'O valor da confraternização já está disponível para goleiros.');
-    }
-    function deleteKeeperCost(id) { if (!loggedUser?.isAdmin || !confirm('Remover este custo?')) return; keeperCosts = keeperCosts.filter(item => String(item.id) !== String(id)); saveState(); renderKeeperCosts(); }
 
     function updateFinanceCategories() {
       const type = document.getElementById('finType').value;
@@ -3892,5 +3840,6 @@
   </script>
 </body>
 </html>
+
 
 
