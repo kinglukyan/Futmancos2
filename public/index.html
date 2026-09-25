@@ -84,8 +84,22 @@
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-foot-icons { position:relative; z-index:6; display:flex; justify-content:center; align-items:center; gap:4px; height:22px; margin-top:2px; }
+    .rank-foot-trigger { position:relative; display:inline-flex; min-height:0; width:16px; height:22px; align-items:center; justify-content:center; padding:0; border:0; background:transparent; line-height:1; cursor:pointer; }
     .rank-foot-icon { display:block; width:13px; height:21px; background-color:#aab3b7; opacity:.72; -webkit-mask:url('/assets/footprint-mask.png') center / contain no-repeat; mask:url('/assets/footprint-mask.png') center / contain no-repeat; }
     .rank-foot-icon.dominant { background-color:var(--rank-light); opacity:1; filter:drop-shadow(0 0 4px var(--rank-glow)); }
+    .rank-foot-tooltip { display:none; position:absolute; z-index:30; bottom:calc(100% + 5px); left:50%; transform:translateX(-50%); white-space:nowrap; border:1px solid rgba(255,255,255,.2); border-radius:6px; background:#050809; padding:4px 6px; color:#f1f5f4; font:600 9px/1.2 Arial,sans-serif; box-shadow:0 3px 10px rgba(0,0,0,.55); }
+    .rank-foot-trigger.is-open .rank-foot-tooltip, .rank-foot-trigger:focus-visible .rank-foot-tooltip { display:block; }
+    .rank-foot-icons.compact { height:18px; gap:2px; margin-top:1px; }
+    .rank-foot-icons.compact .rank-foot-trigger { width:12px; height:18px; }
+    .rank-foot-icons.compact .rank-foot-icon { width:9px; height:14px; }
+    @media (max-width:640px) {
+      .rank-foot-icons:not(.compact) { height:26px; gap:5px; }
+      .rank-foot-icons:not(.compact) .rank-foot-trigger { width:18px; height:26px; }
+      .rank-foot-icons:not(.compact) .rank-foot-icon { width:15px; height:24px; }
+      .rank-foot-icons.compact { height:20px; }
+      .rank-foot-icons.compact .rank-foot-trigger { height:20px; }
+      .rank-foot-icons.compact .rank-foot-icon { width:10px; height:15px; }
+    }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
@@ -1181,7 +1195,7 @@
         <span class="text-[10px]">Baba</span>
       </button>
       <button id="nav-mob-ranking" onclick="navigate('ranking')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
-        <i data-lucide="dribbble" class="w-5 h-5"></i>
+        <i data-lucide="clipboard-list" class="w-5 h-5"></i>
         <span class="text-[10px]">Plano</span>
       </button>
       <button id="nav-mob-eafc" onclick="navigate('eafc')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
@@ -1326,10 +1340,21 @@
     }
     function playerCardName(player) { return String(player?.nickname || '').trim() || String(player?.name || 'Jogador'); }
     function playerFootCardLabel(foot) { return foot === 'Direita' ? 'DIR.' : foot === 'Esquerda' ? 'ESQ.' : foot === 'Ambidestro' ? 'AMB.' : '—'; }
-    function playerFootIconsMarkup(foot) {
+    function playerFootIconsMarkup(foot, compact = false) {
       const isDominant = side => foot === 'Ambidestro' || (foot === 'Direita' && side === 'right') || (foot === 'Esquerda' && side === 'left');
-      const icon = (side, flip) => `<span class="rank-foot-icon ${isDominant(side) ? 'dominant' : ''}" style="transform:scaleX(${flip ? -1 : 1})" role="img" aria-label="Pé ${side === 'right' ? 'direito' : 'esquerdo'}${isDominant(side) ? ', dominante' : ', não dominante'}"></span>`;
-      return `<span class="rank-foot-icons" aria-label="Pé dominante e não dominante">${icon('left', false)}${icon('right', true)}</span>`;
+      const isAmbidextrous = foot === 'Ambidestro';
+      const icon = (side, flip) => {
+        const dominant = isDominant(side), sideLabel = side === 'right' ? 'direito' : 'esquerdo';
+        const description = `Pé ${sideLabel}: ${dominant ? 'dominante' : 'não dominante'}${isAmbidextrous ? ' (AMB.)' : ''}`;
+        return `<span class="rank-foot-trigger ${dominant ? 'dominant' : ''}" role="img" title="${description}" aria-label="${description}" onclick="toggleFootTooltip(event,this)"><span class="rank-foot-icon ${dominant ? 'dominant' : ''}" style="transform:scaleX(${flip ? -1 : 1})" aria-hidden="true"></span><span class="rank-foot-tooltip" role="tooltip">${description}</span></span>`;
+      };
+      return `<span class="rank-foot-icons ${compact ? 'compact' : ''}" aria-label="Pés do jogador">${icon('left', false)}${icon('right', true)}</span>`;
+    }
+    function toggleFootTooltip(event, trigger) {
+      event.stopPropagation();
+      const wasOpen = trigger.classList.contains('is-open');
+      document.querySelectorAll('.rank-foot-trigger.is-open').forEach(item => item.classList.remove('is-open'));
+      if (!wasOpen) trigger.classList.add('is-open');
     }
     function playerHeightCardLabel(height) { return Number(height) > 0 ? `${Number(height).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m` : '—'; }
 
@@ -3534,13 +3559,13 @@
         const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? (slot.id === 'gk' ? 'style="position:absolute;left:50%;top:auto;bottom:12px;transform:translateX(-50%)"' : `style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);touch-action:none;cursor:grab"`) : '', markerPointers = isCustomFieldSlot ? `onpointerdown="beginGamePlanMarkerMove(event,'${slot.id}')" onpointermove="moveGamePlanMarker(event)" onpointerup="endGamePlanMarkerMove(event)" onpointercancel="endGamePlanMarkerMove(event)"` : '';
         if (!player) return `<div data-game-plan-slot="${slot.id}" ${markerPointers} role="button" tabindex="0" ${customStyle} aria-label="${label}, arraste para reposicionar" onclick="handleGamePlanSlotClick(event,'${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
         const mismatch = !gamePlanPositionMatches(player, role), picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
-        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span></button></div>`;
+        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span>${playerFootIconsMarkup(player.foot, true)}</button></div>`;
       }).join('')}</div>`).join('');
 
       const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
       bench.innerHTML = available.length ? available.map(player => {
         const picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), rank = getCardRank(calcOVR(player));
-        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event,'${encodeURIComponent(String(player.id))}')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(playerCardName(player))}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
+        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event,'${encodeURIComponent(String(player.id))}')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(playerCardName(player))}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR · ${playerFootCardLabel(player.foot)}</small>${playerFootIconsMarkup(player.foot, true)}</span></button>`;
       }).join('') : '<p class="col-span-full py-5 text-center text-xs text-gray-500">Todos os jogadores estão escalados.</p>';
       document.getElementById('gamePlanCount').innerText = `${assigned.size} / 7`;
       document.getElementById('gamePlanBenchCount').innerText = `${available.length} jogador(es)`;
