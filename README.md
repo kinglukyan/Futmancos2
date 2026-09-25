@@ -15,6 +15,8 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 7. `supabase/migrations/202609240006_preferences_finance.sql` (preferências de notificação e acompanhamento do Pix de convidados).
 8. `supabase/migrations/202609240007_member_identity_and_signup_gate.sql` (validação dos dados cadastrais dos associados).
 9. `supabase/migrations/202609240008_admin_audit_log.sql` (histórico de ações administrativas).
+10. `supabase/migrations/202609250009_player_nickname.sql` (apelido e compatibilidade do cadastro).
+11. `supabase/migrations/202609250010_query_performance.sql` (índices de consulta e manutenção das chaves estrangeiras).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 
