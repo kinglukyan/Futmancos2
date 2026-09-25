@@ -1007,14 +1007,26 @@ app.get('/api/profile/game-plan', authenticate, requireDatabase, async (req, res
 app.put('/api/profile/game-plan', authenticate, requireDatabase, async (req, res, next) => {
   const formation = String(req.body?.plan?.formation || '');
   const allowedSlots = {
-    '2-3-1': ['gk','def1','def2','mid1','mid2','mid3','att1'],
-    '3-2-1': ['gk','def1','def2','def3','mid1','mid2','att1'],
-    '2-2-2': ['gk','def1','def2','mid1','mid2','att1','att2']
+    '2-3-1': ['gk','def1','def2','mid1','mid2','mid3','att1'], '3-2-1': ['gk','def1','def2','def3','mid1','mid2','att1'], '2-2-2': ['gk','def1','def2','mid1','mid2','att1','att2'],
+    '1-4-1': ['gk','def1','mid1','mid2','mid3','mid4','att1'], '1-3-2': ['gk','def1','mid1','mid2','mid3','att1','att2'], '1-2-3': ['gk','def1','mid1','mid2','att1','att2','att3'],
+    '2-1-3': ['gk','def1','def2','mid1','att1','att2','att3'], '3-1-2': ['gk','def1','def2','def3','mid1','att1','att2'], '4-1-1': ['gk','def1','def2','def3','def4','mid1','att1'],
+    '3-3-0': ['gk','def1','def2','def3','mid1','mid2','mid3'], '2-4-0': ['gk','def1','def2','mid1','mid2','mid3','mid4'], '0-3-3': ['gk','mid1','mid2','mid3','att1','att2','att3'],
+    custom: ['gk','custom1','custom2','custom3','custom4','custom5','custom6']
   };
   const slots = req.body?.plan?.slots;
+  const submittedPositions = req.body?.plan?.positions;
   if (!allowedSlots[formation] || !slots || typeof slots !== 'object' || Array.isArray(slots)) return res.status(400).json({ error: 'Formação ou escalação inválida.' });
   const entries = Object.entries(slots);
   if (entries.length > 7 || entries.some(([slot, playerId]) => !allowedSlots[formation].includes(slot) || typeof playerId !== 'string' || !playerId || playerId.length > 128) || new Set(entries.map(([, playerId]) => playerId)).size !== entries.length) return res.status(400).json({ error: 'A escalação deve ter até 6 jogadores de linha, 1 goleiro e nenhum jogador repetido.' });
+  const positions = {};
+  if (formation === 'custom') {
+    for (let index = 1; index <= 6; index++) {
+      const position = submittedPositions?.[`custom${index}`];
+      const x = Number(position?.x), y = Number(position?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 10 || x > 90 || y < 10 || y > 82) return res.status(400).json({ error: 'As posições personalizadas precisam ficar dentro do campo.' });
+      positions[`custom${index}`] = { x, y };
+    }
+  }
   try {
     const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
     if (readError) throw readError;
@@ -1024,7 +1036,7 @@ app.put('/api/profile/game-plan', authenticate, requireDatabase, async (req, res
     if (entries.some(([, playerId]) => !rosterIds.has(playerId))) return res.status(400).json({ error: 'Uma das cartinhas escolhidas não está mais disponível. Atualize o plano e tente novamente.' });
     const state = row.state_json;
     state.memberGamePlans = state.memberGamePlans && typeof state.memberGamePlans === 'object' ? state.memberGamePlans : {};
-    state.memberGamePlans[req.user.id] = { formation, slots: Object.fromEntries(entries), updatedAt: new Date().toISOString() };
+    state.memberGamePlans[req.user.id] = { formation, slots: Object.fromEntries(entries), ...(formation === 'custom' ? { positions } : {}), updatedAt: new Date().toISOString() };
     const { error: writeError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
     if (writeError) throw writeError;
     res.json({ ok: true, plan: state.memberGamePlans[req.user.id] });
