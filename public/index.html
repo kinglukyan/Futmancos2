@@ -82,6 +82,9 @@
     .rank-scarlet { --rank-main:#ff4057; --rank-light:#ffd0d4; --rank-deep:#71192d; --rank-glow:rgba(255,48,76,.38); --rank-hue:325deg; --texture-hue:125deg; }
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
+    .rank-foot-icons { display:flex; justify-content:center; align-items:center; gap:3px; height:18px; margin-top:1px; }
+    .rank-foot-icon { width:10px; height:17px; color:#aab3b7; opacity:.58; }
+    .rank-foot-icon.dominant { color:var(--rank-light); opacity:.95; filter:drop-shadow(0 0 3px var(--rank-glow)); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
@@ -564,7 +567,7 @@
             <img id="myCardPreviewLogo" class="rank-card-background" alt="" aria-hidden="true">
             <img id="myCardPreviewTexture" class="rank-card-texture" alt="" aria-hidden="true">
             <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg><span id="myCardPreviewRank">PRATA</span></div>
-            <div class="flex justify-between items-start"><div class="text-center"><span id="myCardPreviewOvr" class="font-teko text-5xl font-extrabold rank-accent leading-none block">70</span><span id="myCardPreviewPosition" class="text-[10px] font-bold uppercase tracking-widest rank-accent">MEI</span></div><span id="myCardPreviewShirt" class="font-teko text-2xl font-bold text-gray-300"></span></div>
+            <div class="flex justify-between items-start"><div class="text-center"><span id="myCardPreviewOvr" class="font-teko text-5xl font-extrabold rank-accent leading-none block">70</span><span id="myCardPreviewPosition" class="text-[10px] font-bold uppercase tracking-widest rank-accent">MEI</span></div><div class="text-center"><span id="myCardPreviewShirt" class="font-teko text-2xl font-bold text-gray-300 block leading-none"></span><span id="myCardPreviewFeet"></span></div></div>
             <div class="rank-player-stage my-2 relative flex h-48 justify-center"><img id="myCardImagePreview" class="rank-player-cutout" alt="Prévia da imagem da cartinha"><span id="myCardImageEmpty" class="absolute inset-0 z-10 flex items-center justify-center text-center text-xs text-gray-500">Adicione uma foto<br>para ver a prévia</span></div>
             <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-1"><h3 id="myCardPreviewName" class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">JOGADOR</h3></div>
             <div class="grid grid-cols-3 gap-1 pb-1 text-center text-[8px] font-bold uppercase tracking-wide text-gray-200"><span>Idade <b id="myCardPreviewAge" class="block rank-accent">—</b></span><span>Altura <b id="myCardPreviewHeight" class="block rank-accent">—</b></span><span>Melhor pé <b id="myCardPreviewFoot" class="block rank-accent">—</b></span></div>
@@ -1322,6 +1325,11 @@
     }
     function playerCardName(player) { return String(player?.nickname || '').trim() || String(player?.name || 'Jogador'); }
     function playerFootCardLabel(foot) { return foot === 'Direita' ? 'DIR.' : foot === 'Esquerda' ? 'ESQ.' : foot === 'Ambidestro' ? 'AMB.' : '—'; }
+    function playerFootIconsMarkup(foot) {
+      const isDominant = side => foot === 'Ambidestro' || (foot === 'Direita' && side === 'right') || (foot === 'Esquerda' && side === 'left');
+      const icon = (side, flip) => `<svg class="rank-foot-icon ${isDominant(side) ? 'dominant' : ''}" style="transform:scaleX(${flip ? -1 : 1})" viewBox="0 0 24 42" fill="currentColor" role="img" aria-label="Pé ${side === 'right' ? 'direito' : 'esquerdo'}${isDominant(side) ? ', dominante' : ', não dominante'}"><path d="M11.1 41c-4.9 0-7.6-2.5-7.6-6.3 0-3.5 2.3-6.6 3.1-10.5.6-3.2.3-7.4.8-11.3C7.9 8.1 9 4.7 10.5 2.3c1-1.6 2.5-1.5 3.2.2.5 1.2.6 2.5.7 3.8 1.2-3.3 2.4-4.8 3.8-4.1 1.3.6 1.1 2.7.7 4.8 1.1-2.7 2.4-3.5 3.4-2.4 1.1 1.2.3 3.6-.5 5.7 1-1.3 2.1-1.5 2.9-.3 1.1 1.8-1.1 5.2-2.3 7.1-.8 1.3-.9 3.5-.4 6.1.9 5.1 3.3 9.3 1.5 13-1.5 3.1-6.6 4.8-12.4 4.8h-.1Z"/></svg>`;
+      return `<span class="rank-foot-icons" aria-label="Pé dominante e não dominante">${icon('left', false)}${icon('right', true)}</span>`;
+    }
     function playerHeightCardLabel(height) { return Number(height) > 0 ? `${Number(height).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m` : '—'; }
 
     function isCutoutPlayerPhoto(photo) {
@@ -2707,6 +2715,7 @@
       document.getElementById('myCardPreviewOvr').innerText = ovr;
       document.getElementById('myCardPreviewPosition').innerText = player.pos === 'Volante' ? 'VOL' : String(player.pos || 'Meio-Campo').substring(0,3);
       document.getElementById('myCardPreviewShirt').innerText = player.shirt || '';
+      document.getElementById('myCardPreviewFeet').innerHTML = playerFootIconsMarkup(player.foot);
       document.getElementById('myCardPreviewName').innerText = playerCardName(player);
       document.getElementById('myCardPreviewAge').innerText = player.age ? `${player.age} anos` : '—';
       document.getElementById('myCardPreviewHeight').innerText = playerHeightCardLabel(player.height);
@@ -2766,8 +2775,9 @@
                 <span class="font-teko text-5xl font-extrabold rank-accent leading-none block">${ovr}</span>
                 <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos === 'Volante' ? 'VOL' : String(p.pos || '').substring(0,3)}</span>
               </div>
-              <div class="text-right">
-                <span class="font-teko text-2xl font-bold text-gray-300">${p.shirt}</span>
+              <div class="text-center">
+                <span class="font-teko text-2xl font-bold text-gray-300 block leading-none">${p.shirt}</span>
+                ${playerFootIconsMarkup(p.foot)}
               </div>
             </div>
 
@@ -3735,8 +3745,9 @@
                 <span class="font-teko text-5xl font-extrabold rank-accent leading-none block">${ovr}</span>
                 <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
               </div>
-              <div class="text-right">
-                <span class="font-teko text-2xl font-bold text-gray-300">${p.shirt}</span>
+              <div class="text-center">
+                <span class="font-teko text-2xl font-bold text-gray-300 block leading-none">${p.shirt}</span>
+                ${playerFootIconsMarkup(p.foot)}
               </div>
             </div>
 
