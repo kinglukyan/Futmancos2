@@ -133,6 +133,111 @@ function billingStatus(row, fee, now = new Date()) {
   return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month || '', dueDay: 12, fee };
 }
 
+function leaguePairKey(a, b) { return [String(a), String(b)].sort().join('::'); }
+function leagueStandings(league) {
+  const table = new Map((league?.participants || []).map(player => [String(player.id), {
+    id: String(player.id), name: player.nickname || player.name || 'Jogador', position: player.position || 'Meio-Campo',
+    played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0,
+    fatigue: Number(player.fatigue) || 0, trophies: Number(league?.trophies?.[player.id]) || 0
+  }]));
+  const completed = (league?.matches || []).filter(match => match.status === 'completed');
+  for (const match of completed) {
+    const home = table.get(String(match.homePlayerId)), away = table.get(String(match.awayPlayerId));
+    if (!home || !away) continue;
+    const hg = Number(match.homeGoals) || 0, ag = Number(match.awayGoals) || 0;
+    home.played++; away.played++; home.goalsFor += hg; home.goalsAgainst += ag; away.goalsFor += ag; away.goalsAgainst += hg;
+    if (hg > ag) { home.wins++; home.points += 3; away.losses++; }
+    else if (hg < ag) { away.wins++; away.points += 3; home.losses++; }
+    else { home.draws++; away.draws++; home.points++; away.points++; }
+  }
+  for (const row of table.values()) row.goalDifference = row.goalsFor - row.goalsAgainst;
+  const rows = [...table.values()];
+  const sortBase = (a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor;
+  rows.sort((a, b) => sortBase(a, b) || a.name.localeCompare(b.name, 'pt-BR'));
+  for (let start = 0; start < rows.length;) {
+    let end = start + 1;
+    while (end < rows.length && sortBase(rows[start], rows[end]) === 0) end++;
+    if (end - start > 1) {
+      const tied = rows.slice(start, end), ids = new Set(tied.map(row => row.id)), mini = new Map(tied.map(row => [row.id, { points: 0, gd: 0 }]));
+      for (const match of completed) {
+        const homeId = String(match.homePlayerId), awayId = String(match.awayPlayerId);
+        if (!ids.has(homeId) || !ids.has(awayId)) continue;
+        const hg = Number(match.homeGoals) || 0, ag = Number(match.awayGoals) || 0;
+        mini.get(homeId).gd += hg - ag; mini.get(awayId).gd += ag - hg;
+        if (hg > ag) mini.get(homeId).points += 3; else if (hg < ag) mini.get(awayId).points += 3; else { mini.get(homeId).points++; mini.get(awayId).points++; }
+      }
+      tied.sort((a, b) => mini.get(b.id).points - mini.get(a.id).points || mini.get(b.id).gd - mini.get(a.id).gd || a.name.localeCompare(b.name, 'pt-BR'));
+      rows.splice(start, tied.length, ...tied);
+    }
+    start = end;
+  }
+  return rows;
+}
+function scheduleMissingLeagueFixtures(league) {
+  league.participants ||= []; league.matches ||= [];
+  const existingPairs = new Set(league.matches.map(match => leaguePairKey(match.homePlayerId, match.awayPlayerId)));
+  const occupied = new Map();
+  let maxRound = 0;
+  for (const match of league.matches) {
+    const round = Number(match.round) || 1; maxRound = Math.max(maxRound, round);
+    if (!occupied.has(round)) occupied.set(round, new Set());
+    occupied.get(round).add(String(match.homePlayerId)); occupied.get(round).add(String(match.awayPlayerId));
+  }
+  const firstNewRound = maxRound ? maxRound + 1 : 1;
+  const added = [];
+  for (let i = 0; i < league.participants.length; i++) for (let j = i + 1; j < league.participants.length; j++) {
+    const home = league.participants[i], away = league.participants[j], pair = leaguePairKey(home.id, away.id);
+    if (existingPairs.has(pair)) continue;
+    let round = firstNewRound;
+    while (occupied.get(round)?.has(String(home.id)) || occupied.get(round)?.has(String(away.id))) round++;
+    if (!occupied.has(round)) occupied.set(round, new Set());
+    occupied.get(round).add(String(home.id)); occupied.get(round).add(String(away.id));
+    const fixture = { id: randomUUID(), round, homePlayerId: String(home.id), awayPlayerId: String(away.id), status: 'pending', createdAt: new Date().toISOString() };
+    league.matches.push(fixture); added.push(fixture); existingPairs.add(pair);
+  }
+  return added.length;
+}
+async function readLeagueData({ syncMembers = false } = {}) {
+  const { data: row, error } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  const state = row?.state_json || {};
+  let league = state.league;
+  let changed = false;
+  if (!league || typeof league !== 'object') {
+    league = { season: 1, status: 'active', participants: [], matches: [], history: [], trophies: {}, createdAt: new Date().toISOString() };
+    state.league = league; changed = true;
+  }
+  league.participants = Array.isArray(league.participants) ? league.participants : [];
+  league.matches = Array.isArray(league.matches) ? league.matches : [];
+  league.history = Array.isArray(league.history) ? league.history : [];
+  league.trophies = league.trophies && typeof league.trophies === 'object' ? league.trophies : {};
+  if (syncMembers && league.status === 'active') {
+    const { data: profiles, error: profileError } = await supabase.from('profiles').select('id,name,nickname,position').order('name');
+    if (profileError) throw profileError;
+    const byId = new Map(league.participants.map(player => [String(player.id), player]));
+    for (const profile of (profiles || []).filter(profile => !isDemoMember(profile))) {
+      const id = String(profile.id), existing = byId.get(id);
+      if (!existing) {
+        const participant = { id, name: profile.name || 'Jogador', nickname: profile.nickname || '', position: profile.position || 'Meio-Campo', fatigue: 0, appearances: 0, joinedAt: new Date().toISOString() };
+        league.participants.push(participant); byId.set(id, participant); changed = true;
+      } else {
+        const nickname = profile.nickname || '', name = profile.name || existing.name, position = profile.position || 'Meio-Campo';
+        if (existing.name !== name || existing.nickname !== nickname || existing.position !== position) { Object.assign(existing, { name, nickname, position }); changed = true; }
+      }
+    }
+    if (scheduleMissingLeagueFixtures(league)) changed = true;
+  }
+  if (changed) {
+    const { error: writeError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (writeError) throw writeError;
+  }
+  return { state, league };
+}
+async function auditLeagueAdminAction(actor, action, entityId, summary, details) {
+  try { await auditAdminAction(actor, action, 'league', entityId, summary, details); }
+  catch (error) { console.warn('O campeonato foi salvo, mas o registro de auditoria não está disponível.', error.message); }
+}
+
 // Every API request is authorized with the Supabase access token. No local
 // session or database file is required, so Render's free filesystem is safe.
 async function authenticate(req, res, next) {
@@ -334,6 +439,7 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     const { data: previous, error: previousError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
     if (previousError) throw previousError;
     const previousGame = previous?.state_json?.nextGame || null;
+    state.league = previous?.state_json?.league || null;
     state.memberGamePlans = previous?.state_json?.memberGamePlans && typeof previous.state_json.memberGamePlans === 'object' ? previous.state_json.memberGamePlans : {};
     const gameWasChanged = JSON.stringify(previousGame) !== JSON.stringify(state.nextGame);
     const updatedAt = new Date().toISOString();
@@ -345,6 +451,85 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
       await sendPushAll(eventKey, { category: 'baba', title: 'Novo baba marcado ou atualizado', body: description || 'Confira a data e o local do próximo baba.', url: '/' }, req.user.id);
     }
     res.json({ ok: true, updatedAt });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/league', authenticate, requireDatabase, async (_req, res, next) => {
+  try {
+    const { league } = await readLeagueData({ syncMembers: true });
+    res.json({ league, standings: leagueStandings(league) });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/admin/league/matches/:id/result', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const homeGoals = Number(req.body?.homeGoals), awayGoals = Number(req.body?.awayGoals);
+  if (!Number.isInteger(homeGoals) || !Number.isInteger(awayGoals) || homeGoals < 0 || awayGoals < 0 || homeGoals > 12 || awayGoals > 12) return res.status(400).json({ error: 'Informe um placar válido entre 0 e 12 gols.' });
+  try {
+    const { state, league } = await readLeagueData();
+    if (league.status !== 'active') return res.status(409).json({ error: 'O campeonato está encerrado.' });
+    const match = league.matches.find(item => String(item.id) === String(req.params.id));
+    if (!match) return res.status(404).json({ error: 'Confronto não encontrado.' });
+    if (match.status === 'completed') return res.status(409).json({ error: 'Este confronto já foi encerrado.' });
+    match.status = 'completed'; match.homeGoals = homeGoals; match.awayGoals = awayGoals; match.playedAt = new Date().toISOString();
+    match.simulation = {
+      homeStrength: Math.max(0, Math.min(100, Number(req.body?.homeStrength) || 0)),
+      awayStrength: Math.max(0, Math.min(100, Number(req.body?.awayStrength) || 0)),
+      homeLuck: Math.max(.9, Math.min(1.1, Number(req.body?.homeLuck) || 1)),
+      awayLuck: Math.max(.9, Math.min(1.1, Number(req.body?.awayLuck) || 1))
+    };
+    for (const id of [match.homePlayerId, match.awayPlayerId]) {
+      const participant = league.participants.find(item => String(item.id) === String(id));
+      if (participant) { participant.fatigue = Math.min(60, (Number(participant.fatigue) || 0) + 8); participant.appearances = (Number(participant.appearances) || 0) + 1; }
+    }
+    const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) throw error;
+    await auditLeagueAdminAction(req.user, 'league_match_completed', match.id, `Rodada ${match.round}: ${homeGoals} × ${awayGoals}.`, { season: league.season, homePlayerId: match.homePlayerId, awayPlayerId: match.awayPlayerId, homeGoals, awayGoals });
+    res.json({ league, standings: leagueStandings(league) });
+  } catch (error) { next(error); }
+});
+
+app.put('/api/admin/league/close', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { state, league } = await readLeagueData();
+    if (league.status !== 'active') return res.status(409).json({ error: 'Este campeonato já está encerrado.' });
+    const pending = league.matches.filter(match => match.status !== 'completed');
+    if (!league.matches.length || pending.length) return res.status(409).json({ error: `Ainda há ${pending.length} confronto(s) pendente(s).` });
+    const standings = leagueStandings(league), champion = standings[0];
+    if (!champion) return res.status(409).json({ error: 'Não há participantes para declarar campeão.' });
+    league.status = 'closed'; league.closedAt = new Date().toISOString(); league.championId = champion.id;
+    league.trophies[champion.id] = (Number(league.trophies[champion.id]) || 0) + 1;
+    const championParticipant = league.participants.find(item => String(item.id) === champion.id);
+    if (championParticipant) championParticipant.trophies = league.trophies[champion.id];
+    league.history.push({ season: league.season, championId: champion.id, championName: champion.name, championNickname: champion.nickname || '', trophyCount: league.trophies[champion.id], standings, matches: league.matches, closedAt: league.closedAt });
+    const roster = Array.isArray(state.players) ? state.players : [];
+    const card = roster.find(player => [player.id, player.serverId, player.authUserId].some(value => value != null && String(value) === champion.id));
+    if (card) card.leagueTrophies = league.trophies[champion.id];
+    const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) throw error;
+    await auditLeagueAdminAction(req.user, 'league_season_closed', league.season, `Temporada ${league.season} encerrada. Campeão: ${champion.name}.`, { championId: champion.id, championName: champion.name, standings });
+    res.json({ league, standings });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/admin/league/start-season', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  try {
+    const { state, league } = await readLeagueData();
+    if (league.status !== 'closed') return res.status(409).json({ error: 'Encerre a temporada atual antes de iniciar outra.' });
+    const { data: profiles, error: profileError } = await supabase.from('profiles').select('id,name,nickname,position').order('name');
+    if (profileError) throw profileError;
+    const previousTrophies = league.trophies || {};
+    league.season = (Number(league.season) || 0) + 1; league.status = 'active'; league.createdAt = new Date().toISOString();
+    delete league.closedAt; delete league.championId;
+    league.participants = (profiles || []).filter(profile => !isDemoMember(profile)).map(profile => ({
+      id: String(profile.id), name: profile.name || 'Jogador', nickname: profile.nickname || '', position: profile.position || 'Meio-Campo', fatigue: 0, appearances: 0,
+      trophies: Number(previousTrophies[profile.id]) || 0, joinedAt: new Date().toISOString()
+    }));
+    league.matches = [];
+    scheduleMissingLeagueFixtures(league);
+    const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (error) throw error;
+    await auditLeagueAdminAction(req.user, 'league_season_started', league.season, `Temporada ${league.season} iniciada com ${league.participants.length} participantes.`, { participants: league.participants.length, fixtures: league.matches.length });
+    res.json({ league, standings: leagueStandings(league) });
   } catch (error) { next(error); }
 });
 
