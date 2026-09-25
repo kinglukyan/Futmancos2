@@ -76,15 +76,16 @@
     .rank-card-texture { position:absolute; z-index:1; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; filter:saturate(1.1) brightness(.68) hue-rotate(var(--texture-hue)); mix-blend-mode:soft-light; pointer-events:none; }
     .rank-card > :not(.rank-card-background):not(.rank-card-texture) { position:relative; z-index:2; }
     .rank-card > .absolute { position:absolute; z-index:3; }
+    .rank-card > .flex.justify-between.items-start { z-index:5; }
     .rank-bronze { --rank-main:#54b85b; --rank-light:#c7f5b4; --rank-deep:#24472a; --rank-glow:rgba(77,190,86,.28); --rank-hue:75deg; --texture-hue:300deg; }
     .rank-silver { --rank-main:#bdcbd5; --rank-light:#f2fbff; --rank-deep:#425567; --rank-glow:rgba(180,210,230,.3); --rank-hue:165deg; --texture-hue:0deg; }
     .rank-gold { --rank-main:#edbd45; --rank-light:#fff1a6; --rank-deep:#76501a; --rank-glow:rgba(242,183,46,.34); --rank-hue:350deg; --texture-hue:150deg; }
     .rank-scarlet { --rank-main:#ff4057; --rank-light:#ffd0d4; --rank-deep:#71192d; --rank-glow:rgba(255,48,76,.38); --rank-hue:325deg; --texture-hue:125deg; }
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
-    .rank-foot-icons { display:flex; justify-content:center; align-items:center; gap:3px; height:18px; margin-top:1px; }
-    .rank-foot-icon { width:10px; height:17px; color:#aab3b7; opacity:.58; }
-    .rank-foot-icon.dominant { color:var(--rank-light); opacity:.95; filter:drop-shadow(0 0 3px var(--rank-glow)); }
+    .rank-foot-icons { position:relative; z-index:6; display:flex; justify-content:center; align-items:center; gap:4px; height:22px; margin-top:2px; }
+    .rank-foot-icon { width:13px; height:21px; color:#aab3b7; opacity:.72; }
+    .rank-foot-icon.dominant { color:var(--rank-light); opacity:1; filter:drop-shadow(0 0 4px var(--rank-glow)); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
