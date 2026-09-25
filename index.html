@@ -907,19 +907,17 @@
         <p class="text-xs text-gray-300">Os associados enviam o comprovante pelo WhatsApp. Confira o comprovante e use “Confirmar Pix” na lista de membros para registrar o pagamento do mês.</p>
       </div>
 
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-4">
-        <div class="max-w-3xl">
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+        <div>
           <h3 class="font-teko text-2xl text-white">DEFINIR VALOR DA MENSALIDADE</h3>
-          <p class="text-xs text-gray-400">Define o valor mensal dos associados; goleiros são isentos. O Custo GO é separado e pode ser ativado quando houver uma contribuição extra.</p>
+          <p class="text-xs text-gray-400">Configure as cobranças e a disponibilidade do Custo GO.</p>
         </div>
-        <div class="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Mensalidade dos associados<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
-          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
-          <div class="min-w-0 space-y-2">
-            <label class="block text-[11px] leading-4 text-gray-400">Valor do Custo GO<input type="number" min="0" step="0.01" id="admCustoGoFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
-            <label class="custogo-switch flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-700 bg-black/40 px-3 py-2 text-[11px] leading-4 text-gray-300" for="admCustoGoEnabled"><span>Mostrar Custo GO aos goleiros</span><input id="admCustoGoEnabled" type="checkbox" role="switch" class="h-5 w-5 accent-emerald-500"></label>
-          </div>
-          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Motivo (ex.: confraternização)<input type="text" maxlength="100" id="admCustoGoDescription" placeholder="Ex.: Confraternização de fim de ano" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
+        <div class="flex w-full flex-wrap items-end gap-x-6 gap-y-3">
+          <label class="block w-full min-w-0 text-[11px] leading-4 text-gray-400 sm:w-[250px]">Mensalidade dos associados<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 block h-12 w-full rounded-xl border border-gray-800 bg-black px-3 text-sm font-bold text-white"></label>
+          <label class="block w-full min-w-0 text-[11px] leading-4 text-gray-400 sm:w-[190px]">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 block h-12 w-full rounded-xl border border-gray-800 bg-black px-3 text-sm font-bold text-white"></label>
+          <label class="block w-full min-w-0 text-[11px] leading-4 text-gray-400 sm:w-[155px]">Valor do Custo GO<input type="number" min="0" step="0.01" id="admCustoGoFeeInput" class="mt-1 block h-12 w-full rounded-xl border border-gray-800 bg-black px-3 text-sm font-bold text-white"></label>
+          <label class="block w-[80px] shrink-0 text-[11px] leading-4 text-gray-400" for="admCustoGoEnabled">Custo GO<span class="custogo-switch mt-1 flex h-12 cursor-pointer items-center justify-center rounded-xl"><span class="sr-only">Mostrar Custo GO aos goleiros</span><input aria-label="Mostrar Custo GO aos goleiros" id="admCustoGoEnabled" type="checkbox" role="switch" class="h-5 w-5 accent-emerald-500"></span></label>
+          <label class="block w-full min-w-0 text-[11px] leading-4 text-gray-400 sm:w-[260px]">Motivo (ex.: confraternização)<input type="text" maxlength="100" id="admCustoGoDescription" placeholder="Ex.: Churrasco" class="mt-1 block h-12 w-full rounded-xl border border-gray-800 bg-black px-3 text-sm font-bold text-white"></label>
         </div>
         <div class="flex justify-end"><button onclick="saveGlobalFee()" class="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-black">Salvar valores</button></div>
       </div>
