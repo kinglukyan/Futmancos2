@@ -99,7 +99,17 @@
     .star-rating label:hover,
     .star-rating label:hover ~ label,
     .star-rating input:checked ~ label { color: #fbbf24; }
-  </style>
+  
+    .admin-module { overflow: hidden; border: 1px solid #263244; border-radius: 1rem; background: rgba(17, 24, 22, .72); }
+    .admin-module > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; list-style: none; padding: .95rem 1.1rem; color: #f3f4f6; font-weight: 700; }
+    .admin-module > summary::-webkit-details-marker { display: none; }
+    .admin-module > summary::after { content: '+'; color: #41bf62; font-size: 1.35rem; line-height: 1; }
+    .admin-module[open] > summary::after { content: '−'; }
+    .admin-module > summary small { color: #9ca3af; font-size: .7rem; font-weight: 400; text-align: right; }
+    .admin-module[open] > summary { border-bottom: 1px solid #263244; }
+    .admin-module-content { display: grid; gap: 1rem; padding: 1rem; }
+    @media (max-width: 640px) { .admin-module > summary { align-items: flex-start; flex-wrap: wrap; } .admin-module > summary small { order: 3; width: 100%; text-align: left; } .admin-module-content { padding: .75rem; } }
+</style>
 </head>
 <body class="bg-brand-darkBg text-gray-100 font-sans min-h-screen pb-24 md:pb-12">
 
@@ -735,91 +745,158 @@
     <!-- PAINEL ADM -->
     <section id="sec-adm" class="hidden space-y-6">
       <h2 class="font-teko text-3xl text-amber-400">PAINEL ADMINISTRATIVO</h2>
-      <section class="bg-brand-cardBg border border-sky-500/30 p-4 md:p-6 rounded-2xl space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-teko text-2xl text-sky-300">REGISTRO DE AÇÕES ADMINISTRATIVAS</h3><p class="text-xs text-gray-400">Pagamentos confirmados, resultados, exclusões e alterações importantes, com administrador e horário.</p></div><div class="flex gap-2"><button type="button" onclick="exportAdminAuditLog()" class="border border-emerald-700 text-emerald-200 px-3 py-2 rounded-lg text-xs font-bold">Exportar CSV</button><button type="button" onclick="refreshAdminAuditLog()" class="border border-sky-700 text-sky-200 px-3 py-2 rounded-lg text-xs font-bold">Atualizar histórico</button></div></div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <label class="text-[10px] text-gray-400">De<input id="auditFilterFrom" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
-          <label class="text-[10px] text-gray-400">Até<input id="auditFilterTo" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
-          <label class="text-[10px] text-gray-400">Administrador<select id="auditFilterActor" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
-          <label class="text-[10px] text-gray-400">Tipo de ação<select id="auditFilterAction" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+        <div><h3 class="font-teko text-2xl text-white">CENTRAL DE ADMINISTRAÇÃO</h3><p class="text-xs text-gray-400">Acesse cada área quando precisar. Abra uma seção para ver seus controles.</p></div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          <button type="button" onclick="openAdminSection('admBabaSection')" class="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3 text-left text-xs font-bold text-emerald-200">Baba e agenda</button>
+          <button type="button" onclick="openAdminSection('admMembersSection')" class="rounded-xl border border-sky-500/30 bg-sky-950/30 p-3 text-left text-xs font-bold text-sky-200">Associados</button>
+          <button type="button" onclick="openAdminSection('admFinanceSection')" class="rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-left text-xs font-bold text-amber-200">Financeiro</button>
+          <button type="button" onclick="openAdminSection('admResenhaSection')" class="rounded-xl border border-fuchsia-500/30 bg-fuchsia-950/30 p-3 text-left text-xs font-bold text-fuchsia-200">Resenha</button>
+          <button type="button" onclick="openAdminSection('admKeeperSection')" class="rounded-xl border border-teal-500/30 bg-teal-950/30 p-3 text-left text-xs font-bold text-teal-200">Goleiros</button>
+          <button type="button" onclick="openAdminSection('admPerformanceSection')" class="rounded-xl border border-violet-500/30 bg-violet-950/30 p-3 text-left text-xs font-bold text-violet-200">Desempenho</button>
+          <button type="button" onclick="openAdminSection('admAuditSection')" class="rounded-xl border border-gray-700 bg-black/30 p-3 text-left text-xs font-bold text-gray-200">Auditoria</button>
         </div>
-        <div id="adminAuditLog" class="space-y-2 max-h-96 overflow-y-auto pr-1"><p class="text-xs text-gray-500">Carregando histórico…</p></div>
-      </section>
-      <!-- GRÁFICO DE DESEMPENHO DOS ATLETAS -->
-      <div class="bg-brand-cardBg border border-amber-500/30 p-4 md:p-6 rounded-2xl space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-800 pb-3">
-          <div>
-            <h3 class="font-teko text-2xl text-amber-400 flex items-center gap-2">
-              <i data-lucide="line-chart" class="w-5 h-5 text-amber-400"></i> ANÁLISE DE DESEMPENHO DO ATLETA
-            </h3>
-            <p class="text-xs text-gray-400">Selecione um jogador no menu suspenso para visualizar a evolução de seus atributos e dados no gráfico.</p>
+      </div>
+      <details id="admBabaSection" class="admin-module" open><summary><span>⚽ Baba e agenda</span><small>Local, próximo jogo e convidados</small></summary><div class="admin-module-content">      <!-- ARENAS E AGENDAMENTO -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+          <h3 class="font-teko text-xl text-white flex items-center gap-1.5">
+            <i data-lucide="map-pin" class="w-4 h-4 text-brand-lightGreen"></i> CADASTRAR / EDITAR ARENA
+          </h3>
+          <form onsubmit="handleArenaRegister(event)" class="space-y-2">
+            <input type="hidden" id="arenaEditId">
+            <div>
+              <label class="text-[10px] text-gray-400">Nome da Arena / Campo</label>
+              <input type="text" id="arenaName" placeholder="Ex: Arena Futmancos" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400">Endereço Completo</label>
+              <input type="text" id="arenaAddress" placeholder="Ex: Rua dos Atletas, 100" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-[10px] text-gray-400">Latitude<input type="number" step="any" id="arenaLatitude" placeholder="-12.25" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+              <label class="text-[10px] text-gray-400">Longitude<input type="number" step="any" id="arenaLongitude" placeholder="-38.96" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+              <label class="text-[10px] text-gray-400 col-span-2">Raio do check-in automático (metros)<input type="number" min="25" max="500" step="5" id="arenaRadius" value="100" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
+            </div>
+            <button type="button" onclick="captureArenaLocation()" class="w-full bg-gray-800 text-gray-100 font-semibold text-xs p-2 rounded-xl">Usar a localização atual para esta arena</button>
+            <button type="submit" id="btnSaveArena" class="w-full bg-brand-green active:bg-brand-lightGreen text-black font-bold text-xs p-2.5 rounded-xl">
+              Salvar Arena
+            </button>
+          </form>
+
+          <div class="pt-2 border-t border-gray-800 space-y-1.5">
+            <span class="text-[10px] text-gray-400 font-bold block uppercase">Arenas Registradas</span>
+            <div id="arenaManageList" class="space-y-1 max-h-28 overflow-y-auto no-scrollbar"></div>
           </div>
-          <div class="w-full sm:w-64">
-            <select id="admPerformancePlayerSelect" onchange="updateAdmPerformanceChart()" class="w-full bg-black border border-amber-500/50 p-2 text-xs text-amber-300 font-bold rounded-xl outline-none">
+        </div>
+
+        <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+          <h3 class="font-teko text-xl text-white flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i> AGENDAR PRÓXIMO BABA
+          </h3>
+          <form onsubmit="handleScheduleGame(event)" class="space-y-2">
+            <div>
+              <label class="text-[10px] text-gray-400">Selecione a Arena</label>
+              <select id="gameArenaSelect" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[10px] text-gray-400">Data do Jogo</label>
+                <input type="date" id="gameDate" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400">Horário</label>
+                <input type="time" id="gameTime" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+              </div>
+            </div>
+            <button type="submit" class="w-full bg-amber-500 active:bg-amber-400 text-black font-bold text-xs p-2.5 rounded-xl">
+              Publicar Agendamento
+            </button>
+          </form>
+        </div>
+      </div>
+
+      </div></details>
+      <details id="admMembersSection" class="admin-module"><summary><span>👥 Associados e convidados</span><small>Cadastro, busca e situação dos membros</small></summary><div class="admin-module-content">      <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
+        <h3 class="font-teko text-2xl text-sky-300">CONVIDADOS CADASTRADOS (<span id="guestAdminCount">0</span>)</h3>
+        <p class="text-[10px] text-gray-400">CPF aparece mascarado; o número completo permanece criptografado e restrito no banco.</p>
+        <div id="guestAdminList" class="space-y-2"></div>
+      </div>
+
+      <!-- TABELA DE MEMBROS ADM -->
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div>
+            <h3 class="font-teko text-2xl text-white">SISTEMA DE VERIFICAÇÃO DE MEMBROS (<span id="memberCount">0</span>)</h3>
+            <p class="text-xs text-gray-400">Inspecione dados de cadastro, pagamentos e desempenho esportivo individual.</p>
+          </div>
+          <div class="flex gap-2 text-xs font-bold">
+            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+              Pagos: <span id="countPaid">0</span>
+            </span>
+            <span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg">
+              Pendentes: <span id="countUnpaid">0</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-black/40 p-3 rounded-xl border border-gray-800">
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">Buscar por Nome</label>
+            <input type="text" id="filterSearch" oninput="renderMemberList()" placeholder="Nome..." class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">Status Mensalidade</label>
+            <select id="filterPayment" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
+              <option value="todos">Todos</option>
+              <option value="pago">Pago</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">Posição</label>
+            <select id="filterPos" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
+              <option value="todas">Todas</option>
+              <option value="Goleiro">Goleiro</option>
+              <option value="Zagueiro">Zagueiro</option>
+              <option value="Lateral">Lateral</option>
+              <option value="Meio-Campo">Meio-Campo</option>
+              <option value="Atacante">Atacante</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">Faixa Etária</label>
+            <select id="filterAge" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
+              <option value="todas">Todas</option>
+              <option value="-20">Abaixo de 20 anos</option>
+              <option value="20-30">20 a 30 anos</option>
+              <option value="30+">Acima de 30 anos</option>
             </select>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-          <div class="lg:col-span-2 bg-black/60 p-4 rounded-xl border border-gray-800 h-64 md:h-80 flex items-center justify-center">
-            <canvas id="admPerformanceChart"></canvas>
-          </div>
-
-          <div id="admPlayerStatsSummary" class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2 text-xs">
-            <h4 class="font-teko text-xl text-white border-b border-gray-800 pb-1">RESUMO ESTATÍSTICO</h4>
-            <p class="text-gray-300"><strong>Gols:</strong> <span id="admChartGoals" class="text-brand-lightGreen font-bold">0</span></p>
-            <p class="text-gray-300"><strong>Assistências:</strong> <span id="admChartAssists" class="text-blue-400 font-bold">0</span></p>
-            <p class="text-gray-300"><strong>Defesas:</strong> <span id="admChartSaves" class="text-teal-400 font-bold">0</span></p>
-            <p class="text-gray-300"><strong>Jogos:</strong> <span id="admChartMatches" class="text-amber-400 font-bold">0</span></p>
-            <p class="text-gray-300"><strong>Overall Atual:</strong> <span id="admChartOvr" class="text-brand-gold font-bold">0</span></p>
-          </div>
+        <div id="memberCardsMobile" class="md:hidden space-y-3" aria-label="Lista de associados para celular"></div>
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left text-xs min-w-[650px]">
+            <thead class="bg-black/60 text-gray-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-2.5">Jogador</th>
+                <th class="p-2.5">Idade</th>
+                <th class="p-2.5">Posição</th>
+                <th class="p-2.5">Mensalidade</th>
+                
+                <th class="p-2.5 text-center">Ficha Membro</th>
+                <th class="p-2.5 text-center">Ações ADM</th>
+              </tr>
+            </thead>
+            <tbody id="memberTableBody" class="divide-y divide-gray-800/60"></tbody>
+          </table>
         </div>
       </div>
-
-      <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-2">
+      </div></details>
+      <details id="admFinanceSection" class="admin-module"><summary><span>💳 Financeiro e pagamentos</span><small>Valores, Pix, conferência e caixa</small></summary><div class="admin-module-content">      <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-2">
         <h3 class="font-teko text-2xl text-emerald-300">CONFERÊNCIA DE PAGAMENTOS VIA PIX</h3>
         <p class="text-xs text-gray-300">Os associados enviam o comprovante pelo WhatsApp. Confira o comprovante e use “Confirmar Pix” na lista de membros para registrar o pagamento do mês.</p>
-      </div>
-
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-white flex items-center gap-2">
-          <i data-lucide="share-2" class="w-5 h-5 text-amber-400"></i> CONFIGURAR MÍDIAS DA ABA RESENHA
-        </h3>
-        <form onsubmit="handleMediaConfig(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="text-[10px] text-gray-400 block mb-1">Link do Instagram da Associação</label>
-            <input type="url" id="admInstaLink" placeholder="https://instagram.com/seuperfil" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
-          </div>
-          <div class="sm:col-span-2">
-            <label class="text-[10px] text-gray-400 block mb-1">Links de publicações públicas do Instagram (um por linha)</label>
-            <textarea id="admInstaPosts" rows="3" placeholder="https://www.instagram.com/p/.../" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
-          </div>
-          <div>
-            <label class="text-[10px] text-gray-400 block mb-1">Links de vídeos públicos do YouTube (um por linha, até 4)</label>
-            <textarea id="admYtLink" rows="3" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
-          </div>
-          <button type="submit" class="sm:col-span-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs p-2.5 rounded-xl transition">
-            Salvar Links da Resenha
-          </button>
-        </form>
-      </div>
-
-      <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-emerald-300">GALERIA DE FOTOS DA RESENHA</h3>
-        <label class="text-xs text-gray-300 block">Adicionar imagens (até 5 MB cada)<input id="admGalleryUpload" type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="uploadGalleryImages(event)" class="mt-2 block w-full text-xs"></label>
-        <p id="galleryUploadStatus" class="text-xs text-gray-400"></p>
-        <div id="adminGalleryList" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
-      </div>
-
-      <div class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
-        <h3 class="font-teko text-2xl text-amber-300">CUSTOS DE CHURRASCO / CONFRA PARA GOLEIROS</h3>
-        <form onsubmit="addKeeperCost(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input id="keeperCostTitle" required maxlength="70" placeholder="Ex.: Churrasco de outubro" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <input id="keeperCostAmount" required type="number" min="0" step="0.01" placeholder="Valor sugerido (R$)" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <input id="keeperCostDate" type="date" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
-          <button class="sm:col-span-3 bg-amber-500 text-black font-bold text-xs p-2.5 rounded-xl">Publicar custo para goleiros</button>
-        </form>
-        <div id="adminKeeperCostsList" class="space-y-2"></div>
       </div>
 
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -907,141 +984,93 @@
         </div>
       </div>
 
-      <!-- ARENAS E AGENDAMENTO -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
-          <h3 class="font-teko text-xl text-white flex items-center gap-1.5">
-            <i data-lucide="map-pin" class="w-4 h-4 text-brand-lightGreen"></i> CADASTRAR / EDITAR ARENA
-          </h3>
-          <form onsubmit="handleArenaRegister(event)" class="space-y-2">
-            <input type="hidden" id="arenaEditId">
-            <div>
-              <label class="text-[10px] text-gray-400">Nome da Arena / Campo</label>
-              <input type="text" id="arenaName" placeholder="Ex: Arena Futmancos" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
-            </div>
-            <div>
-              <label class="text-[10px] text-gray-400">Endereço Completo</label>
-              <input type="text" id="arenaAddress" placeholder="Ex: Rua dos Atletas, 100" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="text-[10px] text-gray-400">Latitude<input type="number" step="any" id="arenaLatitude" placeholder="-12.25" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
-              <label class="text-[10px] text-gray-400">Longitude<input type="number" step="any" id="arenaLongitude" placeholder="-38.96" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
-              <label class="text-[10px] text-gray-400 col-span-2">Raio do check-in automático (metros)<input type="number" min="25" max="500" step="5" id="arenaRadius" value="100" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
-            </div>
-            <button type="button" onclick="captureArenaLocation()" class="w-full bg-gray-800 text-gray-100 font-semibold text-xs p-2 rounded-xl">Usar a localização atual para esta arena</button>
-            <button type="submit" id="btnSaveArena" class="w-full bg-brand-green active:bg-brand-lightGreen text-black font-bold text-xs p-2.5 rounded-xl">
-              Salvar Arena
-            </button>
-          </form>
-
-          <div class="pt-2 border-t border-gray-800 space-y-1.5">
-            <span class="text-[10px] text-gray-400 font-bold block uppercase">Arenas Registradas</span>
-            <div id="arenaManageList" class="space-y-1 max-h-28 overflow-y-auto no-scrollbar"></div>
+      </div></details>
+      <details id="admResenhaSection" class="admin-module"><summary><span>🖼️ Resenha e galeria</span><small>Links sociais e fotos da associação</small></summary><div class="admin-module-content">      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-white flex items-center gap-2">
+          <i data-lucide="share-2" class="w-5 h-5 text-amber-400"></i> CONFIGURAR MÍDIAS DA ABA RESENHA
+        </h3>
+        <form onsubmit="handleMediaConfig(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-1">Link do Instagram da Associação</label>
+            <input type="url" id="admInstaLink" placeholder="https://instagram.com/seuperfil" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
           </div>
-        </div>
-
-        <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-3">
-          <h3 class="font-teko text-xl text-white flex items-center gap-1.5">
-            <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i> AGENDAR PRÓXIMO BABA
-          </h3>
-          <form onsubmit="handleScheduleGame(event)" class="space-y-2">
-            <div>
-              <label class="text-[10px] text-gray-400">Selecione a Arena</label>
-              <select id="gameArenaSelect" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></select>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-[10px] text-gray-400">Data do Jogo</label>
-                <input type="date" id="gameDate" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
-              </div>
-              <div>
-                <label class="text-[10px] text-gray-400">Horário</label>
-                <input type="time" id="gameTime" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
-              </div>
-            </div>
-            <button type="submit" class="w-full bg-amber-500 active:bg-amber-400 text-black font-bold text-xs p-2.5 rounded-xl">
-              Publicar Agendamento
-            </button>
-          </form>
-        </div>
+          <div class="sm:col-span-2">
+            <label class="text-[10px] text-gray-400 block mb-1">Links de publicações públicas do Instagram (um por linha)</label>
+            <textarea id="admInstaPosts" rows="3" placeholder="https://www.instagram.com/p/.../" class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-1">Links de vídeos públicos do YouTube (um por linha, até 4)</label>
+            <textarea id="admYtLink" rows="3" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></textarea>
+          </div>
+          <button type="submit" class="sm:col-span-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs p-2.5 rounded-xl transition">
+            Salvar Links da Resenha
+          </button>
+        </form>
       </div>
 
-      <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
-        <h3 class="font-teko text-2xl text-sky-300">CONVIDADOS CADASTRADOS (<span id="guestAdminCount">0</span>)</h3>
-        <p class="text-[10px] text-gray-400">CPF aparece mascarado; o número completo permanece criptografado e restrito no banco.</p>
-        <div id="guestAdminList" class="space-y-2"></div>
+      <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-emerald-300">GALERIA DE FOTOS DA RESENHA</h3>
+        <label class="text-xs text-gray-300 block">Adicionar imagens (até 5 MB cada)<input id="admGalleryUpload" type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="uploadGalleryImages(event)" class="mt-2 block w-full text-xs"></label>
+        <p id="galleryUploadStatus" class="text-xs text-gray-400"></p>
+        <div id="adminGalleryList" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
       </div>
 
-      <!-- TABELA DE MEMBROS ADM -->
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div>
-            <h3 class="font-teko text-2xl text-white">SISTEMA DE VERIFICAÇÃO DE MEMBROS (<span id="memberCount">0</span>)</h3>
-            <p class="text-xs text-gray-400">Inspecione dados de cadastro, pagamentos e desempenho esportivo individual.</p>
-          </div>
-          <div class="flex gap-2 text-xs font-bold">
-            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-              Pagos: <span id="countPaid">0</span>
-            </span>
-            <span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg">
-              Pendentes: <span id="countUnpaid">0</span>
-            </span>
-          </div>
-        </div>
+      </div></details>
+      <details id="admKeeperSection" class="admin-module"><summary><span>🧤 Goleiros</span><small>Custos de churrascos e confraternizações</small></summary><div class="admin-module-content">      <div class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
+        <h3 class="font-teko text-2xl text-amber-300">CUSTOS DE CHURRASCO / CONFRA PARA GOLEIROS</h3>
+        <form onsubmit="addKeeperCost(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input id="keeperCostTitle" required maxlength="70" placeholder="Ex.: Churrasco de outubro" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <input id="keeperCostAmount" required type="number" min="0" step="0.01" placeholder="Valor sugerido (R$)" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <input id="keeperCostDate" type="date" class="bg-black border border-gray-800 p-2 text-xs rounded-lg">
+          <button class="sm:col-span-3 bg-amber-500 text-black font-bold text-xs p-2.5 rounded-xl">Publicar custo para goleiros</button>
+        </form>
+        <div id="adminKeeperCostsList" class="space-y-2"></div>
+      </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-black/40 p-3 rounded-xl border border-gray-800">
+      </div></details>
+      <details id="admPerformanceSection" class="admin-module"><summary><span>📈 Desempenho</span><small>Estatísticas individuais dos atletas</small></summary><div class="admin-module-content">      <!-- GRÁFICO DE DESEMPENHO DOS ATLETAS -->
+      <div class="bg-brand-cardBg border border-amber-500/30 p-4 md:p-6 rounded-2xl space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-800 pb-3">
           <div>
-            <label class="text-[10px] text-gray-400 block mb-0.5">Buscar por Nome</label>
-            <input type="text" id="filterSearch" oninput="renderMemberList()" placeholder="Nome..." class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
+            <h3 class="font-teko text-2xl text-amber-400 flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-5 h-5 text-amber-400"></i> ANÁLISE DE DESEMPENHO DO ATLETA
+            </h3>
+            <p class="text-xs text-gray-400">Selecione um jogador no menu suspenso para visualizar a evolução de seus atributos e dados no gráfico.</p>
           </div>
-          <div>
-            <label class="text-[10px] text-gray-400 block mb-0.5">Status Mensalidade</label>
-            <select id="filterPayment" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
-              <option value="todos">Todos</option>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-[10px] text-gray-400 block mb-0.5">Posição</label>
-            <select id="filterPos" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
-              <option value="todas">Todas</option>
-              <option value="Goleiro">Goleiro</option>
-              <option value="Zagueiro">Zagueiro</option>
-              <option value="Lateral">Lateral</option>
-              <option value="Meio-Campo">Meio-Campo</option>
-              <option value="Atacante">Atacante</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-[10px] text-gray-400 block mb-0.5">Faixa Etária</label>
-            <select id="filterAge" onchange="renderMemberList()" class="w-full bg-black border border-gray-800 p-1.5 text-xs text-white rounded-lg outline-none">
-              <option value="todas">Todas</option>
-              <option value="-20">Abaixo de 20 anos</option>
-              <option value="20-30">20 a 30 anos</option>
-              <option value="30+">Acima de 30 anos</option>
+          <div class="w-full sm:w-64">
+            <select id="admPerformancePlayerSelect" onchange="updateAdmPerformanceChart()" class="w-full bg-black border border-amber-500/50 p-2 text-xs text-amber-300 font-bold rounded-xl outline-none">
             </select>
           </div>
         </div>
 
-        <div id="memberCardsMobile" class="md:hidden space-y-3" aria-label="Lista de associados para celular"></div>
-        <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-left text-xs min-w-[650px]">
-            <thead class="bg-black/60 text-gray-400 uppercase text-[10px]">
-              <tr>
-                <th class="p-2.5">Jogador</th>
-                <th class="p-2.5">Idade</th>
-                <th class="p-2.5">Posição</th>
-                <th class="p-2.5">Mensalidade</th>
-                
-                <th class="p-2.5 text-center">Ficha Membro</th>
-                <th class="p-2.5 text-center">Ações ADM</th>
-              </tr>
-            </thead>
-            <tbody id="memberTableBody" class="divide-y divide-gray-800/60"></tbody>
-          </table>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+          <div class="lg:col-span-2 bg-black/60 p-4 rounded-xl border border-gray-800 h-64 md:h-80 flex items-center justify-center">
+            <canvas id="admPerformanceChart"></canvas>
+          </div>
+
+          <div id="admPlayerStatsSummary" class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2 text-xs">
+            <h4 class="font-teko text-xl text-white border-b border-gray-800 pb-1">RESUMO ESTATÍSTICO</h4>
+            <p class="text-gray-300"><strong>Gols:</strong> <span id="admChartGoals" class="text-brand-lightGreen font-bold">0</span></p>
+            <p class="text-gray-300"><strong>Assistências:</strong> <span id="admChartAssists" class="text-blue-400 font-bold">0</span></p>
+            <p class="text-gray-300"><strong>Defesas:</strong> <span id="admChartSaves" class="text-teal-400 font-bold">0</span></p>
+            <p class="text-gray-300"><strong>Jogos:</strong> <span id="admChartMatches" class="text-amber-400 font-bold">0</span></p>
+            <p class="text-gray-300"><strong>Overall Atual:</strong> <span id="admChartOvr" class="text-brand-gold font-bold">0</span></p>
+          </div>
         </div>
       </div>
+
+      </div></details>
+      <details id="admAuditSection" class="admin-module"><summary><span>📋 Auditoria</span><small>Registro e exportação de ações administrativas</small></summary><div class="admin-module-content">      <section class="bg-brand-cardBg border border-sky-500/30 p-4 md:p-6 rounded-2xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-teko text-2xl text-sky-300">REGISTRO DE AÇÕES ADMINISTRATIVAS</h3><p class="text-xs text-gray-400">Pagamentos confirmados, resultados, exclusões e alterações importantes, com administrador e horário.</p></div><div class="flex gap-2"><button type="button" onclick="exportAdminAuditLog()" class="border border-emerald-700 text-emerald-200 px-3 py-2 rounded-lg text-xs font-bold">Exportar CSV</button><button type="button" onclick="refreshAdminAuditLog()" class="border border-sky-700 text-sky-200 px-3 py-2 rounded-lg text-xs font-bold">Atualizar histórico</button></div></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <label class="text-[10px] text-gray-400">De<input id="auditFilterFrom" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
+          <label class="text-[10px] text-gray-400">Até<input id="auditFilterTo" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
+          <label class="text-[10px] text-gray-400">Administrador<select id="auditFilterActor" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
+          <label class="text-[10px] text-gray-400">Tipo de ação<select id="auditFilterAction" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
+        </div>
+        <div id="adminAuditLog" class="space-y-2 max-h-96 overflow-y-auto pr-1"><p class="text-xs text-gray-500">Carregando histórico…</p></div>
+      </section>
+      </div></details>
     </section>
 
   </main>
@@ -2106,6 +2135,15 @@
       updatePasskeyControls();
     }
 
+
+    function openAdminSection(id) {
+      const section = document.getElementById(id);
+      if (!section) return;
+      section.open = true;
+      if (id === 'admPerformanceSection') requestAnimationFrame(() => updateAdmPerformanceChart());
+      if (id === 'admFinanceSection') requestAnimationFrame(() => renderFinanceModule());
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     function navigate(secId) {
       if (loggedUser && secId === 'convidado') { alert('A aba de cadastro de convidados fica disponível para pessoas sem conta. Compartilhe seu código no Perfil.'); return navigate('perfil'); }
       if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custos'].includes(secId)) {
