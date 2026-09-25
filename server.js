@@ -116,6 +116,13 @@ async function recordCashTransaction(transaction) {
   const { error } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
   if (error) throw error;
 }
+async function auditAdminAction(actor, action, entityType, entityId, summary, details = {}) {
+  const { error } = await supabase.from('admin_audit_logs').insert({
+    actor_id: actor.id, actor_name: actor.name || actor.email || 'Administrador', action,
+    entity_type: entityType, entity_id: String(entityId ?? ''), summary, details
+  });
+  if (error) throw error;
+}
 async function getFee() {
   return Number(await setting('monthly_fee')) || Number(env('MONTHLY_FEE', '50.00'));
 }
@@ -478,6 +485,7 @@ app.delete('/api/admin/gallery/:id', authenticate, requireAdmin, requireDatabase
     state.associationGallery = images.filter(item => String(item.id) !== String(req.params.id));
     const { error: saveError } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (saveError) throw saveError;
+    await auditAdminAction(req.user, 'gallery_image_deleted', 'gallery_image', removed.id, 'Imagem removida da galeria da associação.', { imageId: removed.id });
     res.json({ images: state.associationGallery });
   } catch (error) { next(error); }
 });
@@ -569,6 +577,7 @@ app.post('/api/admin/baba/draws', authenticate, requireAdmin, requireDatabase, a
     const drawData = { players, assignedKeeperIds, winner: '', scoreA: null, scoreB: null, drawOrder };
     const { error } = await supabase.from('baba_draws').insert({ id, game_day: gameDay, draw_order: drawOrder, selected_count: selectedCount, draw_data: drawData, created_by: req.user.id });
     if (error) throw error;
+    await auditAdminAction(req.user, 'team_draw_created', 'baba_draw', id, `Sorteio ${drawOrder} criado para ${gameDay}.`, { gameDay, drawOrder, players: players.map(player => ({ id: player.userId, name: player.name, position: player.position, team: player.team, ovr: player.ovr, isKeeper: player.isKeeper })) });
     res.status(201).json({ draw: { ...drawData, id, gameDay, drawOrder, selectedCount, finalized: false } });
   } catch (error) { next(error); }
 });
@@ -592,6 +601,7 @@ app.put('/api/admin/baba/draws/:id', authenticate, requireAdmin, requireDatabase
     const drawData = { ...row.draw_data, players, assignedKeeperIds };
     const { error } = await supabase.from('baba_draws').update({ draw_data: drawData }).eq('id', row.id).eq('finalized', false);
     if (error) throw error;
+    await auditAdminAction(req.user, 'team_draw_redone', 'baba_draw', row.id, `Times do sorteio ${row.draw_order} refeitos em ${row.game_day}.`, { gameDay: row.game_day, drawOrder: row.draw_order, teams: players.map(player => ({ id: player.userId, name: player.name, team: player.team, ovr: player.ovr, isKeeper: player.isKeeper })) });
     res.json({ ok: true, draw: { ...drawData, id: row.id, gameDay: row.game_day, drawOrder: row.draw_order, selectedCount: row.selected_count, finalized: false } });
   } catch (error) { next(error); }
 });
@@ -620,6 +630,7 @@ app.put('/api/admin/baba/draws/:id/finalize', authenticate, requireAdmin, requir
       supabase.from('baba_matches').upsert({ id, game_day: row.game_day, game_data: match, voting_open: false }, { onConflict: 'id' })
     ]);
     if (drawError) throw drawError; if (matchError) throw matchError;
+    await auditAdminAction(req.user, 'match_result_recorded', 'baba_draw', id, `Resultado do sorteio ${row.game_day}: ${scoreA} × ${scoreB}.`, { gameDay: row.game_day, scoreA, scoreB, winner, players: players.map(player => ({ id: player.userId, name: player.name, team: player.team, goals: player.goals, assists: player.assists, saves: player.saves })) });
     res.json({ ok: true, draw: { ...drawData, id, gameDay: row.game_day, finalized: true }, match });
   } catch (error) { next(error); }
 });
@@ -631,6 +642,7 @@ app.post('/api/admin/baba/matches', authenticate, requireAdmin, requireDatabase,
     if (findError) throw findError;
     const { error } = await supabase.from('baba_matches').upsert({ id: String(match.id), game_day: match.gameDay, game_data: match, voting_open: existing?.voting_open || false }, { onConflict: 'id' });
     if (error) throw error;
+    await auditAdminAction(req.user, 'match_result_recorded', 'baba_match', match.id, `Resultado salvo para ${match.gameDay}: ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0}.`, { gameDay: match.gameDay, scoreA: Number(match.scoreA) || 0, scoreB: Number(match.scoreB) || 0, teamA: match.teamA || [], teamB: match.teamB || [] });
     res.json({ ok: true, id: String(match.id) });
   } catch (error) { next(error); }
 });
@@ -645,7 +657,28 @@ app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requi
     if (error) throw error;
     if (!data.length) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
     await sendPushAll(`votes-open:${date}`, { category: 'votes', title: 'Votação das cartinhas liberada', body: 'O ADM encerrou os jogos do dia. Avalie as cartinhas dos jogadores que participaram.', url: '/' }, req.user.id);
+    await auditAdminAction(req.user, 'voting_opened', 'baba_day', date, `Votação pós-baba liberada para ${date}.`, { gameDay: date, games: data.length });
     res.json({ ok: true, games: data.length });
+  } catch (error) { next(error); }
+});
+
+app.put('/api/admin/baba/matches/:date/finish-voting', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const date = String(req.params.date || '');
+  if (!validDate(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
+  try {
+    const { data, error } = await supabase.from('baba_matches').update({ voting_open: false }).eq('game_day', date).eq('voting_open', true).select('id');
+    if (error) throw error;
+    if (!data?.length) return res.status(409).json({ error: 'Não há votação aberta para essa data.' });
+    await auditAdminAction(req.user, 'voting_closed', 'baba_day', date, `Votação pós-baba encerrada para ${date}.`, { gameDay: date, games: data.length });
+    res.json({ ok: true, games: data.length });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/admin/audit-log', authenticate, requireAdmin, requireDatabase, async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('admin_audit_logs').select('id,actor_name,action,entity_type,entity_id,summary,details,created_at').order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    res.json({ entries: data || [] });
   } catch (error) { next(error); }
 });
 
@@ -674,12 +707,14 @@ app.put('/api/admin/guests/:id/payment', authenticate, requireAdmin, requireData
     const { data: guest, error: readError } = await supabase.from('baba_guests').select('id,name,payment_status,payment_amount,created_at').eq('id', req.params.id).maybeSingle();
     if (readError) throw readError;
     if (!guest) return res.status(404).json({ error: 'Convidado não encontrado.' });
-    if (guest.payment_status !== 'paid') {
+    const newlyPaid = guest.payment_status !== 'paid';
+    if (newlyPaid) {
       const { error } = await supabase.from('baba_guests').update({ payment_status: 'paid' }).eq('id', guest.id);
       if (error) throw error;
     }
     const date = new Date().toISOString().slice(0, 10);
     await recordCashTransaction({ id: `guest-${guest.id}`, type: 'entrada', category: 'Diária Convidado', value: Number(guest.payment_amount) || 0, desc: `Pix convidado — ${guest.name}`, date });
+    if (newlyPaid) await auditAdminAction(req.user, 'guest_payment_confirmed', 'guest', guest.id, `Pix do convidado ${guest.name} confirmado.`, { name: guest.name, amount: Number(guest.payment_amount) || 0 });
     res.json({ ok: true, paymentStatus: 'paid' });
   } catch (error) { next(error); }
 });
@@ -687,9 +722,10 @@ app.delete('/api/admin/guests/:id', authenticate, requireAdmin, requireDatabase,
   const guestId = String(req.params.id || '');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(guestId)) return res.status(400).json({ error: 'Identificador de convidado inválido.' });
   try {
-    const { data, error } = await supabase.from('baba_guests').delete().eq('id', guestId).select('id');
+    const { data, error } = await supabase.from('baba_guests').delete().eq('id', guestId).select('id,name,age');
     if (error) throw error;
     if (!data?.length) return res.status(404).json({ error: 'Convidado não encontrado.' });
+    await auditAdminAction(req.user, 'guest_deleted', 'guest', guestId, `Convidado ${data[0].name} excluído.`, { name: data[0].name, age: data[0].age });
     res.json({ ok: true, id: guestId });
   } catch (error) { next(error); }
 });
@@ -704,11 +740,13 @@ app.delete('/api/admin/transactions/:id', authenticate, requireAdmin, requireDat
     if (readError) throw readError;
     if (!row) return res.status(404).json({ error: 'Caixa ainda não possui transações compartilhadas.' });
     const state = row.state_json || {}, current = Array.isArray(state.transactions) ? state.transactions : [];
+    const deletedTransaction = current.find(item => String(item.id) === transactionId);
     const next = current.filter(item => String(item.id) !== transactionId);
     if (next.length === current.length) return res.status(404).json({ error: 'Transação não encontrada no caixa compartilhado.' });
     state.transactions = next;
     const { error } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
     if (error) throw error;
+    await auditAdminAction(req.user, 'cash_transaction_deleted', 'cash_transaction', transactionId, `Transação do caixa excluída: ${deletedTransaction?.desc || transactionId}.`, { description: deletedTransaction?.desc || '', amount: Number(deletedTransaction?.value) || 0, category: deletedTransaction?.category || '', type: deletedTransaction?.type || '' });
     res.json({ ok: true, transactions: next });
   } catch (error) { next(error); }
 });
@@ -758,6 +796,7 @@ app.delete('/api/admin/members/:id', authenticate, requireAdmin, requireDatabase
       throw deleteError;
     }
     }
+    if (member || cleanedState) await auditAdminAction({ ...req.user, id: memberId === req.user.id ? null : req.user.id }, 'member_deleted', 'member', memberId, `Associado ${member?.name || memberId} excluído${member ? ' da conta' : ' da lista local compartilhada'}.`, { name: member?.name || '', email: member?.email || '', deletedAccount: !!member, removedFromSharedRoster: !!cleanedState });
     res.json({ ok: true, id: memberId, name: member?.name || "", deletedAccount: !!member, deletedSelf: memberId === req.user.id });
   } catch (error) { next(error); }
 });
@@ -813,10 +852,12 @@ app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDat
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
     if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos de mensalidade.' });
     const month = monthKey();
+    const alreadyPaid = member.paid_month === month;
     const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
     if (error) throw error;
     const amount = await getFee();
     await recordCashTransaction({ id: `membership-${member.id}-${month}`, type: 'entrada', category: 'Mensalidade', value: amount, desc: `Mensalidade ${month} — ${member.name}`, date: `${month}-01` });
+    if (!alreadyPaid) await auditAdminAction(req.user, 'member_payment_confirmed', 'member', member.id, `Mensalidade de ${member.name} confirmada (${month}).`, { name: member.name, month, amount });
     res.json({ ok: true, month, status: 'paid', amount });
   } catch (error) { next(error); }
 });

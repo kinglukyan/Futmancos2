@@ -13,6 +13,8 @@ No projeto `tsncbzqjyhzubwczyijv`, abra **SQL Editor** e execute estes arquivos,
 5. `supabase/migrations/202609240004_guests_and_guest_fees.sql` (convidados, presença/check-in e configurações de valores).
 6. `supabase/migrations/202609240005_draws_codes_push.sql` (códigos de convite, sorteios persistentes e notificações push).
 7. `supabase/migrations/202609240006_preferences_finance.sql` (preferências de notificação e acompanhamento do Pix de convidados).
+8. `supabase/migrations/202609240007_member_identity_and_signup_gate.sql` (validação dos dados cadastrais dos associados).
+9. `supabase/migrations/202609240008_admin_audit_log.sql` (histórico de ações administrativas).
 
 A segunda migração adiciona mensalidades e fotos aos perfis e cria as tabelas de configurações Pix, dados gerais, presença, check-in, votos e partidas. Ela não apaga dados existentes.
 
@@ -58,7 +60,9 @@ Na tela ADM, defina mensalidade, diária de convidado e contribuição de refer�
 
 A migração 202609240005_draws_codes_push.sql cria um código aleatório individual de seis dígitos para cada perfil existente e gera o código dos próximos cadastros. O associado encontra o código em Perfil; o convidado informa esse código no cadastro. Execute também esta migração no Supabase.
 
-Na Central Baba, ADM escolhe a quantidade de jogadores com check-in, sorteia times balanceados pelo OVR e salva cada sorteio. Jogadores que ainda não saíram em sorteios daquele dia têm prioridade. Cada time tem um goleiro: os goleiros confirmados aparecem pré-selecionados; se faltar algum, o ADM escolhe outro jogador para assumir a posição. Ao final dos jogos, preencha gols, assistências, defesas e vencedor de cada sorteio; só depois encerre o dia para abrir a votação.
+Na Central Baba, ADM escolhe a quantidade de jogadores com check-in, sorteia times balanceados pelo OVR e pela posição e salva cada sorteio. Jogadores que ainda não saíram em sorteios daquele dia têm prioridade. Cada time tem um goleiro: os goleiros confirmados aparecem pré-selecionados; se faltar algum, o ADM escolhe outro jogador para assumir a posição. Ao final dos jogos, preencha gols, assistências, defesas e vencedor de cada sorteio; só depois encerre o dia para abrir a votação. A administração também pode encerrar a votação quando desejar.
+
+A tela ADM inclui um registro com horário, responsável e resumo de confirmações de pagamento, resultados, sorteios, exclusões e encerramento da votação.
 
 Para gerar as chaves VAPID, com Node.js instalado, abra a pasta `scripts` e dê dois cliques em `gerar-vapid.bat`. Copie as três linhas exibidas em **Environment** no Render. Não publique nem compartilhe `VAPID_PRIVATE_KEY`; mantenha essas chaves entre as publicações. Depois instale o app no celular, entre na conta, abra **Perfil > Configurações da conta** e toque em **Ativar avisos neste aparelho**. Em Perfil, cada associado pode escolher avisos de baba, mensalidade e votação.
 
