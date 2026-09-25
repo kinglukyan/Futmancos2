@@ -505,15 +505,15 @@
       <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-sky-300">SORTEIOS DO BABA</h3><div id="babaDrawResults" class="space-y-2"></div></div>
 <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
   <div><h3 class="font-teko text-2xl text-amber-400">SORTEAR TIMES E FECHAR RESULTADOS</h3><p class="text-xs text-gray-400">Os times são balanceados pelo OVR das cartinhas. Quem ainda não foi sorteado tem prioridade no próximo sorteio do dia. Registre todos os sorteios e, ao final, informe os resultados juntos.</p></div>
-  <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="onAdminMatchDateChange(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-    <label class="text-[10px] text-gray-400">Quantidade total de jogadores<input id="drawPlayerCount" type="number" min="2" max="30" value="10" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
-    <fieldset id="drawKeeperOverrideWrap" class="sm:col-span-2 border border-sky-900 rounded-xl p-3"><legend class="px-1 text-[10px] text-sky-200">GOLEIROS DOS DOIS TIMES</legend><div class="grid sm:grid-cols-2 gap-2"><label class="text-[10px] text-gray-400">Goleiro · Time Verde<select id="drawKeeperOverrideA" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label><label class="text-[10px] text-gray-400">Goleiro · Time Preto<select id="drawKeeperOverrideB" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label></div><p class="mt-2 text-[10px] text-gray-500">Selecione dois jogadores diferentes. Goleiros já confirmados aparecem selecionados; se faltar algum, escolha quem vai assumir a posição.</p></fieldset>
-    <button type="button" onclick="createBalancedTeamDraw()" class="bg-sky-700 text-white font-bold px-4 py-3 rounded-xl text-xs">GERAR PRÉVIA DOS TIMES</button>
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+    <label class="md:col-span-3 text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="onAdminMatchDateChange(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2.5 text-white"></label>
+    <label class="md:col-span-3 text-[10px] text-gray-400">Quantidade de jogadores<input id="drawPlayerCount" type="number" min="2" max="30" value="10" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2.5 text-white"></label>
+    <fieldset id="drawKeeperOverrideWrap" class="md:col-span-6 min-w-0 border border-sky-900 rounded-xl p-3"><legend class="px-1 text-[10px] text-sky-200">GOLEIROS DOS DOIS TIMES</legend><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><label class="text-[10px] text-gray-400">Goleiro · Time Verde<select id="drawKeeperOverrideA" class="mt-1 w-full min-w-0 bg-black border border-gray-700 rounded-xl p-2.5 text-white"></select></label><label class="text-[10px] text-gray-400">Goleiro · Time Preto<select id="drawKeeperOverrideB" class="mt-1 w-full min-w-0 bg-black border border-gray-700 rounded-xl p-2.5 text-white"></select></label></div><p class="mt-2 text-[10px] text-gray-500">Escolha dois jogadores diferentes. Goleiros confirmados vêm pré-selecionados.</p></fieldset>
+    <button type="button" onclick="createBalancedTeamDraw()" class="md:col-span-3 md:col-start-1 w-full bg-sky-700 text-white font-bold px-4 py-3 rounded-xl text-xs">GERAR PRÉVIA DOS TIMES</button>
   </div>
   <div id="teamDrawPreview" class="hidden bg-black/40 border border-sky-700 rounded-xl p-3 space-y-3">
     <div><h4 class="font-teko text-xl text-sky-200">PRÉVIA DO EQUILÍBRIO</h4><p id="teamDrawPreviewSummary" class="text-xs text-gray-300"></p></div>
-    <div id="teamDrawPreviewTeams" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+    <div id="teamDrawPreviewTeams" class="w-full"></div>
     <div class="flex flex-wrap gap-2"><button type="button" onclick="rerollBalancedTeamPreview()" class="bg-gray-800 text-white font-bold px-4 py-2.5 rounded-lg text-xs">Sortear outra divisão</button><button type="button" onclick="confirmBalancedTeamPreview()" class="bg-brand-green text-black font-bold px-4 py-2.5 rounded-lg text-xs">Confirmar e salvar</button><button type="button" onclick="cancelBalancedTeamPreview()" class="border border-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-xs">Cancelar</button></div>
   </div>
   <p id="adminMatchStatus" class="text-xs text-emerald-300" aria-live="polite"></p>
@@ -2937,13 +2937,35 @@
       const publicBox = document.getElementById('babaDrawResults'), adminBox = document.getElementById('adminDrawRecords'), finalizeBox = document.getElementById('adminDrawFinalizeList'), correctionBox = document.getElementById('adminDrawCorrectionList');
       renderDrawKeeperChoice();
       const score = draw => draw.players.reduce((sum, player) => sum + Number(player.ovr || 0), 0);
+        window.renderBabaDrawPitch = (drawPlayers, assignedKeeperIds = []) => {
+        const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        const keeperSet = new Set(assignedKeeperIds.map(String));
+        const teams = { A: drawPlayers.filter(player => player.team === 'A'), B: drawPlayers.filter(player => player.team === 'B') };
+        const totals = { A: score({ players: teams.A }), B: score({ players: teams.B }) };
+        const marker = player => {
+          const id = String(player.userId || player.serverId || player.id || ''), source = players.find(item => [item.id,item.serverId,item.authUserId].some(value => value != null && String(value) === id));
+          const photo = source ? gamePlanPhoto(source) : (String(player.photo || '').startsWith('https://') ? player.photo : '');
+          const name = player.nickname || player.name || source?.nickname || source?.name || 'Jogador', rank = getCardRank(Number(player.ovr) || 60);
+          return `<div class="${rank.className} relative z-10 flex h-[68px] w-[58px] shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border ${player.team === 'A' ? 'border-emerald-300/80' : 'border-gray-300/80'} bg-black/80 px-1 text-center text-white shadow-lg" title="${safe(name)} · OVR ${Number(player.ovr) || 0}">${photo ? `<img src="${safe(photo)}" alt="" class="h-7 w-7 rounded-full border border-white/60 object-cover">` : `<span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/50 bg-black/50 font-teko text-sm">${safe(String(name).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[7px] font-bold leading-tight">${safe(name)}</span><span class="text-[8px] font-black ${player.team === 'A' ? 'text-emerald-200' : 'text-gray-100'}">${Number(player.ovr) || 0}</span></div>`;
+        };
+        const teamHalf = key => {
+          const isGreen = key === 'A', rows = { keeper: [], defense: [], midfield: [], attack: [] };
+          teams[key].forEach(player => {
+            const isKeeper = player.isKeeper || keeperSet.has(String(player.userId || player.serverId || player.id)) || String(player.position || player.pos || '').toLowerCase().includes('goleiro');
+            const group = isKeeper ? 'keeper' : footballPositionGroup(player);
+            (rows[group] || rows.midfield).push(player);
+          });
+          const order = isGreen ? ['keeper','defense','midfield','attack'] : ['attack','midfield','defense','keeper'];
+          return `<div class="absolute inset-y-2 ${isGreen ? 'left-2 right-1/2' : 'right-2 left-1/2'} z-10 flex items-stretch ${isGreen ? '' : 'flex-row-reverse'}">${order.map(group => `<div class="flex min-w-0 flex-1 flex-col items-center justify-evenly gap-1 overflow-y-auto py-1">${rows[group].map(marker).join('')}</div>`).join('')}</div>`;
+        };
+        return `<div class="space-y-2"><div class="flex flex-wrap justify-between gap-2 text-[10px] font-black"><span class="text-emerald-300">TIME VERDE · OVR ${totals.A}</span><span class="text-gray-200">TIME PRETO · OVR ${totals.B}</span></div><div class="overflow-x-auto rounded-xl"><div class="relative mx-auto h-[400px] min-w-[760px] overflow-hidden rounded-xl border-2 border-white/50 bg-gradient-to-b from-emerald-700 to-emerald-900 shadow-inner sm:h-[460px]"><div class="pointer-events-none absolute inset-3 rounded-lg border border-white/50"></div><div class="pointer-events-none absolute bottom-3 left-1/2 top-3 border-l border-white/50"></div><div class="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50"></div><div class="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70"></div><div class="pointer-events-none absolute bottom-1/3 left-3 top-1/3 w-14 border-y border-r border-white/50"></div><div class="pointer-events-none absolute bottom-1/3 right-3 top-1/3 w-14 border-y border-l border-white/50"></div><div class="pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full bg-black/50 px-2 py-0.5 text-[8px] font-black text-white/80">CAMPO DO SORTEIO</div>${teamHalf('A')}${teamHalf('B')}</div></div></div>`;
+      };
       const card = draw => {
         const a = draw.players.filter(player => player.team === 'A'), b = draw.players.filter(player => player.team === 'B');
         const winnerText = draw.finalized ? (draw.winner === 'draw' ? 'Empate' : `Venceu o time ${draw.winner === 'A' ? 'Verde' : 'Preto'}`) : 'Aguardando resultado';
         const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
         const keeperIds = new Set(draw.assignedKeeperIds || (draw.assignedKeeperId ? [draw.assignedKeeperId] : []));
-        const playerLabel = player => `${safe(player.name)}${player.isKeeper || keeperIds.has(String(player.userId)) || String(player.position || '').toLowerCase().includes('goleiro') ? ' 🧤' : ''}`;
-        return `<div class="bg-black/40 border border-gray-800 rounded-xl p-3"><div class="flex justify-between gap-2 text-xs"><strong>Sorteio ${draw.drawOrder}</strong><span class="text-gray-400">${winnerText}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><div class="text-emerald-300 text-xs"><strong>TIME VERDE · OVR ${score({players:a})}</strong><p>${a.map(playerLabel).join(', ')}</p></div><div class="text-amber-300 text-xs"><strong>TIME PRETO · OVR ${score({players:b})}</strong><p>${b.map(playerLabel).join(', ')}</p></div></div></div>`;
+        return `<div class="bg-black/40 border border-gray-800 rounded-xl p-3 space-y-2"><div class="flex justify-between gap-2 text-xs"><strong>Sorteio ${draw.drawOrder}</strong><span class="text-gray-400">${winnerText}</span></div>${window.renderBabaDrawPitch(draw.players, [...keeperIds])}</div>`;
       };
       if (publicBox) publicBox.innerHTML = babaDraws.length ? babaDraws.map(card).join('') : '<p class="text-xs text-gray-500">Nenhum time sorteado para esta data.</p>';
       if (adminBox) {
@@ -3096,14 +3118,8 @@
       const counts = team => Object.fromEntries(groups.map(group => [group, team.filter(player => footballPositionGroup(player) === group).length]));
       const distribution = { A: counts(teams.A), B: counts(teams.B) };
       document.getElementById('teamDrawPreviewSummary').textContent = `Data ${pending.gameDay} · OVR Verde ${totals.A} × Preto ${totals.B} · diferença ${Math.abs(totals.A - totals.B)} pontos.`;
-      const teamBox = document.getElementById('teamDrawPreviewTeams'); teamBox.replaceChildren();
-      for (const [key, name, color] of [['A','TIME VERDE','text-emerald-300'],['B','TIME PRETO','text-amber-300']]) {
-        const card = document.createElement('div'); card.className = 'bg-brand-cardBg border border-gray-800 rounded-xl p-3';
-        const title = document.createElement('strong'); title.className = `block text-xs ${color}`; title.textContent = `${name} · OVR ${totals[key]}`;
-        const positions = document.createElement('p'); positions.className = 'my-1 text-[10px] text-gray-400'; positions.textContent = `Goleiros ${distribution[key].keeper} · Defesa ${distribution[key].defense} · Meio ${distribution[key].midfield} · Ataque ${distribution[key].attack}`;
-        const playersText = document.createElement('p'); playersText.className = 'text-xs text-gray-200'; playersText.textContent = teams[key].map(player => `${player.name}${player.isKeeper ? ' 🧤' : ''} (${player.ovr})`).join(', ');
-        card.append(title, positions, playersText); teamBox.append(card);
-      }
+      const teamBox = document.getElementById('teamDrawPreviewTeams');
+      teamBox.innerHTML = window.renderBabaDrawPitch(full, pending.assignedKeeperIds);
       box.classList.remove('hidden'); box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     function rerollBalancedTeamPreview() {
