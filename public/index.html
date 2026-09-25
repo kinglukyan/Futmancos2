@@ -85,6 +85,7 @@
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
+    .profile-card-image-preview .rank-player-cutout { top:calc(8px + var(--card-image-preview-y, 0px)); left:calc(50% + var(--card-image-preview-x, 0px)); width:180px; height:128px; }
     .rank-player-name, .rank-player-stats { position:relative; z-index:2; }
     @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
 
@@ -536,6 +537,31 @@
         </div>
       </div>
 
+      <div id="myCardImageEditor" class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
+        <div><h3 class="font-teko text-2xl text-amber-300">MINHA CARTINHA</h3><p class="text-xs text-gray-400">Só você pode ajustar a imagem da sua cartinha. A prévia mostra o resultado e a alteração será compartilhada com todos.</p></div>
+        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4 items-center">
+          <div class="space-y-3">
+            <fieldset class="flex flex-wrap gap-4 text-xs text-gray-200"><legend class="sr-only">Imagem da cartinha</legend>
+              <label class="flex items-center gap-2"><input type="radio" name="myCardImageMode" value="profile" onchange="setMyCardImageMode('profile')"> Usar foto do perfil</label>
+              <label class="flex items-center gap-2"><input type="radio" name="myCardImageMode" value="custom" onchange="setMyCardImageMode('custom')"> Enviar outra foto</label>
+            </fieldset>
+            <label id="myCardPhotoUploadLabel" class="hidden block text-xs text-gray-400">Escolha uma imagem PNG, JPG ou WebP (até 1,5 MB)
+              <input id="myCardPhotoUpload" type="file" accept="image/png,image/jpeg,image/webp" onchange="loadMyCardPhoto(event)" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2 text-xs text-gray-300 file:bg-gray-800 file:text-white file:border-0 file:px-2 file:py-1 file:rounded-lg">
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label class="text-xs text-gray-300">Tamanho: <span id="myCardScaleValue">100%</span><input id="myCardScale" type="range" min="70" max="160" value="100" oninput="previewMyCardImage()" class="mt-2 w-full accent-amber-400"></label>
+              <label class="text-xs text-gray-300">Horizontal: <span id="myCardXValue">0 px</span><input id="myCardX" type="range" min="-60" max="60" value="0" oninput="previewMyCardImage()" class="mt-2 w-full accent-amber-400"></label>
+              <label class="text-xs text-gray-300">Vertical: <span id="myCardYValue">0 px</span><input id="myCardY" type="range" min="-80" max="80" value="0" oninput="previewMyCardImage()" class="mt-2 w-full accent-amber-400"></label>
+            </div>
+          </div>
+          <div class="profile-card-image-preview relative mx-auto h-36 w-44 overflow-hidden rounded-xl border border-gray-700 bg-black/50">
+            <img id="myCardImagePreview" class="rank-player-cutout" alt="Prévia da imagem da cartinha">
+            <span id="myCardImageEmpty" class="absolute inset-0 flex items-center justify-center text-center text-xs text-gray-500">Adicione uma foto<br>para ver a prévia</span>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center"><button type="button" onclick="saveMyCardImage()" class="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black">Salvar minha cartinha</button><button type="button" onclick="resetMyCardImage()" class="rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-white">Restaurar padrão</button><span id="myCardImageStatus" class="text-xs text-emerald-300" aria-live="polite"></span></div>
+      </div>
+
       <div id="memberGuestCodePanel" class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
         <h3 class="font-teko text-2xl text-sky-300">CÓDIGO PARA CONVIDAR</h3>
         <p class="text-xs text-gray-400">Compartilhe este código de seis dígitos com seu convidado para ele fazer o cadastro. Não é um código de acesso à conta.</p>
@@ -633,29 +659,6 @@
       <div class="text-center">
         <h2 class="font-teko text-3xl sm:text-4xl text-brand-gold">CARTINHAS - RANKING OVR</h2>
         <p class="text-xs text-gray-400">Elos por OVR: Bronze/Verde (60–69), Prata (70–79), Ouro (80–89) e Escarlate (90–99).</p>
-      </div>
-
-      <div id="cardImageEditor" class="hidden max-w-3xl mx-auto w-full rounded-2xl border border-amber-500/30 bg-brand-cardBg p-4 space-y-3">
-        <div><h3 class="font-teko text-xl text-amber-300">AJUSTAR IMAGEM DA CARTINHA</h3><p class="text-xs text-gray-400">Escolha o jogador e ajuste a imagem vendo a prévia na carta. As mudanças ficam visíveis para todos.</p></div>
-        <label class="block text-xs text-gray-400">Jogador
-          <select id="cardImagePlayerSelect" onchange="selectCardImagePlayer(this.value)" class="mt-1 w-full sm:max-w-sm bg-black border border-gray-700 rounded-xl p-2 text-white"></select>
-        </label>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label class="text-xs text-gray-300">Tamanho: <span id="cardImageScaleValue">100%</span>
-            <input id="cardImageScale" type="range" min="70" max="160" value="100" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
-          </label>
-          <label class="text-xs text-gray-300">Horizontal: <span id="cardImageXValue">0</span>
-            <input id="cardImageX" type="range" min="-60" max="60" value="0" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
-          </label>
-          <label class="text-xs text-gray-300">Vertical: <span id="cardImageYValue">0</span>
-            <input id="cardImageY" type="range" min="-80" max="80" value="0" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
-          </label>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="saveCardImageAdjustment()" class="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black">Salvar ajuste</button>
-          <button type="button" onclick="resetCardImageAdjustment()" class="rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-white">Restaurar padrão</button>
-          <span id="cardImageEditorStatus" class="self-center text-xs text-emerald-300" aria-live="polite"></span>
-        </div>
       </div>
 
       <div id="eafcCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center"></div>
@@ -1182,7 +1185,6 @@
 
     let players = JSON.parse(localStorage.getItem('futmancos_players')) || [];
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
-    let selectedCardImagePlayerId = '';
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
       { id: 1, name: 'Arena Futmancos', address: 'Rua dos Atletas, 100 - Feira de Santana' }
@@ -2568,62 +2570,90 @@
     }
 
     function cardImageAdjustment(player) {
-      const saved = cardImageAdjustments[String(player?.id)] || {};
+      const saved = player?.cardImageAdjustment || cardImageAdjustments[String(player?.id)] || {};
       return { scale: Math.min(160, Math.max(70, Number(saved.scale) || 100)), x: Math.min(60, Math.max(-60, Number(saved.x) || 0)), y: Math.min(80, Math.max(-80, Number(saved.y) || 0)) };
     }
     function cardImageStyle(player) {
       const adjustment = cardImageAdjustment(player);
       return `--card-image-scale:${adjustment.scale / 100};--card-image-x:${adjustment.x}px;--card-image-y:${adjustment.y}px`;
     }
-    function renderCardImageEditor() {
-      const editor = document.getElementById('cardImageEditor'), select = document.getElementById('cardImagePlayerSelect');
-      if (!editor || !select) return;
-      const cutoutPlayers = players.filter(player => isCutoutPlayerPhoto(player.photo));
-      editor.classList.toggle('hidden', !loggedUser?.isAdmin || !cutoutPlayers.length);
-      if (!loggedUser?.isAdmin || !cutoutPlayers.length) return;
-      if (!cutoutPlayers.some(player => encodeURIComponent(String(player.id)) === selectedCardImagePlayerId)) selectedCardImagePlayerId = encodeURIComponent(String(cutoutPlayers[0].id));
-      select.innerHTML = cutoutPlayers.map(player => `<option value="${encodeURIComponent(String(player.id))}">${String(player.name || 'Jogador').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}</option>`).join('');
-      select.value = selectedCardImagePlayerId;
-      const player = cutoutPlayers.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+    let myCardImageDraftMode = 'profile', myCardImageDraftPhoto = '';
+    function myCardImagePlayer() {
+      return players.find(player => String(player.id) === String(loggedUser?.id) || String(player.serverId || player.authUserId || '') === String(loggedUser?.serverId || loggedUser?.authUserId || loggedUser?.id) || String(player.email || '').toLowerCase() === String(loggedUser?.email || '').toLowerCase());
+    }
+    function myCardImageSource(player = myCardImagePlayer()) {
+      if (!player) return '';
+      if (player.cardPhotoMode === 'custom') return player.cardPhoto || '';
+      return player.photo || '';
+    }
+    function useLargeCardPhoto(player) {
+      return !!player && (player.cardPhotoMode === 'custom' ? !!player.cardPhoto : player.cardPhotoMode === 'profile' ? !!player.photo : isCutoutPlayerPhoto(player.photo));
+    }
+    function renderMyCardImageEditor() {
+      if (!loggedUser) return;
+      const player = myCardImagePlayer();
+      if (!player) return;
+      myCardImageDraftMode = player.cardPhotoMode || 'profile';
+      myCardImageDraftPhoto = player.cardPhoto || '';
       const adjustment = cardImageAdjustment(player);
-      document.getElementById('cardImageScale').value = adjustment.scale;
-      document.getElementById('cardImageX').value = adjustment.x;
-      document.getElementById('cardImageY').value = adjustment.y;
-      previewCardImageAdjustment();
+      document.querySelectorAll('input[name="myCardImageMode"]').forEach(input => { input.checked = input.value === myCardImageDraftMode; });
+      document.getElementById('myCardPhotoUploadLabel').classList.toggle('hidden', myCardImageDraftMode !== 'custom');
+      document.getElementById('myCardScale').value = adjustment.scale;
+      document.getElementById('myCardX').value = adjustment.x;
+      document.getElementById('myCardY').value = adjustment.y;
+      previewMyCardImage();
     }
-    function selectCardImagePlayer(value) {
-      selectedCardImagePlayerId = value;
-      renderCardImageEditor();
-      document.getElementById('cardImageEditorStatus').innerText = '';
+    function setMyCardImageMode(mode) {
+      if (!['profile','custom'].includes(mode)) return;
+      myCardImageDraftMode = mode;
+      document.getElementById('myCardPhotoUploadLabel').classList.toggle('hidden', mode !== 'custom');
+      previewMyCardImage();
     }
-    function previewCardImageAdjustment() {
-      const scale = Number(document.getElementById('cardImageScale')?.value || 100);
-      const x = Number(document.getElementById('cardImageX')?.value || 0);
-      const y = Number(document.getElementById('cardImageY')?.value || 0);
-      document.getElementById('cardImageScaleValue').innerText = `${scale}%`;
-      document.getElementById('cardImageXValue').innerText = `${x}px`;
-      document.getElementById('cardImageYValue').innerText = `${y}px`;
-      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+    function loadMyCardPhoto(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const status = document.getElementById('myCardImageStatus');
+      if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 1.5 * 1024 * 1024) { status.innerText = 'Escolha PNG, JPG ou WebP de até 1,5 MB.'; event.target.value = ''; return; }
+      const reader = new FileReader();
+      reader.onload = () => { myCardImageDraftPhoto = String(reader.result || ''); myCardImageDraftMode = 'custom'; document.querySelector('input[name="myCardImageMode"][value="custom"]').checked = true; previewMyCardImage(); status.innerText = 'Prévia atualizada. Salve para publicar.'; };
+      reader.onerror = () => { status.innerText = 'Não foi possível abrir essa imagem.'; };
+      reader.readAsDataURL(file);
+    }
+    function previewMyCardImage() {
+      const player = myCardImagePlayer();
       if (!player) return;
-      const style = `--card-image-scale:${scale / 100};--card-image-x:${x}px;--card-image-y:${y}px`;
-      document.querySelectorAll('.rank-player-cutout').forEach(image => { if (image.dataset.playerId === selectedCardImagePlayerId) image.style.cssText = style; });
-      document.getElementById('cardImageEditorStatus').innerText = 'Prévia ao vivo — salve para publicar para todos.';
+      const source = myCardImageDraftMode === 'custom' ? myCardImageDraftPhoto : player.photo || '';
+      const image = document.getElementById('myCardImagePreview'), empty = document.getElementById('myCardImageEmpty');
+      const scale = Number(document.getElementById('myCardScale').value), x = Number(document.getElementById('myCardX').value), y = Number(document.getElementById('myCardY').value);
+      document.getElementById('myCardScaleValue').innerText = `${scale}%`;
+      document.getElementById('myCardXValue').innerText = `${x} px`;
+      document.getElementById('myCardYValue').innerText = `${y} px`;
+      image.src = source || '';
+      image.style.cssText = `--card-image-scale:${scale / 100};--card-image-x:${x}px;--card-image-y:${y}px;--card-image-preview-x:${x * .45}px;--card-image-preview-y:${y * .45}px;display:${source ? 'block' : 'none'}`;
+      empty.classList.toggle('hidden', !!source);
     }
-    function saveCardImageAdjustment() {
-      if (!loggedUser?.isAdmin) return alert('Somente ADM pode ajustar as cartinhas.');
-      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
-      if (!player) return;
-      cardImageAdjustments[String(player.id)] = { scale: Number(document.getElementById('cardImageScale').value), x: Number(document.getElementById('cardImageX').value), y: Number(document.getElementById('cardImageY').value) };
-      saveState(); renderEAFCCardsGrid(); renderResenhaTab();
-      document.getElementById('cardImageEditorStatus').innerText = 'Ajuste salvo e publicado para todos.';
+    async function saveMyCardImage() {
+      if (!loggedUser) return;
+      const player = myCardImagePlayer(), status = document.getElementById('myCardImageStatus');
+      if (!player) return status.innerText = 'Seu cadastro ainda não foi carregado. Atualize a página e tente novamente.';
+      if (myCardImageDraftMode === 'custom' && !myCardImageDraftPhoto) return status.innerText = 'Escolha a nova foto antes de salvar.';
+      const adjustment = { scale: Number(document.getElementById('myCardScale').value), x: Number(document.getElementById('myCardX').value), y: Number(document.getElementById('myCardY').value) };
+      status.innerText = 'Salvando…';
+      try {
+        await apiRequest('/profile/card', { method: 'PUT', body: JSON.stringify({ mode: myCardImageDraftMode, photo: myCardImageDraftMode === 'custom' ? myCardImageDraftPhoto : '', adjustment }) });
+        player.cardPhotoMode = myCardImageDraftMode; player.cardPhoto = myCardImageDraftMode === 'custom' ? myCardImageDraftPhoto : '';
+        player.cardImageAdjustment = adjustment; loggedUser.cardPhotoMode = player.cardPhotoMode; loggedUser.cardPhoto = player.cardPhoto; loggedUser.cardImageAdjustment = adjustment;
+        saveState(); renderEAFCCardsGrid(); renderResenhaTab(); renderMyCardImageEditor();
+        status.innerText = 'Sua cartinha foi salva e atualizada para todos.';
+      } catch (error) { status.innerText = error.message || 'Não foi possível salvar. Tente novamente.'; }
     }
-    function resetCardImageAdjustment() {
-      if (!loggedUser?.isAdmin) return;
-      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
-      if (!player) return;
-      delete cardImageAdjustments[String(player.id)];
-      renderCardImageEditor(); previewCardImageAdjustment(); saveState(); renderEAFCCardsGrid(); renderResenhaTab();
-      document.getElementById('cardImageEditorStatus').innerText = 'Padrão restaurado e publicado para todos.';
+    async function resetMyCardImage() {
+      if (!loggedUser) return;
+      myCardImageDraftMode = 'profile'; myCardImageDraftPhoto = '';
+      document.querySelector('input[name="myCardImageMode"][value="profile"]').checked = true;
+      document.getElementById('myCardPhotoUpload').value = '';
+      document.getElementById('myCardScale').value = 100; document.getElementById('myCardX').value = 0; document.getElementById('myCardY').value = 0;
+      await saveMyCardImage();
     }
 
     function renderResenhaTab() {
@@ -2637,10 +2667,10 @@
         const ovr = calcOVR(p);
         const rank = getCardRank(ovr);
 
-        const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
-        const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
-        const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
-        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
+        const cardPhoto = myCardImageSource(p), cutoutPhoto = useLargeCardPhoto(p);
+        const photoStyle = cardPhoto && !cutoutPhoto ? `style="background-image: url(${cardPhoto})"` : '';
+        const photoContent = cardPhoto && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${cardPhoto}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         containerTop3.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -3326,6 +3356,7 @@
         avatarBox.style.backgroundImage = '';
         avatarBox.innerHTML = '<i data-lucide="user" class="w-10 h-10 text-brand-lightGreen"></i>';
       }
+      renderMyCardImageEditor();
 
       const historyContainer = document.getElementById('playerMatchHistory');
       historyContainer.innerHTML = '';
@@ -3406,10 +3437,10 @@
         const ovr = calcOVR(p);
         const rank = getCardRank(ovr);
 
-        const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
-        const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
-        const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
-        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
+        const cardPhoto = myCardImageSource(p), cutoutPhoto = useLargeCardPhoto(p);
+        const photoStyle = cardPhoto && !cutoutPhoto ? `style="background-image: url(${cardPhoto})"` : '';
+        const photoContent = cardPhoto && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${cardPhoto}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         container.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -3445,7 +3476,6 @@
         `;
       });
 
-      renderCardImageEditor();
       lucide.createIcons();
     }
 

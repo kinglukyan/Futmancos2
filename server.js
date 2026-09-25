@@ -307,6 +307,7 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     presentPlayers: Array.isArray(incoming.presentPlayers) ? incoming.presentPlayers.filter(id => !(incoming.players || []).some(player => isDemoMember(player) && String(player.id) === String(id))) : [],
     checkedInPlayers: Array.isArray(incoming.checkedInPlayers) ? incoming.checkedInPlayers.filter(id => !(incoming.players || []).some(player => isDemoMember(player) && String(player.id) === String(id))) : [],
     mediaLinks: incoming.mediaLinks && typeof incoming.mediaLinks === 'object' ? incoming.mediaLinks : {},
+    cardImageAdjustments: incoming.cardImageAdjustments && typeof incoming.cardImageAdjustments === 'object' ? incoming.cardImageAdjustments : {},
     monthlyFee: Number(incoming.monthlyFee) || await getFee(),
     nextGame: incoming.nextGame && typeof incoming.nextGame === 'object' ? incoming.nextGame : null,
     associationGallery: Array.isArray(incoming.associationGallery) ? incoming.associationGallery.slice(0, 100).filter(item => item && typeof item.url === 'string' && item.url.startsWith('https://')) : [],
@@ -963,6 +964,34 @@ app.put('/api/profile/photo', authenticate, requireDatabase, async (req, res, ne
     const { error } = await supabase.from('profiles').update({ photo }).eq('id', req.user.id);
     if (error) throw error;
     res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+app.put('/api/profile/card', authenticate, requireDatabase, async (req, res, next) => {
+  const mode = String(req.body?.mode || '');
+  const photo = String(req.body?.photo || '');
+  const adjustment = req.body?.adjustment || {};
+  const scale = Number(adjustment.scale), x = Number(adjustment.x), y = Number(adjustment.y);
+  if (!['profile', 'custom'].includes(mode)) return res.status(400).json({ error: 'Escolha a foto do perfil ou uma nova foto.' });
+  if (mode === 'custom' && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) || photo.length > 2_100_000)) return res.status(400).json({ error: 'A nova foto deve ser PNG, JPG ou WebP de até 1,5 MB.' });
+  if (!Number.isInteger(scale) || scale < 70 || scale > 160 || !Number.isInteger(x) || x < -60 || x > 60 || !Number.isInteger(y) || y < -80 || y > 80) return res.status(400).json({ error: 'Os ajustes de tamanho e posição estão fora do limite permitido.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (readError) throw readError;
+    if (!row?.state_json) return res.status(404).json({ error: 'A lista de associados ainda não está disponível.' });
+    const state = row.state_json;
+    const roster = Array.isArray(state.players) ? state.players : [];
+    let player = roster.find(item => [item.serverId, item.authUserId, item.id].some(id => id != null && String(id) === String(req.user.id)) || String(item.email || '').toLowerCase() === String(req.user.email || '').toLowerCase());
+    if (!player) {
+      player = { id: req.user.id, serverId: req.user.id, authUserId: req.user.id, name: req.user.name, email: req.user.email, age: req.user.age || 0, foot: req.user.foot || 'Direita', pos: req.user.position || 'Meio-Campo', height: Number(req.user.height) || 1.7, shirt: Number(req.user.shirt_number) || 0, photo: req.user.photo || '', goals: 0, assists: 0, saves: 0, matches: 0, days: 0, ritVotes: [70], driVotes: [70], chuVotes: [70], defVotes: [70], pasVotes: [70], fisVotes: [70] };
+      roster.push(player);
+      state.players = roster;
+    }
+    player.cardPhotoMode = mode;
+    player.cardPhoto = mode === 'custom' ? photo : '';
+    player.cardImageAdjustment = { scale, x, y };
+    const { error: writeError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (writeError) throw writeError;
+    res.json({ ok: true, cardPhotoMode: mode, cardImageAdjustment: player.cardImageAdjustment });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
