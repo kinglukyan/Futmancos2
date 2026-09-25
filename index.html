@@ -79,6 +79,8 @@
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
+    .rank-player-cutout { position:absolute; z-index:1; top:-12px; left:50%; width:220px; height:168px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
+    .rank-player-name, .rank-player-stats { position:relative; z-index:2; }
     @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
 
     .avatar-card-zoom {
@@ -234,7 +236,7 @@
             <select id="editShirtNum" class="w-full bg-black border border-gray-800 rounded-xl p-2 text-xs text-white outline-none"></select>
           </div>
           <div class="sm:col-span-2">
-            <label class="text-[11px] text-gray-400">Atualizar Foto (opcional)</label>
+            <label class="text-[11px] text-gray-400">Atualizar foto (PNG sem fundo para recorte na cartinha)</label>
             <input type="file" id="editPhoto" accept="image/*" class="w-full bg-black border border-gray-800 rounded-xl p-1.5 text-xs text-gray-400 file:bg-gray-800 file:text-white file:border-0 file:px-2 file:py-1 file:rounded-lg">
           </div>
           <button type="submit" class="sm:col-span-2 bg-brand-green active:bg-brand-lightGreen text-black font-bold py-3 rounded-xl text-xs mt-2">
@@ -1224,6 +1226,10 @@
       return { className: 'rank-bronze', label: 'BRONZE · VERDE' };
     }
 
+    function isCutoutPlayerPhoto(photo) {
+      return typeof photo === 'string' && /^data:image\/(png|webp);/i.test(photo);
+    }
+
     function saveState() {
       localStorage.setItem('futmancos_players', JSON.stringify(players));
       localStorage.setItem('futmancos_arenas', JSON.stringify(arenas));
@@ -1794,7 +1800,8 @@
             const scale = Math.min(1, 512 / Math.max(image.width, image.height));
             canvas.width = Math.max(1, Math.round(image.width * scale)); canvas.height = Math.max(1, Math.round(image.height * scale));
             canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-            p.photo = canvas.toDataURL('image/jpeg', 0.82); finishProfileSave(p);
+            const keepTransparency = fileInput.files[0].type === 'image/png' || fileInput.files[0].type === 'image/webp';
+            p.photo = canvas.toDataURL(keepTransparency ? 'image/webp' : 'image/jpeg', 0.84); finishProfileSave(p);
           };
           image.onerror = () => alert('Não foi possível abrir essa foto.');
           image.src = evt.target.result;
@@ -2537,8 +2544,10 @@
         const ovr = calcOVR(p);
         const rank = getCardRank(ovr);
 
-        const photoStyle = p.photo ? `style="background-image: url(${p.photo})"` : '';
-        const photoContent = p.photo ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
+        const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
+        const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         containerTop3.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -2556,20 +2565,14 @@
               </div>
             </div>
 
-            <!-- FOTO DO JOGADOR MAIOR -->
-            <div class="my-2 flex justify-center">
-              <div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)">
-                <div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">
-                  ${photoContent}
-                </div>
-              </div>
-            </div>
+            <!-- PNG transparente em destaque; o espaço dos atributos permanece igual. -->
+            <div class="rank-player-stage my-2 relative flex h-32 justify-center">${playerPhotoMarkup}</div>
 
-            <div class="text-center border-b border-gray-700/80 pb-1 mb-2">
+            <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
               <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>
             </div>
 
-            <div class="grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
+            <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
               <div class="flex justify-between"><span>RIT</span><span class="rank-accent">${calcAttribute(p.ritVotes)}</span></div>
               <div class="flex justify-between"><span>DRI</span><span class="rank-accent">${calcAttribute(p.driVotes)}</span></div>
               <div class="flex justify-between"><span>CHU</span><span class="rank-accent">${calcAttribute(p.chuVotes)}</span></div>
@@ -3308,8 +3311,10 @@
         const ovr = calcOVR(p);
         const rank = getCardRank(ovr);
 
-        const photoStyle = p.photo ? `style="background-image: url(${p.photo})"` : '';
-        const photoContent = p.photo ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
+        const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
+        const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         container.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -3324,20 +3329,14 @@
               </div>
             </div>
 
-            <!-- FOTO DO JOGADOR MAIOR NAS CARTINHAS -->
-            <div class="my-2 flex justify-center">
-              <div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)">
-                <div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">
-                  ${photoContent}
-                </div>
-              </div>
-            </div>
+            <!-- PNG transparente em destaque; o espaço dos atributos permanece igual. -->
+            <div class="rank-player-stage my-2 relative flex h-32 justify-center">${playerPhotoMarkup}</div>
 
-            <div class="text-center border-b border-gray-700/80 pb-1 mb-2">
+            <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
               <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>
             </div>
 
-            <div class="grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
+            <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
               <div class="flex justify-between"><span>RIT</span><span class="rank-accent">${calcAttribute(p.ritVotes)}</span></div>
               <div class="flex justify-between"><span>DRI</span><span class="rank-accent">${calcAttribute(p.driVotes)}</span></div>
               <div class="flex justify-between"><span>CHU</span><span class="rank-accent">${calcAttribute(p.chuVotes)}</span></div>
