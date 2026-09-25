@@ -46,7 +46,6 @@
     @media (max-width: 767px) {
       body { padding-top: 0; }
       header { top: 0 !important; padding-top: env(safe-area-inset-top, 0px); }
-      #adminLoginHeaderBtn { display: none !important; }
       input, select, button { min-height: 42px; }
       .mobile-nav-btn { flex: 1; min-width: 0; }
       #mainNav { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
@@ -120,7 +119,6 @@
       <!-- Botão Auth -->
       <div class="flex items-center gap-2">
         <button id="createAccountHeaderBtn" onclick="navigate('registro')" class="guest-only bg-gray-800 text-white px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap"><span class="sm:hidden">Criar</span><span class="hidden sm:inline">Criar conta</span></button>
-        <button id="adminLoginHeaderBtn" onclick="openLoginModal('admin')" class="hidden md:inline-flex guest-only bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">Entrar como ADM</button>
         <button id="authActionBtn" onclick="openLoginModal()" class="bg-brand-green text-black px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold active:scale-95 transition whitespace-nowrap">
           Entrar
         </button>
@@ -150,7 +148,6 @@
         </form>
         <button type="button" onclick="sendPasswordRecovery()" class="w-full text-emerald-300 text-xs font-semibold py-1">Esqueci minha senha</button>
         <button id="passkeyLoginBtn" type="button" onclick="handlePasskeyLogin()" class="hidden w-full bg-emerald-700/40 border border-emerald-500/40 text-emerald-200 font-bold py-2.5 rounded-xl text-xs">ENTRAR COM BIOMETRIA / CHAVE DE ACESSO</button>
-        <button type="button" onclick="openLoginModal('admin')" class="w-full text-amber-300 text-xs font-semibold py-2">Entrar como administrador</button>
       </div>
     </div>
 
@@ -400,7 +397,6 @@
 
     <!-- CENTRAL DO BABA -->
     <section id="sec-baba" class="hidden space-y-4">
-      <div id="babaGalleryCarousel" class="relative bg-black/50 border border-gray-800 rounded-2xl overflow-hidden min-h-24"></div>
       <div class="bg-brand-cardBg border border-gray-800 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs text-brand-lightGreen font-bold tracking-widest uppercase">Próximo Baba</span>
@@ -663,6 +659,18 @@
         </label>
         <label class="text-[11px] text-gray-400">WhatsApp com DDD (opcional)
           <input type="tel" id="regPhone" maxlength="20" autocomplete="tel" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400">CPF
+          <input type="text" id="regCpf" required inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400">Nome do contato de emergência
+          <input type="text" id="regEmergencyName" required maxlength="60" autocomplete="off" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400">Telefone do contato de emergência
+          <input type="tel" id="regEmergencyPhone" required maxlength="20" autocomplete="off" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400 sm:col-span-2">Pergunta para confirmar sua ligação com o baba: Quem foi o primeiro banido do baba?
+          <input type="text" id="regAssociationAnswer" required maxlength="40" autocomplete="off" placeholder="Sua resposta" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
         <label class="text-[11px] text-gray-400">Idade
           <input type="number" id="regAge" required min="10" max="100" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
@@ -1523,8 +1531,7 @@
 
     function handleLogoClick() { navigate('resenha'); }
 
-    let loginMode = 'member';
-    function openLoginModal(mode = 'member') { loginMode = mode; document.getElementById('loginTitle').innerText = mode === 'admin' ? 'ACESSO ADMINISTRATIVO' : 'ENTRAR NO FUTMANCOS'; document.getElementById('loginModal').classList.remove('hidden'); }
+    function openLoginModal() { document.getElementById('loginTitle').innerText = 'ENTRAR NO FUTMANCOS'; document.getElementById('loginModal').classList.remove('hidden'); }
     function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
     function supportsFutmancosPasskeys() {
       return window.isSecureContext && 'PublicKeyCredential' in window &&
@@ -1594,11 +1601,6 @@
         let user;
         try { user = (await apiRequest('/auth/sync', { method: 'POST', body: '{}' })).user; }
         catch { user = await loadSupabasePlayer(); }
-        if (loginMode === 'admin' && !user.isAdmin) {
-          await supabaseClient.auth.signOut();
-          alert('Esta conta não possui acesso de administrador.');
-          return;
-        }
         loggedUser = mergeServerUser(user);
         await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
         startSharedSyncLoop(); saveState(); closeLoginModal(); updateAuthUI(); updatePresenceButton();
@@ -1958,7 +1960,6 @@
         let user;
         try { user = (await apiRequest('/auth/sync', { method: 'POST', body: '{}' })).user; }
         catch { user = await loadSupabasePlayer(); }
-        if (loginMode === 'admin' && !user.isAdmin) { await supabaseClient.auth.signOut(); await apiRequest('/auth/logout', { method: 'POST' }).catch(() => {}); alert('Esta conta não possui acesso de administrador.'); return; }
         loggedUser = mergeServerUser(user);
         await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
         startSharedSyncLoop(); saveState(); closeLoginModal(); updateAuthUI(); updatePresenceButton();
@@ -2291,7 +2292,7 @@
 
     function renderAssociationGallery() {
       const photos = (associationGallery || []).filter(item => item?.url && String(item.url).startsWith('https://'));
-      const targets = ['resenhaGalleryCarousel', 'babaGalleryCarousel'];
+      const targets = ['resenhaGalleryCarousel'];
       if (!photos.length) {
         targets.forEach(id => { const box = document.getElementById(id); if (box) { box.className = 'bg-brand-cardBg border border-gray-800 rounded-2xl p-4 text-center text-xs text-gray-500'; box.textContent = 'A galeria da associação aparecerá aqui.'; } });
         return;
@@ -3254,19 +3255,27 @@
       const payload = {
         name: document.getElementById('regName').value.trim(), password: document.getElementById('regPassword').value,
         email: document.getElementById('regEmail').value.trim(), phone: document.getElementById('regPhone').value.trim(),
+        cpf: document.getElementById('regCpf').value.replace(/\D/g, ''),
+        emergencyContactName: document.getElementById('regEmergencyName').value.trim(),
+        emergencyContactPhone: document.getElementById('regEmergencyPhone').value.trim(),
+        associationAnswer: document.getElementById('regAssociationAnswer').value.trim(),
         age: Number(document.getElementById('regAge').value), pos: document.getElementById('regPos').value,
         foot: document.getElementById('regFoot').value, height: Number(document.getElementById('regHeight').value),
         shirt: Number(document.getElementById('regShirtNum').value) || 0,
         role, adminCode
       };
+      if (!/^\d{11}$/.test(payload.cpf)) return alert('Informe um CPF válido com 11 números.');
+      if (!payload.emergencyContactName || !payload.emergencyContactPhone) return alert('Informe o nome e o telefone do contato de emergência.');
+      if (payload.associationAnswer.toLocaleLowerCase('pt-BR') !== 'isaac') return alert('Resposta incorreta. O cadastro é exclusivo para pessoas ligadas à associação.');
       if (payload.shirt && players.some(player => Number(player.shirt) === payload.shirt)) return alert('Esse número de camisa já está atribuído a outro jogador. Escolha outro número.');
       try {
+        await apiRequest('/auth/registration-check', { method: 'POST', body: JSON.stringify({ cpf: payload.cpf, associationAnswer: payload.associationAnswer }) });
         const { data: authData, error } = await supabaseClient.auth.signUp({
           email: payload.email,
           password: payload.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name: payload.name, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt }
+            data: { name: payload.name, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt, cpf: payload.cpf, emergency_contact_name: payload.emergencyContactName, emergency_contact_phone: payload.emergencyContactPhone, association_answer: payload.associationAnswer }
           }
         });
         if (error) throw error;

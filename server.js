@@ -210,15 +210,47 @@ app.delete('/api/push/subscribe', authenticate, requireDatabase, async (req, res
   } catch (error) { next(error); }
 });
 
+app.post('/api/auth/registration-check', requireDatabase, async (req, res, next) => {
+  const cpf = String(req.body?.cpf || '').replace(/\D/g, '');
+  const answer = String(req.body?.associationAnswer || '').trim().toLocaleLowerCase('pt-BR');
+  if (answer !== 'isaac') return res.status(403).json({ error: 'Resposta de validação incorreta.' });
+  if (!isValidCpf(cpf)) return res.status(400).json({ error: 'Informe um CPF válido.' });
+  try {
+    const { data, error } = await supabase.from('profiles').select('id').eq('cpf_hash', guestCpfHash(cpf)).limit(1);
+    if (error) throw error;
+    if (data?.length) return res.status(409).json({ error: 'Este CPF já está cadastrado na associação.' });
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
 app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
   const token = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Entre na conta do Supabase para continuar.' });
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData.user?.email) return res.status(401).json({ error: 'Sessão Supabase inválida ou expirada.' });
-    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+    let profile;
+    const { data: foundProfile, error } = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
     if (error) throw error;
+    profile = foundProfile;
     if (!profile) return res.status(409).json({ error: 'Perfil não encontrado. Verifique se a migração de perfis foi executada no Supabase.' });
+    const metadata = authData.user.user_metadata || {};
+    const rawCpf = String(metadata.cpf || '').replace(/\D/g, '');
+    if (!profile.cpf_hash && (rawCpf || metadata.emergency_contact_name || metadata.emergency_contact_phone || metadata.association_answer)) {
+      if (String(metadata.association_answer || '').trim().toLocaleLowerCase('pt-BR') !== 'isaac') return res.status(403).json({ error: 'Resposta de validação da associação inválida.' });
+      if (!isValidCpf(rawCpf)) return res.status(400).json({ error: 'O CPF informado no cadastro é inválido.' });
+      if (!String(metadata.emergency_contact_name || '').trim() || !String(metadata.emergency_contact_phone || '').trim()) return res.status(400).json({ error: 'O nome e o telefone do contato de emergência são obrigatórios.' });
+      const { data: duplicate, error: duplicateError } = await supabase.from('profiles').select('id').eq('cpf_hash', guestCpfHash(rawCpf)).neq('id', profile.id).limit(1);
+      if (duplicateError) throw duplicateError;
+      if (duplicate?.length) return res.status(409).json({ error: 'Este CPF já está cadastrado na associação.' });
+      const { data: updatedProfile, error: saveError } = await supabase.from('profiles').update({ cpf_hash: guestCpfHash(rawCpf), cpf_encrypted: encryptGuestCpf(rawCpf), cpf_last4: rawCpf.slice(-4), emergency_contact_name: String(metadata.emergency_contact_name).trim(), emergency_contact_phone: String(metadata.emergency_contact_phone).trim() }).eq('id', profile.id).select('*').single();
+      if (saveError) throw saveError;
+      profile = updatedProfile;
+      const safeMetadata = { ...metadata };
+      delete safeMetadata.cpf; delete safeMetadata.emergency_contact_name; delete safeMetadata.emergency_contact_phone; delete safeMetadata.association_answer;
+      const { error: cleanupError } = await supabase.auth.admin.updateUserById(authData.user.id, { user_metadata: safeMetadata });
+      if (cleanupError) throw cleanupError;
+    }
     res.json({ user: userPublic(profile) });
   } catch (error) { next(error); }
 });
