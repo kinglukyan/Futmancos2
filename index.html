@@ -436,18 +436,24 @@
       </div>
 
       <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-sky-300">SORTEIOS DO BABA</h3><div id="babaDrawResults" class="space-y-2"></div></div>
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-white">RESUMO DOS JOGOS DO DIA</h3><div id="babaMatchSummaries" class="space-y-2"></div></div>
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2"><div class="flex items-center justify-between gap-2"><h3 class="font-teko text-2xl text-white">RESUMO DOS JOGOS DO DIA</h3><button id="shareBabaDayBtn" type="button" onclick="shareBabaDayReport()" class="hidden bg-emerald-800/60 text-emerald-200 px-3 py-2 rounded-lg text-[10px] font-bold">Compartilhar dia</button></div><div id="babaMatchSummaries" class="space-y-2"></div></div>
 <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
   <div><h3 class="font-teko text-2xl text-amber-400">SORTEAR TIMES E FECHAR RESULTADOS</h3><p class="text-xs text-gray-400">Os times são balanceados pelo OVR das cartinhas. Quem ainda não foi sorteado tem prioridade no próximo sorteio do dia. Registre todos os sorteios e, ao final, informe os resultados juntos.</p></div>
   <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="onAdminMatchDateChange(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
     <label class="text-[10px] text-gray-400">Quantidade total de jogadores<input id="drawPlayerCount" type="number" min="2" max="30" value="10" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
     <fieldset id="drawKeeperOverrideWrap" class="sm:col-span-2 border border-sky-900 rounded-xl p-3"><legend class="px-1 text-[10px] text-sky-200">GOLEIROS DOS DOIS TIMES</legend><div class="grid sm:grid-cols-2 gap-2"><label class="text-[10px] text-gray-400">Goleiro · Time Verde<select id="drawKeeperOverrideA" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label><label class="text-[10px] text-gray-400">Goleiro · Time Preto<select id="drawKeeperOverrideB" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></select></label></div><p class="mt-2 text-[10px] text-gray-500">Selecione dois jogadores diferentes. Goleiros já confirmados aparecem selecionados; se faltar algum, escolha quem vai assumir a posição.</p></fieldset>
-    <button type="button" onclick="createBalancedTeamDraw()" class="bg-sky-700 text-white font-bold px-4 py-3 rounded-xl text-xs">SORTEAR E SALVAR TIMES</button>
+    <button type="button" onclick="createBalancedTeamDraw()" class="bg-sky-700 text-white font-bold px-4 py-3 rounded-xl text-xs">GERAR PRÉVIA DOS TIMES</button>
+  </div>
+  <div id="teamDrawPreview" class="hidden bg-black/40 border border-sky-700 rounded-xl p-3 space-y-3">
+    <div><h4 class="font-teko text-xl text-sky-200">PRÉVIA DO EQUILÍBRIO</h4><p id="teamDrawPreviewSummary" class="text-xs text-gray-300"></p></div>
+    <div id="teamDrawPreviewTeams" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+    <div class="flex flex-wrap gap-2"><button type="button" onclick="rerollBalancedTeamPreview()" class="bg-gray-800 text-white font-bold px-4 py-2.5 rounded-lg text-xs">Sortear outra divisão</button><button type="button" onclick="confirmBalancedTeamPreview()" class="bg-brand-green text-black font-bold px-4 py-2.5 rounded-lg text-xs">Confirmar e salvar</button><button type="button" onclick="cancelBalancedTeamPreview()" class="border border-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-xs">Cancelar</button></div>
   </div>
   <p id="adminMatchStatus" class="text-xs text-emerald-300" aria-live="polite"></p>
   <div><h4 class="font-teko text-xl text-white">SORTEIOS SALVOS</h4><div id="adminDrawRecords" class="space-y-2"></div></div>
   <div><h4 class="font-teko text-xl text-amber-300">RESULTADOS DO DIA</h4><p class="text-[10px] text-gray-400 mb-2">Depois de todos os jogos, informe gols, assistências e defesas, e selecione o time vencedor em cada partida.</p><div id="adminDrawFinalizeList" class="space-y-3"></div></div>
+  <div><h4 class="font-teko text-xl text-sky-300">CORRIGIR RESULTADO JÁ SALVO</h4><p class="text-[10px] text-gray-400 mb-2">A correção atualiza os totais e registra os valores anteriores e novos no histórico ADM.</p><div id="adminDrawCorrectionList" class="space-y-3"></div></div>
   <div class="flex flex-col sm:flex-row gap-2"><button type="button" onclick="saveDayDrawResults()" class="bg-amber-500 text-black font-bold px-5 py-3 rounded-xl text-xs">SALVAR RESULTADOS DE TODOS OS JOGOS</button><button id="openDayVotingBtn" type="button" onclick="closeMatchDayVoting()" class="bg-brand-green text-black font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR O DIA E LIBERAR VOTAÇÃO</button><button id="finishDayVotingBtn" type="button" onclick="finishMatchDayVoting()" class="hidden bg-rose-700 text-white font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR VOTAÇÃO</button></div>
   <p id="adminVotingStatus" class="text-xs text-gray-400" aria-live="polite"></p>
 </section>
@@ -706,7 +712,13 @@
     <section id="sec-adm" class="hidden space-y-6">
       <h2 class="font-teko text-3xl text-amber-400">PAINEL ADMINISTRATIVO</h2>
       <section class="bg-brand-cardBg border border-sky-500/30 p-4 md:p-6 rounded-2xl space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-teko text-2xl text-sky-300">REGISTRO DE AÇÕES ADMINISTRATIVAS</h3><p class="text-xs text-gray-400">Pagamentos confirmados, resultados, exclusões e alterações importantes, com administrador e horário.</p></div><button type="button" onclick="refreshAdminAuditLog()" class="border border-sky-700 text-sky-200 px-3 py-2 rounded-lg text-xs font-bold">Atualizar histórico</button></div>
+        <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-teko text-2xl text-sky-300">REGISTRO DE AÇÕES ADMINISTRATIVAS</h3><p class="text-xs text-gray-400">Pagamentos confirmados, resultados, exclusões e alterações importantes, com administrador e horário.</p></div><div class="flex gap-2"><button type="button" onclick="exportAdminAuditLog()" class="border border-emerald-700 text-emerald-200 px-3 py-2 rounded-lg text-xs font-bold">Exportar CSV</button><button type="button" onclick="refreshAdminAuditLog()" class="border border-sky-700 text-sky-200 px-3 py-2 rounded-lg text-xs font-bold">Atualizar histórico</button></div></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <label class="text-[10px] text-gray-400">De<input id="auditFilterFrom" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
+          <label class="text-[10px] text-gray-400">Até<input id="auditFilterTo" type="date" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"></label>
+          <label class="text-[10px] text-gray-400">Administrador<select id="auditFilterActor" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
+          <label class="text-[10px] text-gray-400">Tipo de ação<select id="auditFilterAction" onchange="renderAdminAuditLog()" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white"><option value="">Todos</option></select></label>
+        </div>
         <div id="adminAuditLog" class="space-y-2 max-h-96 overflow-y-auto pr-1"><p class="text-xs text-gray-500">Carregando histórico…</p></div>
       </section>
       <!-- GRÁFICO DE DESEMPENHO DOS ATLETAS -->
@@ -1100,6 +1112,8 @@
     let checkedInPlayers = JSON.parse(localStorage.getItem('futmancos_checkin')) || [];
     let matchHistory = JSON.parse(localStorage.getItem('futmancos_history')) || [];
     let babaDraws = [];
+    let pendingBalancedDraw = null;
+    let adminAuditEntries = [];
 
     const DEMO_PLAYER_EMAILS = new Set(['lukyan@futmancos.com', 'mateus@futmancos.com']);
     const isDemoPlayer = player => DEMO_PLAYER_EMAILS.has(String(player.email || '').toLowerCase()) || ['mateus', 'lukyan'].includes(String(player.name || '').trim().toLowerCase());
@@ -2491,7 +2505,7 @@
       if (first.value === second.value) second.value = goalies.find(player => String(player.serverId) !== first.value)?.serverId || '';
     }
     function renderTeamDraws() {
-      const publicBox = document.getElementById('babaDrawResults'), adminBox = document.getElementById('adminDrawRecords'), finalizeBox = document.getElementById('adminDrawFinalizeList');
+      const publicBox = document.getElementById('babaDrawResults'), adminBox = document.getElementById('adminDrawRecords'), finalizeBox = document.getElementById('adminDrawFinalizeList'), correctionBox = document.getElementById('adminDrawCorrectionList');
       renderDrawKeeperChoice();
       const score = draw => draw.players.reduce((sum, player) => sum + Number(player.ovr || 0), 0);
       const card = draw => {
@@ -2510,7 +2524,7 @@
       if (!finalizeBox) return;
       finalizeBox.replaceChildren();
       const pending = babaDraws.filter(draw => !draw.finalized);
-      if (!pending.length) { finalizeBox.innerHTML = '<p class="text-xs text-gray-500">Não há resultados pendentes.</p>'; return; }
+      if (!pending.length) finalizeBox.innerHTML = '<p class="text-xs text-gray-500">Não há resultados pendentes.</p>';
       pending.forEach(draw => {
         const panel = document.createElement('div'); panel.className = 'bg-black/40 border border-gray-800 rounded-xl p-3 space-y-2'; panel.dataset.drawId = draw.id;
         const title = document.createElement('strong'); title.className = 'block text-sm text-amber-200'; title.textContent = `Sorteio ${draw.drawOrder} · vencedor`; panel.append(title);
@@ -2523,6 +2537,41 @@
         });
         finalizeBox.append(panel);
       });
+      if (correctionBox) {
+        correctionBox.replaceChildren();
+        const finalized = babaDraws.filter(draw => draw.finalized);
+        if (!finalized.length) correctionBox.textContent = 'Ainda não há resultados salvos para corrigir.';
+        finalized.forEach(draw => {
+          const panel = document.createElement('div'); panel.className = 'bg-black/40 border border-sky-900 rounded-xl p-3 space-y-2'; panel.dataset.correctionId = draw.id;
+          const title = document.createElement('strong'); title.className = 'block text-sm text-sky-200'; title.textContent = `Sorteio ${draw.drawOrder} · placar atual ${Number(draw.scoreA) || 0} × ${Number(draw.scoreB) || 0}`; panel.append(title);
+          const winner = document.createElement('select'); winner.className = 'w-full bg-black border border-gray-700 rounded-lg p-2 text-xs'; winner.dataset.correctWinner = 'true';
+          winner.append(new Option('Selecione o vencedor', ''), new Option('Time Verde', 'A'), new Option('Time Preto', 'B'), new Option('Empate', 'draw')); winner.value = draw.winner || ''; panel.append(winner);
+          draw.players.forEach(player => {
+            const row = document.createElement('div'); row.className = 'grid grid-cols-1 sm:grid-cols-4 gap-2 items-center border-t border-gray-800 pt-2';
+            const name = document.createElement('span'); name.className = 'text-xs text-white'; name.textContent = `${player.name}${player.isKeeper ? ' · GOLEIRO' : ''} · ${player.team === 'A' ? 'Verde' : 'Preto'}`; row.append(name);
+            [['Gols','goals'],['Assist.','assists'],['Defesas','saves']].forEach(([label,key]) => { const field = document.createElement('label'); field.className = 'text-[9px] text-gray-400'; field.textContent = label; const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.value = String(Number(player[key]) || 0); input.className = 'mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white'; input.dataset.correctStat = `${player.userId}:${key}`; field.append(input); row.append(field); });
+            panel.append(row);
+          });
+          const button = document.createElement('button'); button.type = 'button'; button.dataset.correctDraw = String(draw.id); button.className = 'bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs'; button.textContent = 'Salvar correção auditada'; button.onclick = () => correctSavedDraw(draw.id); panel.append(button);
+          correctionBox.append(panel);
+        });
+        const drawMatchIds = new Set(babaDraws.map(draw => String(draw.id)));
+        const legacyFinalized = matchHistory.filter(match => match.gameDay === (document.getElementById('adminMatchDate')?.value || activeBabaDate) && !drawMatchIds.has(String(match.id)) && Array.isArray(match.stats) && match.stats.length);
+        legacyFinalized.forEach(match => {
+          const panel = document.createElement('div'); panel.className = 'bg-black/40 border border-sky-900 rounded-xl p-3 space-y-2'; panel.dataset.legacyCorrectionId = String(match.id);
+          const title = document.createElement('strong'); title.className = 'block text-sm text-sky-200'; title.textContent = `Jogo manual · placar atual ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0}`; panel.append(title);
+          const winner = document.createElement('select'); winner.className = 'w-full bg-black border border-gray-700 rounded-lg p-2 text-xs'; winner.dataset.correctWinner = 'true'; winner.append(new Option('Selecione o vencedor', ''), new Option('Time Verde', 'A'), new Option('Time Preto', 'B'), new Option('Empate', 'draw')); winner.value = match.winner || ''; panel.append(winner);
+          match.stats.forEach((player, index) => {
+            const row = document.createElement('div'); row.className = 'grid grid-cols-1 sm:grid-cols-4 gap-2 items-center border-t border-gray-800 pt-2';
+            const name = document.createElement('span'); name.className = 'text-xs text-white'; name.textContent = `${player.name || 'Jogador'} · ${player.team === 'A' ? 'Verde' : 'Preto'}`; row.append(name);
+            [['Gols','goals'],['Assist.','assists'],['Defesas','saves']].forEach(([label,key]) => { const field = document.createElement('label'); field.className = 'text-[9px] text-gray-400'; field.textContent = label; const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.value = String(Number(player[key]) || 0); input.className = 'mt-1 w-full bg-black border border-gray-700 rounded-lg p-2 text-xs text-white'; input.dataset.legacyStat = `${index}:${key}`; field.append(input); row.append(field); });
+            panel.append(row);
+          });
+          const button = document.createElement('button'); button.type = 'button'; button.className = 'bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs'; button.textContent = 'Salvar correção auditada'; button.onclick = () => correctLegacySavedMatch(match.id); panel.append(button);
+          correctionBox.append(panel);
+        });
+        if (!finalized.length && !legacyFinalized.length) correctionBox.textContent = 'Ainda não há resultados salvos para corrigir.';
+      }
     }
     function shuffleItems(items) { const copy = items.slice(); for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; }
     function footballPositionGroup(player) {
@@ -2586,19 +2635,14 @@
       const rest = shuffleItems(pool.filter(player => previouslyDrawn.has(String(player.serverId))));
       const picked = [...selectedKeepers, ...fresh, ...rest].slice(0, count);
       if (picked.length !== count) return alert('Não há jogadores suficientes com check-in para este sorteio.');
-      const assigned = balanceDraftPlayers(picked.map(player => ({ ...player, userId: player.serverId, ovr: calcOVR(player) })), assignedKeeperIds);
-      const sums = { A: assigned.filter(player => player.team === 'A').reduce((sum, player) => sum + player.ovr, 0), B: assigned.filter(player => player.team === 'B').reduce((sum, player) => sum + player.ovr, 0) };
-      try {
-        const result = await apiRequest('/admin/baba/draws', { method: 'POST', body: JSON.stringify({ gameDay, selectedCount: count, assignedKeeperIds, players: assigned }) });
-        babaDraws.push(result.draw); renderTeamDraws();
-        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Sorteio ${result.draw.drawOrder} salvo para todos os dispositivos. Overall dos times: ${sums.A} × ${sums.B}.`;
-      } catch (error) { alert(error.message); }
+      const selected = picked.map(player => ({ ...player, userId: player.serverId, ovr: calcOVR(player) }));
+      pendingBalancedDraw = { mode: 'create', gameDay, selectedCount: count, assignedKeeperIds, selected, assigned: balanceDraftPlayers(selected, assignedKeeperIds) };
+      renderTeamDrawPreview();
     }
     async function redrawSavedMatch(drawId) {
       if (!loggedUser?.isAdmin) return alert('Apenas ADM pode refazer os times.');
       const draw = babaDraws.find(item => String(item.id) === String(drawId));
       if (!draw || draw.finalized) return alert('Este sorteio já foi finalizado e não pode ser refeito.');
-      if (!confirm(`Refazer os times do sorteio ${draw.drawOrder} antes do início do jogo? Os mesmos jogadores serão mantidos.`)) return;
       try {
         let keeperIds = draw.assignedKeeperIds || [draw.assignedKeeperId, ...draw.players.filter(player => String(player.position || '').toLowerCase().includes('goleiro')).map(player => player.userId)].filter(Boolean).map(String).slice(0, 2);
         if (keeperIds.length !== 2) {
@@ -2607,12 +2651,55 @@
           draw.players.forEach(player => { if (keeperIds.length < 2 && !keeperIds.includes(String(player.userId))) keeperIds.push(String(player.userId)); });
         }
         const playersWithPositions = draw.players.map(player => ({ ...player, pos: player.position }));
-        const players = balanceDraftPlayers(playersWithPositions, keeperIds);
-        const result = await apiRequest(`/admin/baba/draws/${encodeURIComponent(draw.id)}`, { method: 'PUT', body: JSON.stringify({ players, assignedKeeperIds: keeperIds }) });
-        const index = babaDraws.findIndex(item => String(item.id) === String(draw.id)); if (index >= 0) babaDraws[index] = result.draw;
-        renderTeamDraws();
-        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Times do sorteio ${draw.drawOrder} refeitos e salvos. Os mesmos jogadores foram mantidos.`;
+        pendingBalancedDraw = { mode: 'redraw', drawId: String(draw.id), gameDay: draw.gameDay, assignedKeeperIds: keeperIds, selected: playersWithPositions, assigned: balanceDraftPlayers(playersWithPositions, keeperIds) };
+        renderTeamDrawPreview();
       } catch (error) { alert(`Não foi possível refazer os times: ${error.message}`); }
+    }
+    function renderTeamDrawPreview(assigned = pendingBalancedDraw?.assigned) {
+      const pending = pendingBalancedDraw, box = document.getElementById('teamDrawPreview');
+      if (!pending || !box || !assigned) return;
+      pending.assigned = assigned;
+      const byId = new Map(pending.selected.map(player => [String(player.userId || player.serverId || player.id), player]));
+      const full = assigned.map(item => ({ ...(byId.get(String(item.userId)) || {}), ...item }));
+      const teams = { A: full.filter(player => player.team === 'A'), B: full.filter(player => player.team === 'B') };
+      const totals = { A: teams.A.reduce((sum, player) => sum + Number(player.ovr || 0), 0), B: teams.B.reduce((sum, player) => sum + Number(player.ovr || 0), 0) };
+      const groups = ['keeper', 'defense', 'midfield', 'attack'];
+      const counts = team => Object.fromEntries(groups.map(group => [group, team.filter(player => footballPositionGroup(player) === group).length]));
+      const distribution = { A: counts(teams.A), B: counts(teams.B) };
+      document.getElementById('teamDrawPreviewSummary').textContent = `Data ${pending.gameDay} · OVR Verde ${totals.A} × Preto ${totals.B} · diferença ${Math.abs(totals.A - totals.B)} pontos.`;
+      const teamBox = document.getElementById('teamDrawPreviewTeams'); teamBox.replaceChildren();
+      for (const [key, name, color] of [['A','TIME VERDE','text-emerald-300'],['B','TIME PRETO','text-amber-300']]) {
+        const card = document.createElement('div'); card.className = 'bg-brand-cardBg border border-gray-800 rounded-xl p-3';
+        const title = document.createElement('strong'); title.className = `block text-xs ${color}`; title.textContent = `${name} · OVR ${totals[key]}`;
+        const positions = document.createElement('p'); positions.className = 'my-1 text-[10px] text-gray-400'; positions.textContent = `Goleiros ${distribution[key].keeper} · Defesa ${distribution[key].defense} · Meio ${distribution[key].midfield} · Ataque ${distribution[key].attack}`;
+        const playersText = document.createElement('p'); playersText.className = 'text-xs text-gray-200'; playersText.textContent = teams[key].map(player => `${player.name}${player.isKeeper ? ' 🧤' : ''} (${player.ovr})`).join(', ');
+        card.append(title, positions, playersText); teamBox.append(card);
+      }
+      box.classList.remove('hidden'); box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function rerollBalancedTeamPreview() {
+      if (!pendingBalancedDraw) return;
+      renderTeamDrawPreview(balanceDraftPlayers(pendingBalancedDraw.selected, pendingBalancedDraw.assignedKeeperIds));
+    }
+    function cancelBalancedTeamPreview() {
+      pendingBalancedDraw = null; document.getElementById('teamDrawPreview')?.classList.add('hidden');
+    }
+    async function confirmBalancedTeamPreview() {
+      if (!loggedUser?.isAdmin || !pendingBalancedDraw) return;
+      const pending = pendingBalancedDraw;
+      try {
+        let result;
+        if (pending.mode === 'redraw') {
+          result = await apiRequest(`/admin/baba/draws/${encodeURIComponent(pending.drawId)}`, { method: 'PUT', body: JSON.stringify({ players: pending.assigned, assignedKeeperIds: pending.assignedKeeperIds }) });
+          const index = babaDraws.findIndex(item => String(item.id) === String(pending.drawId)); if (index >= 0) babaDraws[index] = result.draw;
+        } else {
+          result = await apiRequest('/admin/baba/draws', { method: 'POST', body: JSON.stringify({ gameDay: pending.gameDay, selectedCount: pending.selectedCount, assignedKeeperIds: pending.assignedKeeperIds, players: pending.assigned }) });
+          babaDraws.push(result.draw);
+        }
+        const sums = { A: pending.assigned.filter(player => player.team === 'A').reduce((sum, player) => sum + Number(player.ovr || 0), 0), B: pending.assigned.filter(player => player.team === 'B').reduce((sum, player) => sum + Number(player.ovr || 0), 0) };
+        cancelBalancedTeamPreview(); renderTeamDraws(); refreshAdminAuditLog();
+        const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Sorteio ${result.draw.drawOrder} salvo. Diferença de OVR: ${Math.abs(sums.A - sums.B)} pontos.`;
+      } catch (error) { alert(`Não foi possível salvar o sorteio: ${error.message}`); }
     }
     async function saveDayDrawResults() {
       if (!loggedUser?.isAdmin) return alert('Apenas ADM pode salvar os resultados.');
@@ -2633,6 +2720,57 @@
         const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = 'Resultados finais compartilhados. Agora você pode encerrar o dia e liberar a votação.';
         alert('Resultados salvos. Os dados oficiais e as cartinhas já foram atualizados.');
       } catch (error) { alert(`Não foi possível salvar todos os resultados. ${error.message}`); await loadBabaDraws(); await loadSharedMatchHistory(); }
+    }
+
+    async function correctSavedDraw(drawId) {
+      if (!loggedUser?.isAdmin) return alert('Apenas administradores podem corrigir resultados.');
+      const draw = babaDraws.find(item => String(item.id) === String(drawId));
+      const panel = [...document.querySelectorAll('#adminDrawCorrectionList [data-correction-id]')].find(item => String(item.dataset.correctionId) === String(drawId));
+      if (!draw?.finalized || !panel) return alert('Não foi possível carregar o resultado para correção.');
+      const winner = panel.querySelector('[data-correct-winner]')?.value;
+      if (!winner) return alert('Selecione o vencedor ou empate.');
+      const stats = draw.players.map(player => ({ userId: player.userId, ...Object.fromEntries([...panel.querySelectorAll(`[data-correct-stat^="${player.userId}:"]`)].map(input => [input.dataset.correctStat.split(':')[1], Number(input.value) || 0])) }));
+      const nextA = stats.filter(item => draw.players.find(player => String(player.userId) === String(item.userId))?.team === 'A').reduce((sum, item) => sum + item.goals, 0);
+      const nextB = stats.filter(item => draw.players.find(player => String(player.userId) === String(item.userId))?.team === 'B').reduce((sum, item) => sum + item.goals, 0);
+      if (!confirm(`Corrigir o sorteio ${draw.drawOrder}: placar atual ${Number(draw.scoreA) || 0} × ${Number(draw.scoreB) || 0}; novo placar ${nextA} × ${nextB}. A mudança ficará registrada no histórico ADM.`)) return;
+      try {
+        const result = await apiRequest(`/admin/baba/draws/${encodeURIComponent(draw.id)}/correct`, { method: 'PUT', body: JSON.stringify({ winner, stats }) });
+        const nextDraw = result.draw;
+        nextDraw.players.forEach(player => {
+          const previous = draw.players.find(item => String(item.userId) === String(player.userId));
+          const rosterPlayer = players.find(item => [item.serverId, item.authUserId, item.id].some(value => value != null && String(value) === String(player.userId)) || (!!player.email && String(item.email || '').toLowerCase() === String(player.email).toLowerCase()));
+          if (rosterPlayer && previous) for (const key of ['goals', 'assists', 'saves']) rosterPlayer[key] = Math.max(0, (Number(rosterPlayer[key]) || 0) - (Number(previous[key]) || 0) + (Number(player[key]) || 0));
+        });
+        const drawIndex = babaDraws.findIndex(item => String(item.id) === String(draw.id)); if (drawIndex >= 0) babaDraws[drawIndex] = nextDraw;
+        const matchIndex = matchHistory.findIndex(item => String(item.id) === String(result.match.id)); if (matchIndex >= 0) matchHistory[matchIndex] = result.match; else matchHistory.unshift(result.match);
+        saveState(); renderTeamDraws(); renderMatchHistory(); renderRanking(); renderEAFCCardsGrid(); renderProfile(); renderVotingSection();
+        refreshAdminAuditLog();
+        alert(`Resultado corrigido. O placar foi atualizado de ${Number(draw.scoreA) || 0} × ${Number(draw.scoreB) || 0} para ${nextA} × ${nextB}.`);
+      } catch (error) { alert(`Não foi possível corrigir o resultado: ${error.message}`); }
+    }
+
+    async function correctLegacySavedMatch(matchId) {
+      if (!loggedUser?.isAdmin) return alert('Apenas administradores podem corrigir resultados.');
+      const match = matchHistory.find(item => String(item.id) === String(matchId));
+      const panel = [...document.querySelectorAll('#adminDrawCorrectionList [data-legacy-correction-id]')].find(item => String(item.dataset.legacyCorrectionId) === String(matchId));
+      if (!match || !panel) return alert('Não foi possível carregar o resultado para correção.');
+      const winner = panel.querySelector('[data-correct-winner]')?.value;
+      if (!winner) return alert('Selecione o vencedor ou empate.');
+      const stats = match.stats.map((player, index) => ({ playerId: player.playerId, email: player.email, name: player.name, team: player.team, ...Object.fromEntries([...panel.querySelectorAll(`[data-legacy-stat^="${index}:"]`)].map(input => [input.dataset.legacyStat.split(':')[1], Number(input.value) || 0])) }));
+      const scoreA = stats.filter(player => player.team === 'A').reduce((sum, player) => sum + player.goals, 0), scoreB = stats.filter(player => player.team === 'B').reduce((sum, player) => sum + player.goals, 0);
+      if (!confirm(`Corrigir o jogo manual: placar atual ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0}; novo placar ${scoreA} × ${scoreB}. A alteração ficará registrada no histórico ADM.`)) return;
+      try {
+        const result = await apiRequest(`/admin/baba/matches/${encodeURIComponent(match.id)}/correct`, { method: 'PUT', body: JSON.stringify({ winner, stats }) });
+        const updated = result.match;
+        for (const player of updated.stats || []) {
+          const previous = match.stats.find(item => String(item.playerId || item.email || item.name) === String(player.playerId || player.email || player.name));
+          const member = players.find(item => (player.playerId && [item.serverId, item.authUserId, item.id].some(value => value != null && String(value) === String(player.playerId))) || (player.email && String(item.email || '').toLowerCase() === String(player.email).toLowerCase()));
+          if (member && previous) for (const key of ['goals','assists','saves']) member[key] = Math.max(0, (Number(member[key]) || 0) - (Number(previous[key]) || 0) + (Number(player[key]) || 0));
+        }
+        const index = matchHistory.findIndex(item => String(item.id) === String(match.id)); if (index >= 0) matchHistory[index] = updated;
+        saveState(); renderTeamDraws(); renderMatchHistory(); renderRanking(); renderEAFCCardsGrid(); renderProfile(); renderVotingSection(); refreshAdminAuditLog();
+        alert(`Resultado corrigido para ${scoreA} × ${scoreB}. A versão anterior foi registrada no histórico ADM.`);
+      } catch (error) { alert(`Não foi possível corrigir o resultado: ${error.message}`); }
     }
 
     function updateAdminBabaDayControls() {
@@ -2667,13 +2805,14 @@
       const date = document.getElementById('adminMatchDate')?.value || localDateKey();
       const games = matchHistory.filter(match => match.gameDay === date && match.votingOpen === true);
       if (!games.length) return alert('Não há votação aberta para esta data.');
-      if (!confirm(`Encerrar a votação do baba de ${new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR')}? Depois disso, ninguém poderá enviar novas avaliações.`)) return;
       try {
-        await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/finish-voting`, { method: 'PUT', body: '{}' });
+        const counts = await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/voting-summary`);
+        if (!confirm(`Encerrar a votação do baba de ${new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR')}? Foram recebidas ${counts.evaluations} avaliações de ${counts.voters} jogadores. Depois de encerrar, ninguém poderá enviar novas avaliações.`)) return;
+        const closed = await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/finish-voting`, { method: 'PUT', body: '{}' });
         matchHistory.filter(match => match.gameDay === date).forEach(match => { match.votingOpen = false; });
         saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory();
         const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Votação encerrada para ${games.length} jogo(s) do dia ${date}.`;
-        alert('Votação encerrada. As avaliações registradas foram mantidas.');
+        alert(`Votação encerrada. ${closed.evaluations} avaliações de ${closed.voters} jogadores foram mantidas.`);
       } catch (error) { alert(`Não foi possível encerrar a votação: ${error.message}`); }
     }
 
@@ -2849,6 +2988,7 @@
         if (latestDate) games = matchHistory.filter(match => match.gameDay === latestDate);
       }
       container.replaceChildren();
+      const dayShare = document.getElementById('shareBabaDayBtn'); if (dayShare) dayShare.classList.toggle('hidden', games.length === 0);
       if (games.length === 0) {
         container.innerHTML = '<p class="text-xs text-gray-500 italic">Nenhum resultado salvo para este dia.</p>';
         return;
@@ -2879,6 +3019,20 @@
       const text = lines.join('\n');
       try { if (navigator.share) await navigator.share({ title: 'Resumo do baba Futmancos', text }); else { await navigator.clipboard.writeText(text); alert('Resumo copiado. Cole em uma conversa para compartilhar.'); } }
       catch (error) { if (error.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); alert('Resumo copiado para compartilhar.'); } catch { alert(text); } } }
+    }
+    async function shareBabaDayReport() {
+      const summaryDate = loggedUser?.isAdmin ? (document.getElementById('adminMatchDate')?.value || activeBabaDate) : activeBabaDate;
+      let games = matchHistory.filter(match => match.gameDay === summaryDate);
+      if (!loggedUser?.isAdmin && !games.length) games = matchesForLatestDay();
+      if (!games.length) return alert('Não há resultados para compartilhar neste dia.');
+      const lines = [`FUTMANCOS · RELATÓRIO DO BABA`, new Date(`${games[0].gameDay || summaryDate}T12:00:00`).toLocaleDateString('pt-BR'), `${games.length} jogo(s)`];
+      games.forEach((match, index) => {
+        const stats = Array.isArray(match.stats) ? match.stats : [];
+        lines.push('', `JOGO ${index + 1}`, `TIME VERDE ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0} TIME PRETO`, `Vencedor: ${match.winner === 'draw' ? 'Empate' : match.winner === 'A' ? 'Time Verde' : match.winner === 'B' ? 'Time Preto' : 'não informado'}`, `Goleiros: ${stats.filter(player => player.isKeeper).map(player => `${player.name} (${player.team === 'A' ? 'Verde' : 'Preto'})`).join(', ') || 'não informados'}`, `Verde: ${(match.teamA || []).join(', ')}`, `Preto: ${(match.teamB || []).join(', ')}`, 'Estatísticas:', ...stats.map(player => `${player.name}: ${player.goals || 0} gols, ${player.assists || 0} assistências, ${player.saves || 0} defesas`));
+      });
+      const text = lines.join('\n');
+      try { if (navigator.share) await navigator.share({ title: 'Relatório do baba Futmancos', text }); else { await navigator.clipboard.writeText(text); alert('Relatório do dia copiado para compartilhar.'); } }
+      catch (error) { if (error.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); alert('Relatório copiado para compartilhar.'); } catch { alert(text); } } }
     }
 
     function renderProfile() {
@@ -3038,22 +3192,57 @@
     }
     async function refreshAdminAuditLog() {
       if (!loggedUser?.isAdmin) return;
-      const box = document.getElementById('adminAuditLog');
-      if (!box) return;
-      const labels = { member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' };
       try {
         const { entries = [] } = await apiRequest('/admin/audit-log');
-        box.replaceChildren();
-        if (!entries.length) { box.textContent = 'Ainda não há ações registradas.'; return; }
-        entries.forEach(entry => {
-          const row = document.createElement('article'); row.className = 'bg-black/40 border border-gray-800 rounded-xl p-3';
-          const title = document.createElement('strong'); title.className = 'block text-xs text-white'; title.textContent = labels[entry.action] || entry.action;
-          const details = document.createElement('p'); details.className = 'mt-1 text-xs text-gray-300'; details.textContent = entry.summary || '';
-          const meta = document.createElement('p'); meta.className = 'mt-1 text-[10px] text-gray-500';
-          meta.textContent = `${entry.actor_name || 'Administrador'} · ${entry.created_at ? new Date(entry.created_at).toLocaleString('pt-BR') : 'Horário indisponível'}`;
-          row.append(title, details, meta); box.append(row);
-        });
-      } catch (error) { box.textContent = `Não foi possível carregar o histórico: ${error.message || error}`; }
+        adminAuditEntries = entries;
+        const actions = [...new Set(entries.map(entry => entry.action).filter(Boolean))].sort();
+        const actors = [...new Set(entries.map(entry => entry.actor_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        const fill = (id, values, firstLabel, labelFor = value => value) => { const select = document.getElementById(id); if (!select) return; const previous = select.value; select.replaceChildren(new Option(firstLabel, '')); values.forEach(value => select.add(new Option(labelFor(value), value))); select.value = values.includes(previous) ? previous : ''; };
+        fill('auditFilterActor', actors, 'Todos'); fill('auditFilterAction', actions, 'Todos', auditActionLabel);
+        renderAdminAuditLog();
+      } catch (error) { const box = document.getElementById('adminAuditLog'); if (box) box.textContent = `Não foi possível carregar o histórico: ${error.message || error}`; }
+    }
+    function getFilteredAdminAuditEntries() {
+      const from = document.getElementById('auditFilterFrom')?.value || '', to = document.getElementById('auditFilterTo')?.value || '';
+      const actor = document.getElementById('auditFilterActor')?.value || '', action = document.getElementById('auditFilterAction')?.value || '';
+      const dayInSaoPaulo = value => value ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value)) : '';
+      return adminAuditEntries.filter(entry => {
+        const day = dayInSaoPaulo(entry.created_at);
+        return (!from || day >= from) && (!to || day <= to) && (!actor || entry.actor_name === actor) && (!action || entry.action === action);
+      });
+    }
+    function auditActionLabel(action) {
+      return ({ member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
+    }
+    function renderAdminAuditLog() {
+      const box = document.getElementById('adminAuditLog'); if (!box) return;
+      const entries = getFilteredAdminAuditEntries(); box.replaceChildren();
+      if (!entries.length) { box.textContent = adminAuditEntries.length ? 'Nenhum registro corresponde aos filtros.' : 'Ainda não há ações registradas.'; return; }
+      entries.forEach(entry => {
+        const row = document.createElement('article'); row.className = 'bg-black/40 border border-gray-800 rounded-xl p-3';
+        const title = document.createElement('strong'); title.className = 'block text-xs text-white'; title.textContent = auditActionLabel(entry.action);
+        const summary = document.createElement('p'); summary.className = 'mt-1 text-xs text-gray-300'; summary.textContent = entry.summary || '';
+        const meta = document.createElement('p'); meta.className = 'mt-1 text-[10px] text-gray-500'; meta.textContent = `${entry.actor_name || 'Administrador'} · ${entry.created_at ? new Date(entry.created_at).toLocaleString('pt-BR') : 'Horário indisponível'}`;
+        row.append(title, summary, meta);
+        if (entry.action === 'match_result_corrected' && entry.details?.oldResult && entry.details?.newResult) {
+          const resultText = result => `${Number(result.scoreA) || 0} × ${Number(result.scoreB) || 0} · ${result.winner === 'draw' ? 'Empate' : result.winner === 'A' ? 'Venceu Verde' : 'Venceu Preto'} · ${(result.players || []).map(player => `${player.name}: ${player.goals || 0}G/${player.assists || 0}A/${player.saves || 0}D`).join(', ')}`;
+          const fold = document.createElement('details'); fold.className = 'mt-2 text-[10px] text-gray-300';
+          const label = document.createElement('summary'); label.className = 'cursor-pointer text-sky-300'; label.textContent = 'Ver valores anteriores e corrigidos';
+          const before = document.createElement('p'); before.className = 'mt-1'; before.textContent = `Antes: ${resultText(entry.details.oldResult)}`;
+          const after = document.createElement('p'); after.className = 'mt-1'; after.textContent = `Depois: ${resultText(entry.details.newResult)}`;
+          fold.append(label, before, after); row.append(fold);
+        }
+        box.append(row);
+      });
+    }
+    function exportAdminAuditLog() {
+      if (!loggedUser?.isAdmin) return;
+      const entries = getFilteredAdminAuditEntries();
+      if (!entries.length) return alert('Não há registros nos filtros selecionados para exportar.');
+      const cells = [['Data e hora','Administrador','Ação','Resumo','Detalhes'], ...entries.map(entry => [entry.created_at ? new Date(entry.created_at).toLocaleString('pt-BR') : '', entry.actor_name || '', auditActionLabel(entry.action), entry.summary || '', JSON.stringify(entry.details || {})])];
+      const csv = '\uFEFF' + cells.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a'); link.href = url; link.download = `futmancos-auditoria-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     async function refreshAdminGuests() {
       if (!loggedUser?.isAdmin) return;

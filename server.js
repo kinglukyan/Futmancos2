@@ -634,6 +634,65 @@ app.put('/api/admin/baba/draws/:id/finalize', authenticate, requireAdmin, requir
     res.json({ ok: true, draw: { ...drawData, id, gameDay: row.game_day, finalized: true }, match });
   } catch (error) { next(error); }
 });
+app.put('/api/admin/baba/draws/:id/correct', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const id = String(req.params.id || ''), winner = String(req.body?.winner || ''), stats = req.body?.stats;
+  if (!['A', 'B', 'draw'].includes(winner) || !Array.isArray(stats)) return res.status(400).json({ error: 'Escolha o vencedor e informe as estatísticas corrigidas.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('baba_draws').select('id,game_day,draw_data,finalized,draw_order').eq('id', id).maybeSingle();
+    if (readError) throw readError;
+    if (!row) return res.status(404).json({ error: 'Sorteio não encontrado.' });
+    if (!row.finalized) return res.status(409).json({ error: 'Finalize o resultado antes de corrigi-lo.' });
+    const oldPlayers = row.draw_data?.players || [];
+    const statsById = new Map(stats.map(item => [String(item.userId), item]));
+    if (statsById.size !== oldPlayers.length || oldPlayers.some(player => !statsById.has(String(player.userId)))) return res.status(400).json({ error: 'Informe gols, assistências e defesas de todos os jogadores desta partida.' });
+    const players = oldPlayers.map(player => {
+      const item = statsById.get(String(player.userId));
+      return { ...player, goals: Math.min(99, Math.max(0, Math.floor(Number(item.goals) || 0))), assists: Math.min(99, Math.max(0, Math.floor(Number(item.assists) || 0))), saves: Math.min(999, Math.max(0, Math.floor(Number(item.saves) || 0))) };
+    });
+    const scoreA = players.filter(player => player.team === 'A').reduce((sum, player) => sum + player.goals, 0);
+    const scoreB = players.filter(player => player.team === 'B').reduce((sum, player) => sum + player.goals, 0);
+    const date = new Date(`${row.game_day}T12:00:00`).toLocaleDateString('pt-BR');
+    const drawData = { ...row.draw_data, players, winner, scoreA, scoreB };
+    const { data: matchRow, error: matchReadError } = await supabase.from('baba_matches').select('game_data,voting_open').eq('id', id).maybeSingle();
+    if (matchReadError) throw matchReadError;
+    const match = {
+      ...(matchRow?.game_data || {}), id, gameDay: row.game_day, date, scoreA, scoreB, winner,
+      teamA: players.filter(player => player.team === 'A').map(player => player.name),
+      teamB: players.filter(player => player.team === 'B').map(player => player.name),
+      checkedInIds: players.map(player => player.userId), checkedInEmails: players.map(player => player.email),
+      checkedInPlayersData: players.map(player => ({ email: player.email, name: player.name, pos: player.position })),
+      stats: players.map(({ userId, email, name, team, goals, assists, saves, isKeeper, position }) => ({ playerId: userId, email, name, team, goals, assists, saves, isKeeper, position })),
+      votingOpen: !!matchRow?.voting_open, drawOrder: row.draw_order
+    };
+
+    const { error: drawError } = await supabase.from('baba_draws').update({ draw_data: drawData }).eq('id', id).eq('finalized', true);
+    if (drawError) throw drawError;
+    const { error: matchError } = await supabase.from('baba_matches').upsert({ id, game_day: row.game_day, game_data: match, voting_open: !!matchRow?.voting_open }, { onConflict: 'id' });
+    if (matchError) throw matchError;
+
+    const { data: stateRow, error: stateReadError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (stateReadError) throw stateReadError;
+    if (stateRow?.state_json) {
+      const state = stateRow.state_json;
+      const roster = Array.isArray(state.players) ? state.players : [];
+      const oldById = new Map(oldPlayers.map(player => [String(player.userId), player]));
+      for (const corrected of players) {
+        const rosterPlayer = roster.find(player => [player.serverId, player.authUserId, player.id].some(value => value != null && String(value) === String(corrected.userId)) || (!!corrected.email && String(player.email || '').toLowerCase() === String(corrected.email).toLowerCase()));
+        if (!rosterPlayer) continue;
+        const previous = oldById.get(String(corrected.userId));
+        for (const key of ['goals', 'assists', 'saves']) rosterPlayer[key] = Math.max(0, (Number(rosterPlayer[key]) || 0) - (Number(previous?.[key]) || 0) + (Number(corrected[key]) || 0));
+      }
+      const { error: stateError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+      if (stateError) throw stateError;
+    }
+
+    const snapshot = result => ({ winner: result.winner, scoreA: result.scoreA, scoreB: result.scoreB, players: result.players.map(player => ({ id: player.userId, name: player.name, team: player.team, goals: player.goals, assists: player.assists, saves: player.saves })) });
+    const oldSummary = snapshot({ winner: row.draw_data.winner, scoreA: row.draw_data.scoreA, scoreB: row.draw_data.scoreB, players: oldPlayers });
+    const newSummary = snapshot(drawData);
+    await auditAdminAction(req.user, 'match_result_corrected', 'baba_draw', id, `Resultado corrigido em ${row.game_day}: ${Number(oldSummary.scoreA) || 0} × ${Number(oldSummary.scoreB) || 0} → ${scoreA} × ${scoreB}.`, { gameDay: row.game_day, oldResult: oldSummary, newResult: newSummary });
+    res.json({ ok: true, draw: { ...drawData, id, gameDay: row.game_day, drawOrder: row.draw_order, finalized: true }, match });
+  } catch (error) { next(error); }
+});
 app.post('/api/admin/baba/matches', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   const match = req.body?.match;
   if (!match || !match.id || !validDate(match.gameDay)) return res.status(400).json({ error: 'Informe uma partida e uma data válidas.' });
@@ -644,6 +703,46 @@ app.post('/api/admin/baba/matches', authenticate, requireAdmin, requireDatabase,
     if (error) throw error;
     await auditAdminAction(req.user, 'match_result_recorded', 'baba_match', match.id, `Resultado salvo para ${match.gameDay}: ${Number(match.scoreA) || 0} × ${Number(match.scoreB) || 0}.`, { gameDay: match.gameDay, scoreA: Number(match.scoreA) || 0, scoreB: Number(match.scoreB) || 0, teamA: match.teamA || [], teamB: match.teamB || [] });
     res.json({ ok: true, id: String(match.id) });
+  } catch (error) { next(error); }
+});
+app.put('/api/admin/baba/matches/:id/correct', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const id = String(req.params.id || ''), winner = String(req.body?.winner || ''), stats = req.body?.stats;
+  if (!['A', 'B', 'draw'].includes(winner) || !Array.isArray(stats)) return res.status(400).json({ error: 'Escolha o vencedor e informe as estatísticas corrigidas.' });
+  try {
+    const { data: draw } = await supabase.from('baba_draws').select('id').eq('id', id).maybeSingle();
+    if (draw) return res.status(409).json({ error: 'Este resultado pertence ao sorteador. Atualize a página e use a correção do sorteio.' });
+    const { data: row, error: readError } = await supabase.from('baba_matches').select('id,game_day,game_data,voting_open').eq('id', id).maybeSingle();
+    if (readError) throw readError;
+    if (!row) return res.status(404).json({ error: 'Partida não encontrada.' });
+    const oldMatch = row.game_data || {}, oldStats = Array.isArray(oldMatch.stats) ? oldMatch.stats : [];
+    if (!oldStats.length) return res.status(409).json({ error: 'Esta partida não possui estatísticas individuais para corrigir.' });
+    const keyFor = item => String(item.playerId ?? item.userId ?? item.email ?? item.name ?? '');
+    const statsByKey = new Map(stats.map(item => [keyFor(item), item]));
+    if (statsByKey.size !== oldStats.length || oldStats.some(item => !statsByKey.has(keyFor(item)))) return res.status(400).json({ error: 'Informe gols, assistências e defesas de todos os jogadores.' });
+    const nextStats = oldStats.map(player => {
+      const item = statsByKey.get(keyFor(player));
+      return { ...player, goals: Math.min(99, Math.max(0, Math.floor(Number(item.goals) || 0))), assists: Math.min(99, Math.max(0, Math.floor(Number(item.assists) || 0))), saves: Math.min(999, Math.max(0, Math.floor(Number(item.saves) || 0))) };
+    });
+    const scoreA = nextStats.filter(player => player.team === 'A').reduce((sum, player) => sum + player.goals, 0);
+    const scoreB = nextStats.filter(player => player.team === 'B').reduce((sum, player) => sum + player.goals, 0);
+    const nextMatch = { ...oldMatch, id, gameDay: row.game_day, scoreA, scoreB, winner, stats: nextStats, votingOpen: !!row.voting_open };
+    const { error: updateError } = await supabase.from('baba_matches').update({ game_data: nextMatch }).eq('id', id);
+    if (updateError) throw updateError;
+    const { data: stateRow, error: stateReadError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (stateReadError) throw stateReadError;
+    if (stateRow?.state_json) {
+      const state = stateRow.state_json, roster = Array.isArray(state.players) ? state.players : [];
+      for (const player of nextStats) {
+        const previous = oldStats.find(item => keyFor(item) === keyFor(player));
+        const member = roster.find(item => (player.playerId && [item.serverId, item.authUserId, item.id].some(value => value != null && String(value) === String(player.playerId))) || (player.email && String(item.email || '').toLowerCase() === String(player.email).toLowerCase()));
+        if (member) for (const key of ['goals', 'assists', 'saves']) member[key] = Math.max(0, (Number(member[key]) || 0) - (Number(previous?.[key]) || 0) + (Number(player[key]) || 0));
+      }
+      const { error: stateError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+      if (stateError) throw stateError;
+    }
+    const summary = match => ({ winner: match.winner, scoreA: Number(match.scoreA) || 0, scoreB: Number(match.scoreB) || 0, stats: match.stats.map(player => ({ playerId: player.playerId, email: player.email, name: player.name, team: player.team, goals: Number(player.goals) || 0, assists: Number(player.assists) || 0, saves: Number(player.saves) || 0 })) });
+    await auditAdminAction(req.user, 'match_result_corrected', 'baba_match', id, `Resultado corrigido em ${row.game_day}: ${Number(oldMatch.scoreA) || 0} × ${Number(oldMatch.scoreB) || 0} → ${scoreA} × ${scoreB}.`, { gameDay: row.game_day, oldResult: summary(oldMatch), newResult: summary(nextMatch) });
+    res.json({ ok: true, match: nextMatch });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -666,17 +765,30 @@ app.put('/api/admin/baba/matches/:date/finish-voting', authenticate, requireAdmi
   const date = String(req.params.date || '');
   if (!validDate(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
   try {
+    const { data: votes, error: votesError } = await supabase.from('baba_votes').select('voter_id').eq('game_day', date);
+    if (votesError) throw votesError;
+    const evaluations = votes?.length || 0, voters = new Set((votes || []).map(vote => vote.voter_id)).size;
     const { data, error } = await supabase.from('baba_matches').update({ voting_open: false }).eq('game_day', date).eq('voting_open', true).select('id');
     if (error) throw error;
     if (!data?.length) return res.status(409).json({ error: 'Não há votação aberta para essa data.' });
-    await auditAdminAction(req.user, 'voting_closed', 'baba_day', date, `Votação pós-baba encerrada para ${date}.`, { gameDay: date, games: data.length });
-    res.json({ ok: true, games: data.length });
+    await auditAdminAction(req.user, 'voting_closed', 'baba_day', date, `Votação pós-baba encerrada para ${date}: ${evaluations} avaliações de ${voters} jogadores.`, { gameDay: date, games: data.length, evaluations, voters });
+    res.json({ ok: true, games: data.length, evaluations, voters });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/admin/baba/matches/:date/voting-summary', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const date = String(req.params.date || '');
+  if (!validDate(date)) return res.status(400).json({ error: 'Informe uma data válida.' });
+  try {
+    const { data: votes, error } = await supabase.from('baba_votes').select('voter_id').eq('game_day', date);
+    if (error) throw error;
+    res.json({ evaluations: votes?.length || 0, voters: new Set((votes || []).map(vote => vote.voter_id)).size });
   } catch (error) { next(error); }
 });
 
 app.get('/api/admin/audit-log', authenticate, requireAdmin, requireDatabase, async (_req, res, next) => {
   try {
-    const { data, error } = await supabase.from('admin_audit_logs').select('id,actor_name,action,entity_type,entity_id,summary,details,created_at').order('created_at', { ascending: false }).limit(100);
+    const { data, error } = await supabase.from('admin_audit_logs').select('id,actor_id,actor_name,action,entity_type,entity_id,summary,details,created_at').order('created_at', { ascending: false }).limit(1000);
     if (error) throw error;
     res.json({ entries: data || [] });
   } catch (error) { next(error); }
