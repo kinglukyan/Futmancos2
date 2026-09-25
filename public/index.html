@@ -84,8 +84,8 @@
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-foot-icons { position:relative; z-index:6; display:flex; justify-content:center; align-items:center; gap:4px; height:22px; margin-top:2px; }
-    .rank-foot-icon { width:13px; height:21px; color:#aab3b7; opacity:.72; }
-    .rank-foot-icon.dominant { color:var(--rank-light); opacity:1; filter:drop-shadow(0 0 4px var(--rank-glow)); }
+    .rank-foot-icon { display:block; width:13px; height:21px; background-color:#aab3b7; opacity:.72; -webkit-mask:url('/assets/footprint-mask.png') center / contain no-repeat; mask:url('/assets/footprint-mask.png') center / contain no-repeat; }
+    .rank-foot-icon.dominant { background-color:var(--rank-light); opacity:1; filter:drop-shadow(0 0 4px var(--rank-glow)); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
@@ -1328,7 +1328,7 @@
     function playerFootCardLabel(foot) { return foot === 'Direita' ? 'DIR.' : foot === 'Esquerda' ? 'ESQ.' : foot === 'Ambidestro' ? 'AMB.' : '—'; }
     function playerFootIconsMarkup(foot) {
       const isDominant = side => foot === 'Ambidestro' || (foot === 'Direita' && side === 'right') || (foot === 'Esquerda' && side === 'left');
-      const icon = (side, flip) => `<svg class="rank-foot-icon ${isDominant(side) ? 'dominant' : ''}" style="transform:scaleX(${flip ? -1 : 1})" viewBox="0 0 24 42" fill="currentColor" role="img" aria-label="Pé ${side === 'right' ? 'direito' : 'esquerdo'}${isDominant(side) ? ', dominante' : ', não dominante'}"><path d="M11.1 41c-4.9 0-7.6-2.5-7.6-6.3 0-3.5 2.3-6.6 3.1-10.5.6-3.2.3-7.4.8-11.3C7.9 8.1 9 4.7 10.5 2.3c1-1.6 2.5-1.5 3.2.2.5 1.2.6 2.5.7 3.8 1.2-3.3 2.4-4.8 3.8-4.1 1.3.6 1.1 2.7.7 4.8 1.1-2.7 2.4-3.5 3.4-2.4 1.1 1.2.3 3.6-.5 5.7 1-1.3 2.1-1.5 2.9-.3 1.1 1.8-1.1 5.2-2.3 7.1-.8 1.3-.9 3.5-.4 6.1.9 5.1 3.3 9.3 1.5 13-1.5 3.1-6.6 4.8-12.4 4.8h-.1Z"/></svg>`;
+      const icon = (side, flip) => `<span class="rank-foot-icon ${isDominant(side) ? 'dominant' : ''}" style="transform:scaleX(${flip ? -1 : 1})" role="img" aria-label="Pé ${side === 'right' ? 'direito' : 'esquerdo'}${isDominant(side) ? ', dominante' : ', não dominante'}"></span>`;
       return `<span class="rank-foot-icons" aria-label="Pé dominante e não dominante">${icon('left', false)}${icon('right', true)}</span>`;
     }
     function playerHeightCardLabel(height) { return Number(height) > 0 ? `${Number(height).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m` : '—'; }
