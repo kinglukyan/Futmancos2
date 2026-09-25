@@ -72,9 +72,11 @@
     .rank-card { --rank-main:#54b85b; --rank-light:#b8f1a9; --rank-deep:#183a22; --rank-glow:rgba(76,175,80,.3); --rank-hue:75deg; position:relative; isolation:isolate; background:linear-gradient(150deg,color-mix(in srgb,var(--rank-main) 24%,#17201b),#0a0e0c 48%,color-mix(in srgb,var(--rank-deep) 60%,#090c0a)); border:1px solid var(--rank-main); box-shadow:0 10px 28px rgba(0,0,0,.35),0 0 20px var(--rank-glow); }
     .rank-card::before { content:""; position:absolute; inset:6px; border:1px solid color-mix(in srgb,var(--rank-main) 65%,transparent); border-radius:12px; pointer-events:none; z-index:-1; }
     .rank-card::after { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg,color-mix(in srgb,var(--rank-main) 15%,transparent),transparent 42%); pointer-events:none; z-index:-1; }
-    .rank-card-backdrop { position:absolute; inset:0; z-index:-1; overflow:hidden; border-radius:inherit; pointer-events:none; }
-    .rank-card-backdrop::before { content:""; position:absolute; inset:-5%; background:url('/assets/logo-futmancos.jpeg') center 48%/92% auto no-repeat; filter:grayscale(1) sepia(1) hue-rotate(var(--rank-hue)) saturate(2.8) blur(1.5px); opacity:.18; mix-blend-mode:screen; transform:scale(1.04); }
-    .rank-card-backdrop::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg,transparent 0 5px,rgba(255,255,255,.025) 5px 6px),repeating-linear-gradient(45deg,transparent 0 13px,rgba(0,0,0,.08) 13px 14px),radial-gradient(ellipse at 50% 36%,rgba(255,255,255,.09),transparent 68%); opacity:.72; mix-blend-mode:soft-light; }
+    .rank-card-backdrop { position:absolute; inset:0; z-index:0; overflow:hidden; border-radius:inherit; pointer-events:none; }
+    .rank-card > :not(.rank-card-backdrop) { position:relative; z-index:2; }
+    .rank-card > .absolute { position:absolute; z-index:3; }
+    .rank-card-backdrop::before { content:""; position:absolute; inset:-5%; background:url('/assets/logo-futmancos.jpeg') center 48%/88% auto no-repeat; filter:grayscale(1) sepia(1) hue-rotate(var(--rank-hue)) saturate(3.2) blur(2px); opacity:.27; mix-blend-mode:screen; transform:scale(1.04); }
+    .rank-card-backdrop::after { content:""; position:absolute; inset:0; background:url('/assets/card-texture.png') center/cover no-repeat,repeating-linear-gradient(135deg,transparent 0 5px,rgba(255,255,255,.025) 5px 6px),radial-gradient(ellipse at 50% 36%,rgba(255,255,255,.08),transparent 68%); filter:grayscale(1) sepia(.85) hue-rotate(var(--rank-hue)) saturate(2.4); opacity:.18; mix-blend-mode:soft-light; }
     .rank-bronze { --rank-main:#54b85b; --rank-light:#c7f5b4; --rank-deep:#24472a; --rank-glow:rgba(77,190,86,.28); --rank-hue:75deg; }
     .rank-silver { --rank-main:#bdcbd5; --rank-light:#f2fbff; --rank-deep:#425567; --rank-glow:rgba(180,210,230,.3); --rank-hue:165deg; }
     .rank-gold { --rank-main:#edbd45; --rank-light:#fff1a6; --rank-deep:#76501a; --rank-glow:rgba(242,183,46,.34); --rank-hue:350deg; }
@@ -82,7 +84,7 @@
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
-    .rank-player-cutout { position:absolute; z-index:1; top:-24px; left:50%; width:250px; height:205px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
+    .rank-player-cutout { position:absolute; z-index:1; top:-28px; left:50%; width:270px; height:192px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-name, .rank-player-stats { position:relative; z-index:2; }
     @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
 
@@ -2565,12 +2567,12 @@
                 <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
               </div>
               <div class="text-right">
-                <span class="font-teko text-2xl font-bold text-gray-300">#${p.shirt}</span>
+                <span class="font-teko text-2xl font-bold text-gray-300">${p.shirt}</span>
               </div>
             </div>
 
             <!-- PNG transparente em destaque; o espaço dos atributos permanece igual. -->
-            <div class="rank-player-stage my-2 relative flex h-32 justify-center">${playerPhotoMarkup}</div>
+            <div class="rank-player-stage my-2 relative flex h-40 justify-center">${playerPhotoMarkup}</div>
 
             <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
               <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>
@@ -3330,12 +3332,12 @@
                 <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
               </div>
               <div class="text-right">
-                <span class="font-teko text-2xl font-bold text-gray-300">#${p.shirt}</span>
+                <span class="font-teko text-2xl font-bold text-gray-300">${p.shirt}</span>
               </div>
             </div>
 
             <!-- PNG transparente em destaque; o espaço dos atributos permanece igual. -->
-            <div class="rank-player-stage my-2 relative flex h-32 justify-center">${playerPhotoMarkup}</div>
+            <div class="rank-player-stage my-2 relative flex h-40 justify-center">${playerPhotoMarkup}</div>
 
             <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
               <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>

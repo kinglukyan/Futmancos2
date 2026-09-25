@@ -1,5 +1,5 @@
-const CACHE_NAME = 'futmancos-shell-v10';
-const APP_SHELL = ['/', '/offline.html', '/manifest.webmanifest', '/assets/app-icon-192.png', '/assets/app-icon-512.png', '/assets/apple-touch-icon.png', '/assets/logo-futmancos.jpeg'];
+const CACHE_NAME = 'futmancos-shell-v11';
+const APP_SHELL = ['/', '/offline.html', '/manifest.webmanifest', '/assets/app-icon-192.png', '/assets/app-icon-512.png', '/assets/apple-touch-icon.png', '/assets/logo-futmancos.jpeg', '/assets/card-texture.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
