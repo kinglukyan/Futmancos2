@@ -83,7 +83,7 @@
     .rank-card .rank-accent { color:var(--rank-light); }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
-    .rank-player-cutout { position:absolute; z-index:1; top:-28px; left:50%; width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
+    .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
     .rank-player-name, .rank-player-stats { position:relative; z-index:2; }
     @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
@@ -635,6 +635,29 @@
         <p class="text-xs text-gray-400">Elos por OVR: Bronze/Verde (60–69), Prata (70–79), Ouro (80–89) e Escarlate (90–99).</p>
       </div>
 
+      <div id="cardImageEditor" class="hidden max-w-3xl mx-auto w-full rounded-2xl border border-amber-500/30 bg-brand-cardBg p-4 space-y-3">
+        <div><h3 class="font-teko text-xl text-amber-300">AJUSTAR IMAGEM DA CARTINHA</h3><p class="text-xs text-gray-400">Escolha o jogador e ajuste a imagem vendo a prévia na carta. As mudanças ficam visíveis para todos.</p></div>
+        <label class="block text-xs text-gray-400">Jogador
+          <select id="cardImagePlayerSelect" onchange="selectCardImagePlayer(this.value)" class="mt-1 w-full sm:max-w-sm bg-black border border-gray-700 rounded-xl p-2 text-white"></select>
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="text-xs text-gray-300">Tamanho: <span id="cardImageScaleValue">100%</span>
+            <input id="cardImageScale" type="range" min="70" max="160" value="100" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
+          </label>
+          <label class="text-xs text-gray-300">Horizontal: <span id="cardImageXValue">0</span>
+            <input id="cardImageX" type="range" min="-60" max="60" value="0" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
+          </label>
+          <label class="text-xs text-gray-300">Vertical: <span id="cardImageYValue">0</span>
+            <input id="cardImageY" type="range" min="-80" max="80" value="0" oninput="previewCardImageAdjustment()" class="mt-2 w-full accent-amber-400">
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="saveCardImageAdjustment()" class="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black">Salvar ajuste</button>
+          <button type="button" onclick="resetCardImageAdjustment()" class="rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-white">Restaurar padrão</button>
+          <span id="cardImageEditorStatus" class="self-center text-xs text-emerald-300" aria-live="polite"></span>
+        </div>
+      </div>
+
       <div id="eafcCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center"></div>
     </section>
 
@@ -1158,6 +1181,8 @@
     let lastMatchLoserIds = [];
 
     let players = JSON.parse(localStorage.getItem('futmancos_players')) || [];
+    let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
+    let selectedCardImagePlayerId = '';
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
       { id: 1, name: 'Arena Futmancos', address: 'Rua dos Atletas, 100 - Feira de Santana' }
@@ -1248,6 +1273,7 @@
       localStorage.setItem('futmancos_monthly_fee', globalMonthlyFee);
       localStorage.setItem('futmancos_media_links', JSON.stringify(mediaLinks));
       localStorage.setItem('futmancos_gallery', JSON.stringify(associationGallery));
+      localStorage.setItem('futmancos_card_image_adjustments', JSON.stringify(cardImageAdjustments));
       localStorage.setItem('futmancos_baba_date', activeBabaDate);
       if (!applyingSharedState && sharedStateReady && loggedUser?.isAdmin) { sharedStateDirty = true; localStorage.setItem('futmancos_shared_state_pending', '1'); scheduleSharedStateSave(); }
     }
@@ -1257,7 +1283,7 @@
         players: players.map(({ pass, password, ...player }) => player), arenas, transactions,
         presentPlayers, checkedInPlayers, matchHistory, mediaLinks, monthlyFee: globalMonthlyFee,
         nextGame: JSON.parse(localStorage.getItem('futmancos_next_game') || 'null'),
-        associationGallery
+        associationGallery, cardImageAdjustments
       };
     }
     function scheduleSharedStateSave() {
@@ -1281,6 +1307,7 @@
       if (Array.isArray(state.checkedInPlayers)) checkedInPlayers = state.checkedInPlayers;
       if (state.mediaLinks && typeof state.mediaLinks === 'object') mediaLinks = state.mediaLinks;
       if (Array.isArray(state.associationGallery)) associationGallery = state.associationGallery;
+      if (state.cardImageAdjustments && typeof state.cardImageAdjustments === 'object') cardImageAdjustments = state.cardImageAdjustments;
       if (Number(state.monthlyFee) > 0) globalMonthlyFee = Number(state.monthlyFee);
       if (state.nextGame) {
         activeBabaDate = state.nextGame.date || activeBabaDate;
@@ -2540,6 +2567,65 @@
       catch (error) { alert(error.message); }
     }
 
+    function cardImageAdjustment(player) {
+      const saved = cardImageAdjustments[String(player?.id)] || {};
+      return { scale: Math.min(160, Math.max(70, Number(saved.scale) || 100)), x: Math.min(60, Math.max(-60, Number(saved.x) || 0)), y: Math.min(80, Math.max(-80, Number(saved.y) || 0)) };
+    }
+    function cardImageStyle(player) {
+      const adjustment = cardImageAdjustment(player);
+      return `--card-image-scale:${adjustment.scale / 100};--card-image-x:${adjustment.x}px;--card-image-y:${adjustment.y}px`;
+    }
+    function renderCardImageEditor() {
+      const editor = document.getElementById('cardImageEditor'), select = document.getElementById('cardImagePlayerSelect');
+      if (!editor || !select) return;
+      const cutoutPlayers = players.filter(player => isCutoutPlayerPhoto(player.photo));
+      editor.classList.toggle('hidden', !loggedUser?.isAdmin || !cutoutPlayers.length);
+      if (!loggedUser?.isAdmin || !cutoutPlayers.length) return;
+      if (!cutoutPlayers.some(player => encodeURIComponent(String(player.id)) === selectedCardImagePlayerId)) selectedCardImagePlayerId = encodeURIComponent(String(cutoutPlayers[0].id));
+      select.innerHTML = cutoutPlayers.map(player => `<option value="${encodeURIComponent(String(player.id))}">${String(player.name || 'Jogador').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}</option>`).join('');
+      select.value = selectedCardImagePlayerId;
+      const player = cutoutPlayers.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+      const adjustment = cardImageAdjustment(player);
+      document.getElementById('cardImageScale').value = adjustment.scale;
+      document.getElementById('cardImageX').value = adjustment.x;
+      document.getElementById('cardImageY').value = adjustment.y;
+      previewCardImageAdjustment();
+    }
+    function selectCardImagePlayer(value) {
+      selectedCardImagePlayerId = value;
+      renderCardImageEditor();
+      document.getElementById('cardImageEditorStatus').innerText = '';
+    }
+    function previewCardImageAdjustment() {
+      const scale = Number(document.getElementById('cardImageScale')?.value || 100);
+      const x = Number(document.getElementById('cardImageX')?.value || 0);
+      const y = Number(document.getElementById('cardImageY')?.value || 0);
+      document.getElementById('cardImageScaleValue').innerText = `${scale}%`;
+      document.getElementById('cardImageXValue').innerText = `${x}px`;
+      document.getElementById('cardImageYValue').innerText = `${y}px`;
+      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+      if (!player) return;
+      const style = `--card-image-scale:${scale / 100};--card-image-x:${x}px;--card-image-y:${y}px`;
+      document.querySelectorAll('.rank-player-cutout').forEach(image => { if (image.dataset.playerId === selectedCardImagePlayerId) image.style.cssText = style; });
+      document.getElementById('cardImageEditorStatus').innerText = 'Prévia ao vivo — salve para publicar para todos.';
+    }
+    function saveCardImageAdjustment() {
+      if (!loggedUser?.isAdmin) return alert('Somente ADM pode ajustar as cartinhas.');
+      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+      if (!player) return;
+      cardImageAdjustments[String(player.id)] = { scale: Number(document.getElementById('cardImageScale').value), x: Number(document.getElementById('cardImageX').value), y: Number(document.getElementById('cardImageY').value) };
+      saveState(); renderEAFCCardsGrid(); renderResenhaTab();
+      document.getElementById('cardImageEditorStatus').innerText = 'Ajuste salvo e publicado para todos.';
+    }
+    function resetCardImageAdjustment() {
+      if (!loggedUser?.isAdmin) return;
+      const player = players.find(item => encodeURIComponent(String(item.id)) === selectedCardImagePlayerId);
+      if (!player) return;
+      delete cardImageAdjustments[String(player.id)];
+      renderCardImageEditor(); previewCardImageAdjustment(); saveState(); renderEAFCCardsGrid(); renderResenhaTab();
+      document.getElementById('cardImageEditorStatus').innerText = 'Padrão restaurado e publicado para todos.';
+    }
+
     function renderResenhaTab() {
       document.getElementById('resenhaPresenceCount').innerText = presentPlayers.length;
 
@@ -2554,7 +2640,7 @@
         const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
         const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
         const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
-        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         containerTop3.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -3323,7 +3409,7 @@
         const cutoutPhoto = isCutoutPlayerPhoto(p.photo);
         const photoStyle = p.photo && !cutoutPhoto ? `style="background-image: url(${p.photo})"` : '';
         const photoContent = p.photo && !cutoutPhoto ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
-        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
+        const playerPhotoMarkup = cutoutPhoto ? `<img src="${p.photo}" alt="" class="rank-player-cutout" data-player-id="${encodeURIComponent(String(p.id))}" style="${cardImageStyle(p)}">` : `<div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)"><div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">${photoContent}</div></div>`;
 
         container.innerHTML += `
           <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
@@ -3359,6 +3445,7 @@
         `;
       });
 
+      renderCardImageEditor();
       lucide.createIcons();
     }
 
