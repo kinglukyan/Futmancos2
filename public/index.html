@@ -642,9 +642,15 @@
     </section>
 
     <!-- PLANO DE JOGO -->
-    <section id="sec-ranking" class="hidden space-y-4">
+    <section id="sec-ranking" class="hidden">
+      <details id="gamePlanAccordion" class="group rounded-2xl border border-amber-400/40 bg-brand-cardBg p-3 shadow-lg">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-2 py-2 [&::-webkit-details-marker]:hidden">
+          <span><strong class="block font-teko text-3xl text-amber-300">PLANO DE JOGO</strong><small class="text-xs text-gray-400">Formações, escalação, banco e soma de OVR</small></span>
+          <span class="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200"><span class="group-open:hidden">Abrir ＋</span><span class="hidden group-open:inline">Fechar −</span></span>
+        </summary>
+        <div class="mt-3 space-y-4 border-t border-gray-800 pt-4">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div><h2 class="font-teko text-3xl sm:text-4xl text-amber-300">PLANO DE JOGO</h2><p class="text-xs text-gray-400">Monte sua escalação arrastando as cartinhas para o campo. Fora da posição oficial, o OVR usado cai 30%.</p></div>
+        <div><p class="text-xs text-gray-400">Arraste as cartinhas para montar seu time. Fora da posição oficial, o OVR usado cai 30%.</p></div>
         <div class="rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-400/20 via-emerald-950 to-brand-cardBg p-3 shadow-[0_0_24px_rgba(245,196,0,.18)] sm:min-w-64">
           <label class="block text-[10px] font-black tracking-[.18em] text-amber-200" for="gamePlanFormation">ESCOLHA SUA FORMAÇÃO</label>
           <select id="gamePlanFormation" onchange="changeGamePlanFormation(this.value)" class="mt-1.5 w-full rounded-xl border border-amber-300 bg-black/80 px-3 py-2.5 text-base font-black text-amber-200 shadow-inner outline-none focus:ring-2 focus:ring-amber-300">
@@ -683,7 +689,7 @@
           <div class="rounded-2xl border border-sky-500/30 bg-brand-cardBg p-4 space-y-2">
             <div class="flex items-center justify-between gap-2"><h3 class="font-teko text-2xl text-sky-300">BANCO DE RESERVAS</h3><span id="gamePlanBenchCount" class="text-[10px] text-gray-400">0 jogadores</span></div>
             <p id="gamePlanSelectionHint" class="text-[10px] text-gray-400">Arraste uma cartinha para o campo ou toque nela para selecionar.</p>
-            <div id="gamePlanBench" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-2 max-h-[560px] overflow-y-auto pr-1"></div>
+            <div id="gamePlanBench" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event)" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-2 max-h-[560px] overflow-y-auto pr-1"></div>
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" onclick="saveGamePlan()" class="flex-1 rounded-xl bg-brand-green px-4 py-3 text-xs font-bold text-black">Salvar plano</button>
@@ -692,6 +698,8 @@
           <button type="button" onclick="clearGamePlan()" class="w-full rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-gray-200">Limpar escalação</button>
         </div>
       </div>
+        </div>
+      </details>
     </section>
 
     <!-- CARTINHAS -->
@@ -3486,22 +3494,22 @@
       if (!field || !bench) return;
       const formationSelect = document.getElementById('gamePlanFormation');
       if (formationSelect) formationSelect.value = gamePlanFormation;
-      document.getElementById('gamePlanFieldHint').innerText = gamePlanFormation === 'custom' ? 'Arraste os marcadores ↕ ou selecione um jogador e toque no campo. Ataque fica acima, defesa abaixo; o goleiro permanece fixo.' : 'Toque em uma cartinha e depois em uma posição para escalar pelo celular.';
+      document.getElementById('gamePlanFieldHint').innerText = gamePlanFormation === 'custom' ? 'Arraste o boneco para mover o jogador; arraste a área da posição para reposicioná-la. No celular, selecione e toque no campo. O goleiro fica fixo.' : 'Toque em uma cartinha e depois em uma posição para escalar pelo celular.';
       Object.entries(gamePlanSlots).forEach(([slot, id]) => { if (!gamePlanPlayer(id)) delete gamePlanSlots[slot]; });
       const rows = gamePlanRows(), assigned = new Set(Object.values(gamePlanSlots).map(String));
       field.className = gamePlanFormation === 'custom' ? 'absolute inset-0 z-10' : 'relative z-10 flex min-h-[560px] flex-col justify-around px-2 py-4 sm:px-5';
       field.innerHTML = rows.map(group => `<div class="${gamePlanFormation === 'custom' ? 'contents' : 'flex items-center justify-around gap-1 sm:gap-3'}">${group.slots.map(slot => {
         const id = gamePlanSlots[slot.id], player = id != null ? gamePlanPlayer(id) : null;
         const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? `style="left:${slot.id === 'gk' ? 50 : pos.x}%;top:${slot.id === 'gk' ? 88 : pos.y}%;transform:translate(-50%,-50%)"` : '';
-        if (!player) return `<div data-game-plan-slot="${slot.id}" role="button" tabindex="0" ${customStyle} aria-label="${label}, toque para posicionar jogador" onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span>${isCustomFieldSlot ? `<span draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')" onclick="event.stopPropagation()" class="absolute -right-1 -top-2 cursor-move rounded-full border border-amber-300 bg-black/80 px-1.5 text-[10px]">↕</span>` : ''}</div>`;
+        if (!player) return `<div data-game-plan-slot="${slot.id}" ${isCustomFieldSlot ? `draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')"` : ''} role="button" tabindex="0" ${customStyle} aria-label="${label}, toque para posicionar jogador" onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
         const mismatch = !gamePlanPositionMatches(player, role), picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
-        return `<div data-game-plan-slot="${slot.id}" ${customStyle} onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(player.name)}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(player.name)}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span></button><button type="button" onclick="event.stopPropagation();removeGamePlanPlayer('${slot.id}')" class="absolute right-1 top-1 z-10 rounded bg-black/60 px-1 text-[8px] text-gray-300" aria-label="Mover para o banco">×</button>${isCustomFieldSlot ? `<span draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')" onclick="event.stopPropagation()" class="absolute -right-1 -top-2 z-20 cursor-move rounded-full border border-amber-300 bg-black/80 px-1.5 text-[10px]">↕</span>` : ''}</div>`;
+        return `<div data-game-plan-slot="${slot.id}" ${isCustomFieldSlot ? `draggable="true" ondragstart="startGamePlanSlotDrag(event,'${slot.id}')"` : ''} ${customStyle} onclick="event.stopPropagation();clickGamePlanSlot('${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(player.name)}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(player.name)}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ' · −30%' : ''}</span></button></div>`;
       }).join('')}</div>`).join('');
 
       const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
       bench.innerHTML = available.length ? available.map(player => {
         const picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), rank = getCardRank(calcOVR(player));
-        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(player.name)}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
+        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" ondragover="event.preventDefault()" ondrop="dropGamePlanToBench(event,'${encodeURIComponent(String(player.id))}')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(player.name)}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
       }).join('') : '<p class="col-span-full py-5 text-center text-xs text-gray-500">Todos os jogadores estão escalados.</p>';
       document.getElementById('gamePlanCount').innerText = `${assigned.size} / 7`;
       document.getElementById('gamePlanBenchCount').innerText = `${available.length} jogador(es)`;
@@ -3511,7 +3519,7 @@
       document.getElementById('gamePlanTotal').innerText = String(totalOvr);
       document.getElementById('gamePlanAverage').innerText = active.length ? Math.round(totalOvr / active.length) : '—';
       document.getElementById('gamePlanOutOfPosition').innerText = active.filter(item => !gamePlanPositionMatches(item.player, item.role)).length;
-      document.getElementById('gamePlanSelectionHint').innerText = selectedGamePlanPlayerId ? `Selecionado: ${gamePlanEscape(gamePlanPlayer(selectedGamePlanPlayerId)?.name || 'jogador')}. Toque numa posição do campo.` : 'Arraste uma cartinha para o campo ou toque nela para selecionar.';
+      document.getElementById('gamePlanSelectionHint').innerText = selectedGamePlanPlayerId ? `Selecionado: ${gamePlanEscape(gamePlanPlayer(selectedGamePlanPlayerId)?.name || 'jogador')}. Toque numa posição do campo.` : 'Arraste do banco para o campo; arraste de volta para devolver ou faça a substituição sobre outra cartinha.';
       lucide.createIcons();
     }
     function renderRanking() { renderGamePlan(); }
@@ -3540,16 +3548,37 @@
       selectGamePlanSlotPlayer(slot);
     }
     function startGamePlanDrag(event, encodedId, originSlot) {
+      event.stopPropagation();
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', JSON.stringify({ id: gamePlanPlayerIdFromData(encodedId), originSlot }));
     }
     function dropGamePlanPlayer(event, targetSlot) {
       event.preventDefault();
+      const draggedMarker = event.dataTransfer.getData('application/x-futmancos-slot');
+      if (gamePlanFormation === 'custom' && draggedMarker) {
+        const rect = document.getElementById('gamePlanPitch').getBoundingClientRect();
+        updateCustomPosition(draggedMarker, (event.clientX - rect.left) / rect.width * 100, (event.clientY - rect.top) / rect.height * 100);
+        renderGamePlan(); return;
+      }
       try { const data = JSON.parse(event.dataTransfer.getData('text/plain')); placeGamePlanPlayer(String(data.id), targetSlot, data.originSlot); }
       catch { const id = gamePlanPlayerIdFromData(event.dataTransfer.getData('text/plain')); if (gamePlanPlayer(id)) placeGamePlanPlayer(String(id), targetSlot); }
     }
     function updateCustomPosition(slot, x, y) { if (!/^custom[1-6]$/.test(slot)) return; gamePlanCustomPositions[slot] = { x: Math.max(10, Math.min(90, x)), y: Math.max(10, Math.min(82, y)) }; }
     function startGamePlanSlotDrag(event, slot) { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-futmancos-slot', slot); }
+    function dropGamePlanToBench(event, encodedReserveId = '') {
+      event.preventDefault(); event.stopPropagation();
+      if (event.dataTransfer.getData('application/x-futmancos-slot')) return;
+      try {
+        const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+        const origin = data.originSlot || Object.keys(gamePlanSlots).find(slot => String(gamePlanSlots[slot]) === String(data.id));
+        if (!origin) return;
+        if (origin === 'gk' && gamePlanFormation === 'custom') { document.getElementById('gamePlanSelectionHint').innerText = 'O goleiro permanece fixo no campo no modo personalizado.'; return; }
+        const reserveId = encodedReserveId ? gamePlanPlayerIdFromData(encodedReserveId) : '';
+        if (reserveId && gamePlanPlayer(reserveId)) gamePlanSlots[origin] = String(reserveId);
+        else delete gamePlanSlots[origin];
+        selectedGamePlanPlayerId = ''; renderGamePlan();
+      } catch {}
+    }
     function clickGamePlanField(event) {
       if (gamePlanFormation !== 'custom' || event.target.closest('[data-game-plan-slot]')) return;
       const rect = event.currentTarget.getBoundingClientRect(), x = (event.clientX - rect.left) / rect.width * 100, y = (event.clientY - rect.top) / rect.height * 100;
@@ -3577,7 +3606,6 @@
       else if (!origin && targetPlayer != null) delete gamePlanSlots[targetSlot];
       gamePlanSlots[targetSlot] = String(id); selectedGamePlanPlayerId = ''; renderGamePlan();
     }
-    function removeGamePlanPlayer(slot) { delete gamePlanSlots[slot]; selectedGamePlanPlayerId = ''; renderGamePlan(); }
     function clearGamePlan() { if (!confirm('Limpar todos os jogadores escalados?')) return; gamePlanSlots = {}; selectedGamePlanPlayerId = ''; renderGamePlan(); }
     function gamePlanStorageKey() { return `futmancos_game_plan_${String(loggedUser?.id || loggedUser?.email || 'member')}`; }
     async function loadGamePlan() {
