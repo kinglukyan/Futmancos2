@@ -907,19 +907,21 @@
         <p class="text-xs text-gray-300">Os associados enviam o comprovante pelo WhatsApp. Confira o comprovante e use “Confirmar Pix” na lista de membros para registrar o pagamento do mês.</p>
       </div>
 
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div>
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-4">
+        <div class="max-w-3xl">
           <h3 class="font-teko text-2xl text-white">DEFINIR VALOR DA MENSALIDADE</h3>
           <p class="text-xs text-gray-400">Define o valor mensal dos associados; goleiros são isentos. O Custo GO é separado e pode ser ativado quando houver uma contribuição extra.</p>
         </div>
-        <div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-6">
-          <label class="text-[10px] text-gray-400">Mensalidade dos associados<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
-          <label class="text-[10px] text-gray-400">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
-          <label class="text-[10px] text-gray-400">Valor do Custo GO<input type="number" min="0" step="0.01" id="admCustoGoFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
-          <label class="text-[10px] text-gray-400">Motivo (ex.: confraternização)<input type="text" maxlength="100" id="admCustoGoDescription" placeholder="Ex.: Confraternização de fim de ano" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
-          <label class="custogo-switch flex cursor-pointer items-center justify-between gap-3 self-end rounded-xl border border-gray-700 bg-black/40 p-2.5 text-[10px] text-gray-300" for="admCustoGoEnabled"><span>Mostrar Custo GO aos goleiros</span><input id="admCustoGoEnabled" type="checkbox" role="switch" class="h-5 w-5 accent-emerald-500"></label>
-          <button onclick="saveGlobalFee()" class="self-end rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-black">Salvar valores</button>
+        <div class="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Mensalidade dos associados<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
+          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
+          <div class="min-w-0 space-y-2">
+            <label class="block text-[11px] leading-4 text-gray-400">Valor do Custo GO<input type="number" min="0" step="0.01" id="admCustoGoFeeInput" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
+            <label class="custogo-switch flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-700 bg-black/40 px-3 py-2 text-[11px] leading-4 text-gray-300" for="admCustoGoEnabled"><span>Mostrar Custo GO aos goleiros</span><input id="admCustoGoEnabled" type="checkbox" role="switch" class="h-5 w-5 accent-emerald-500"></label>
+          </div>
+          <label class="block min-w-0 text-[11px] leading-4 text-gray-400">Motivo (ex.: confraternização)<input type="text" maxlength="100" id="admCustoGoDescription" placeholder="Ex.: Confraternização de fim de ano" class="mt-1 block min-h-10 w-full rounded-xl border border-gray-800 bg-black p-2.5 text-sm font-bold text-white"></label>
         </div>
+        <div class="flex justify-end"><button onclick="saveGlobalFee()" class="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-black">Salvar valores</button></div>
       </div>
 
       <div class="bg-brand-cardBg border border-emerald-500/30 p-4 rounded-2xl space-y-3">
