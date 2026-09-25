@@ -1,5 +1,43 @@
+-- Some installations started with `full_name` instead of `name`, and may not
+-- have run the earlier profile migrations. Normalize that legacy schema first.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'full_name'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'name'
+  ) then
+    alter table public.profiles rename column full_name to name;
+  end if;
+end;
+$$;
+
+-- Bring an existing minimal profiles table up to the shape used by the app.
+alter table public.profiles
+  add column if not exists name text not null default '',
+  add column if not exists phone text not null default '',
+  add column if not exists age integer not null default 0,
+  add column if not exists position text not null default 'Meio-Campo',
+  add column if not exists foot text not null default 'Direita',
+  add column if not exists height numeric(3,2) not null default 1.70,
+  add column if not exists is_admin boolean not null default false,
+  add column if not exists paid_month text not null default '',
+  add column if not exists photo text not null default '',
+  add column if not exists shirt_number smallint not null default 0,
+  add column if not exists cpf_hash text,
+  add column if not exists cpf_encrypted text,
+  add column if not exists cpf_last4 text,
+  add column if not exists emergency_contact_name text not null default '',
+  add column if not exists emergency_contact_phone text not null default '';
+
 alter table public.profiles
   add column if not exists nickname text not null default '';
+
+create unique index if not exists profiles_cpf_hash_unique
+  on public.profiles (cpf_hash)
+  where cpf_hash is not null;
 
 alter table public.profiles
   drop constraint if exists profiles_nickname_length_check;
