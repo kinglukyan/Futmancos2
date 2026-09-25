@@ -284,6 +284,7 @@ app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, nex
     if (error) throw error;
     const state = row?.state_json || null;
     if (state) {
+      delete state.memberGamePlans;
       const babaAccess = req.user.is_admin || String(req.user.position || '').toLowerCase().includes('goleiro') || billingStatus(req.user, await getFee()).status === 'paid';
       if (!babaAccess) { state.presentPlayers = []; state.checkedInPlayers = []; }
       state.players = Array.isArray(state.players) ? state.players.filter(player => !isDemoMember(player)) : [];
@@ -316,6 +317,7 @@ app.put('/api/shared-state', authenticate, requireAdmin, requireDatabase, async 
     const { data: previous, error: previousError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
     if (previousError) throw previousError;
     const previousGame = previous?.state_json?.nextGame || null;
+    state.memberGamePlans = previous?.state_json?.memberGamePlans && typeof previous.state_json.memberGamePlans === 'object' ? previous.state_json.memberGamePlans : {};
     const gameWasChanged = JSON.stringify(previousGame) !== JSON.stringify(state.nextGame);
     const updatedAt = new Date().toISOString();
     const { error } = await supabase.from('app_state').upsert({ id: 1, state_json: state, updated_at: updatedAt }, { onConflict: 'id' });
@@ -992,6 +994,40 @@ app.put('/api/profile/card', authenticate, requireDatabase, async (req, res, nex
     const { error: writeError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
     if (writeError) throw writeError;
     res.json({ ok: true, cardPhotoMode: mode, cardImageAdjustment: player.cardImageAdjustment });
+  } catch (error) { next(error); }
+});
+app.get('/api/profile/game-plan', authenticate, requireDatabase, async (req, res, next) => {
+  try {
+    const { data: row, error } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    const plan = row?.state_json?.memberGamePlans?.[req.user.id] || null;
+    res.json({ plan });
+  } catch (error) { next(error); }
+});
+app.put('/api/profile/game-plan', authenticate, requireDatabase, async (req, res, next) => {
+  const formation = String(req.body?.plan?.formation || '');
+  const allowedSlots = {
+    '2-3-1': ['gk','def1','def2','mid1','mid2','mid3','att1'],
+    '3-2-1': ['gk','def1','def2','def3','mid1','mid2','att1'],
+    '2-2-2': ['gk','def1','def2','mid1','mid2','att1','att2']
+  };
+  const slots = req.body?.plan?.slots;
+  if (!allowedSlots[formation] || !slots || typeof slots !== 'object' || Array.isArray(slots)) return res.status(400).json({ error: 'Formação ou escalação inválida.' });
+  const entries = Object.entries(slots);
+  if (entries.length > 7 || entries.some(([slot, playerId]) => !allowedSlots[formation].includes(slot) || typeof playerId !== 'string' || !playerId || playerId.length > 128) || new Set(entries.map(([, playerId]) => playerId)).size !== entries.length) return res.status(400).json({ error: 'A escalação deve ter até 6 jogadores de linha, 1 goleiro e nenhum jogador repetido.' });
+  try {
+    const { data: row, error: readError } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
+    if (readError) throw readError;
+    if (!row?.state_json) return res.status(404).json({ error: 'A lista de jogadores ainda não está disponível.' });
+    const roster = Array.isArray(row.state_json.players) ? row.state_json.players.filter(player => !isDemoMember(player)) : [];
+    const rosterIds = new Set(roster.flatMap(player => [player.id, player.serverId, player.authUserId].filter(value => value != null).map(String)));
+    if (entries.some(([, playerId]) => !rosterIds.has(playerId))) return res.status(400).json({ error: 'Uma das cartinhas escolhidas não está mais disponível. Atualize o plano e tente novamente.' });
+    const state = row.state_json;
+    state.memberGamePlans = state.memberGamePlans && typeof state.memberGamePlans === 'object' ? state.memberGamePlans : {};
+    state.memberGamePlans[req.user.id] = { formation, slots: Object.fromEntries(entries), updatedAt: new Date().toISOString() };
+    const { error: writeError } = await supabase.from('app_state').update({ state_json: state, updated_at: new Date().toISOString() }).eq('id', 1);
+    if (writeError) throw writeError;
+    res.json({ ok: true, plan: state.memberGamePlans[req.user.id] });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/members/:id/photo', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {

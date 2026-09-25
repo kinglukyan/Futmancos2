@@ -145,7 +145,7 @@
         <button id="nav-desk-convidado" onclick="navigate('convidado')" class="nav-btn-desk guest-only px-3 py-1.5 rounded-lg transition">Convidado</button>
         <button id="nav-desk-baba" onclick="navigate('baba')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Central Baba</button>
         <button id="nav-desk-perfil" onclick="navigate('perfil')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Meu Perfil</button>
-        <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
+        <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Plano de jogo</button>
         <button id="nav-desk-eafc" onclick="navigate('eafc')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Cartinhas</button>
         <button id="nav-desk-financeiro" onclick="navigate('financeiro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Mensalidades</button>
         <button id="nav-desk-custogo" onclick="navigate('custogo')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Custo GO</button>
@@ -641,23 +641,45 @@
       </div>
     </section>
 
-    <!-- RANKINGS -->
+    <!-- PLANO DE JOGO -->
     <section id="sec-ranking" class="hidden space-y-4">
-      <h2 class="font-teko text-3xl text-white">RANKING DA TEMPORADA</h2>
-      <div class="bg-brand-cardBg border border-gray-800 rounded-2xl overflow-x-auto">
-        <table class="w-full text-left text-xs sm:text-sm min-w-[380px]">
-          <thead class="bg-black/60 text-gray-400 uppercase text-[10px]">
-            <tr>
-              <th class="p-3">#</th>
-              <th class="p-3">Jogador</th>
-              <th class="p-3 text-center">Gols</th>
-              <th class="p-3 text-center">Ast.</th>
-              <th class="p-3 text-center">Defesas</th>
-              <th class="p-3 text-center">Jogos</th>
-            </tr>
-          </thead>
-          <tbody id="rankingTableBody" class="divide-y divide-gray-800/60"></tbody>
-        </table>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div><h2 class="font-teko text-3xl sm:text-4xl text-amber-300">PLANO DE JOGO</h2><p class="text-xs text-gray-400">Monte sua escalação arrastando as cartinhas para o campo. Fora da posição oficial, o OVR usado cai 30%.</p></div>
+        <label class="text-xs text-gray-400">Formação
+          <select id="gamePlanFormation" onchange="changeGamePlanFormation(this.value)" class="mt-1 min-w-36 bg-black border border-gray-700 rounded-xl p-2 text-white"><option value="2-3-1">2-3-1</option><option value="3-2-1">3-2-1</option><option value="2-2-2">2-2-2</option></select>
+        </label>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="rounded-xl border border-gray-800 bg-brand-cardBg p-3 text-center"><span class="block text-[10px] text-gray-400">ESCALADOS</span><strong id="gamePlanCount" class="font-teko text-2xl text-white">0 / 7</strong></div>
+        <div class="rounded-xl border border-gray-800 bg-brand-cardBg p-3 text-center"><span class="block text-[10px] text-gray-400">OVR MÉDIO</span><strong id="gamePlanAverage" class="font-teko text-2xl text-amber-300">—</strong></div>
+        <div class="rounded-xl border border-gray-800 bg-brand-cardBg p-3 text-center col-span-2 sm:col-span-1"><span class="block text-[10px] text-gray-400">FORA DE POSIÇÃO</span><strong id="gamePlanOutOfPosition" class="font-teko text-2xl text-rose-300">0</strong></div>
+        <div class="flex items-center justify-center rounded-xl border border-gray-800 bg-brand-cardBg p-2"><span id="gamePlanSaveStatus" class="text-center text-[10px] text-gray-400" aria-live="polite">Seu plano é pessoal.</span></div>
+      </div>
+      <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,.75fr)] gap-4 items-start">
+        <div>
+          <div class="relative min-h-[560px] overflow-hidden rounded-2xl border-2 border-white/40 bg-gradient-to-b from-emerald-700 to-emerald-900 shadow-xl">
+            <div class="absolute inset-3 rounded-xl border border-white/50 pointer-events-none"></div>
+            <div class="absolute left-3 right-3 top-1/2 border-t border-white/50 pointer-events-none"></div>
+            <div class="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 pointer-events-none"></div>
+            <div class="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 pointer-events-none"></div>
+            <div class="absolute left-1/4 right-1/4 top-3 h-16 border-x border-b border-white/50 pointer-events-none"></div>
+            <div class="absolute left-1/4 right-1/4 bottom-3 h-16 border-x border-t border-white/50 pointer-events-none"></div>
+            <div id="gamePlanFieldSlots" class="relative z-10 flex min-h-[560px] flex-col justify-around px-2 py-4 sm:px-5"></div>
+          </div>
+          <p class="mt-2 text-center text-[10px] text-gray-500">Toque em uma cartinha e depois em uma posição para escalar pelo celular.</p>
+        </div>
+        <div class="space-y-3">
+          <div class="rounded-2xl border border-sky-500/30 bg-brand-cardBg p-4 space-y-2">
+            <div class="flex items-center justify-between gap-2"><h3 class="font-teko text-2xl text-sky-300">BANCO DE RESERVAS</h3><span id="gamePlanBenchCount" class="text-[10px] text-gray-400">0 jogadores</span></div>
+            <p id="gamePlanSelectionHint" class="text-[10px] text-gray-400">Arraste uma cartinha para o campo ou toque nela para selecionar.</p>
+            <div id="gamePlanBench" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-2 max-h-[560px] overflow-y-auto pr-1"></div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="saveGamePlan()" class="flex-1 rounded-xl bg-brand-green px-4 py-3 text-xs font-bold text-black">Salvar plano</button>
+            <button type="button" onclick="downloadGamePlanImage()" class="flex-1 rounded-xl bg-amber-400 px-4 py-3 text-xs font-bold text-black">Baixar como imagem</button>
+          </div>
+          <button type="button" onclick="clearGamePlan()" class="w-full rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-gray-200">Limpar escalação</button>
+        </div>
       </div>
     </section>
 
@@ -1125,9 +1147,9 @@
         <i data-lucide="volleyball" class="w-5 h-5"></i>
         <span class="text-[10px]">Baba</span>
       </button>
-      <button id="nav-mob-ranking" onclick="navigate('ranking')" class="mobile-nav-btn flex flex-col items-center gap-0.5">
-        <i data-lucide="trophy" class="w-5 h-5"></i>
-        <span class="text-[10px]">Ranking</span>
+      <button id="nav-mob-ranking" onclick="navigate('ranking')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
+        <i data-lucide="dribbble" class="w-5 h-5"></i>
+        <span class="text-[10px]">Plano</span>
       </button>
       <button id="nav-mob-eafc" onclick="navigate('eafc')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden">
         <i data-lucide="award" class="w-5 h-5"></i>
@@ -1191,6 +1213,7 @@
     let lastMatchLoserIds = [];
 
     let players = JSON.parse(localStorage.getItem('futmancos_players')) || [];
+    let gamePlanFormation = '2-3-1', gamePlanSlots = {}, selectedGamePlanPlayerId = '', gamePlanLoadedFor = '';
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
@@ -2246,7 +2269,7 @@
     }
     function navigate(secId) {
       if (loggedUser && secId === 'convidado') { alert('A aba de cadastro de convidados fica disponível para pessoas sem conta. Compartilhe seu código no Perfil.'); return navigate('perfil'); }
-      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custogo'].includes(secId)) {
+      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custogo', 'ranking'].includes(secId)) {
         openLoginModal();
         return;
       }
@@ -2262,6 +2285,7 @@
       updateNavHighlight(secId);
 
       if (secId === 'resenha') renderResenhaTab();
+      if (secId === 'ranking') loadGamePlan();
       if (secId === 'baba') { refreshSharedBabaMode(); renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); renderMatchHistory(); updateAdminBabaDayControls(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
       if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); loadNotificationPreferences(); }
       if (secId === 'eafc') renderEAFCCardsGrid();
@@ -3419,28 +3443,145 @@
       } catch { box.innerHTML = '<p class="text-xs text-gray-500">As avaliações serão carregadas quando houver conexão com o servidor.</p>'; }
     }
 
-    function renderRanking() {
-      const tbody = document.getElementById('rankingTableBody');
-      if (!tbody) return;
+    const gamePlanFormations = { '2-3-1': { def: 2, mid: 3, att: 1 }, '3-2-1': { def: 3, mid: 2, att: 1 }, '2-2-2': { def: 2, mid: 2, att: 2 } };
+    function gamePlanRows() {
+      const shape = gamePlanFormations[gamePlanFormation] || gamePlanFormations['2-3-1'];
+      const row = (role, count, label) => ({ role, label, slots: Array.from({ length: count }, (_, i) => ({ id: `${role}${i + 1}`, role, label: `${label} ${i + 1}` })) });
+      return [row('att', shape.att, 'ATA'), row('mid', shape.mid, 'MEI'), row('def', shape.def, 'DEF'), { role: 'gk', label: 'GOL', slots: [{ id: 'gk', role: 'gk', label: 'GOLEIRO' }] }];
+    }
+    function gamePlanPlayer(id) { return players.find(player => String(player.id) === String(id)); }
+    function gamePlanPositionMatches(player, role) {
+      const position = String(player?.pos || '').toLocaleLowerCase('pt-BR');
+      if (role === 'gk') return position.includes('goleiro');
+      if (position.includes('goleiro')) return false;
+      if (role === 'def') return position.includes('zagueiro') || position.includes('lateral');
+      if (role === 'mid') return position.includes('meio');
+      return role === 'att' && position.includes('atacante');
+    }
+    function gamePlanEffectiveOvr(player, role) { const value = calcOVR(player); return gamePlanPositionMatches(player, role) ? value : Math.round(value * .7); }
+    function gamePlanPlayerIdFromData(value) { try { return decodeURIComponent(value); } catch { return value; } }
+    function gamePlanEscape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char])); }
+    function gamePlanPhoto(player) {
+      const source = myCardImageSource(player);
+      return /^(?:data:image\/(?:png|jpeg|webp);base64,|https:\/\/)/i.test(source) ? source : '';
+    }
+    function renderGamePlan() {
+      const field = document.getElementById('gamePlanFieldSlots'), bench = document.getElementById('gamePlanBench');
+      if (!field || !bench) return;
+      const formationSelect = document.getElementById('gamePlanFormation');
+      if (formationSelect) formationSelect.value = gamePlanFormation;
+      Object.entries(gamePlanSlots).forEach(([slot, id]) => { if (!gamePlanPlayer(id)) delete gamePlanSlots[slot]; });
+      const rows = gamePlanRows(), assigned = new Set(Object.values(gamePlanSlots).map(String));
+      field.innerHTML = rows.map(group => `<div class="flex items-center justify-around gap-1 sm:gap-3">${group.slots.map(slot => {
+        const id = gamePlanSlots[slot.id], player = id != null ? gamePlanPlayer(id) : null;
+        if (!player) return `<div role="button" tabindex="0" aria-label="${slot.label}, toque para posicionar jogador" onclick="clickGamePlanSlot('${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="dropGamePlanPlayer(event,'${slot.id}')" class="flex h-[96px] w-[82px] sm:h-[108px] sm:w-[102px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/15 text-center text-white/90 hover:bg-black/30"><span class="text-[9px] font-black tracking-wide">${slot.label}</span><span class="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 text-xl leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
+        const mismatch = !gamePlanPositionMatches(player, slot.role), picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
+        return `<div onclick="clickGamePlanSlot('${slot.id}')" ondragover="event.preventDefault()" ondrop="dropGamePlanPlayer(event,'${slot.id}')" class="rank-card ${tier.className} relative flex h-[96px] w-[82px] sm:h-[108px] sm:w-[102px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${slot.label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(player.name)}, ${slot.label}, OVR ${gamePlanEffectiveOvr(player, slot.role)}">${picture ? `<img src="${picture}" alt="" class="h-10 w-10 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[9px] font-bold">${gamePlanEscape(player.name)}</span><span class="text-[9px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">OVR ${gamePlanEffectiveOvr(player, slot.role)}${mismatch ? ' · −30%' : ''}</span></button><button type="button" onclick="event.stopPropagation();removeGamePlanPlayer('${slot.id}')" class="absolute right-1 top-1 z-10 rounded bg-black/60 px-1 text-[8px] text-gray-300" aria-label="Mover para o banco">×</button></div>`;
+      }).join('')}</div>`).join('');
 
-      const sorted = [...players].sort((a, b) => (b.goals || 0) - (a.goals || 0));
-      tbody.innerHTML = '';
-
-      sorted.forEach((p, idx) => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-black/40">
-            <td class="p-3 font-bold text-amber-400">#${idx + 1}</td>
-            <td class="p-3 font-semibold text-white flex items-center gap-2">
-              <span>${p.name}</span>
-              <span class="text-[10px] text-gray-400 font-normal">(#${p.shirt})</span>
-            </td>
-            <td class="p-3 text-center font-bold text-brand-lightGreen">${p.goals || 0}</td>
-            <td class="p-3 text-center font-bold text-blue-400">${p.assists || 0}</td>
-            <td class="p-3 text-center font-bold text-teal-400">${p.saves || 0}</td>
-            <td class="p-3 text-center font-bold text-gray-300">${p.matches || 0}</td>
-          </tr>
-        `;
-      });
+      const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
+      bench.innerHTML = available.length ? available.map(player => {
+        const picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), rank = getCardRank(calcOVR(player));
+        return `<button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','')" onclick="selectGamePlanPlayer('${encodeURIComponent(String(player.id))}')" class="rank-card ${rank.className} flex min-h-[78px] items-center gap-2 rounded-xl p-2 text-left text-white ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-black/50">${picture ? `<img src="${picture}" alt="" class="h-full w-full object-cover">` : `<span class="font-teko text-lg">${gamePlanEscape(String(player.name || '?').slice(0,1))}</span>`}</span><span class="min-w-0"><strong class="block truncate text-[10px]">${gamePlanEscape(player.name)}</strong><small class="block text-[9px] text-gray-300">${gamePlanEscape(String(player.pos || ''))} · ${calcOVR(player)} OVR</small></span></button>`;
+      }).join('') : '<p class="col-span-full py-5 text-center text-xs text-gray-500">Todos os jogadores estão escalados.</p>';
+      document.getElementById('gamePlanCount').innerText = `${assigned.size} / 7`;
+      document.getElementById('gamePlanBenchCount').innerText = `${available.length} jogador(es)`;
+      const active = [];
+      rows.forEach(group => group.slots.forEach(slot => { const player = gamePlanPlayer(gamePlanSlots[slot.id]); if (player) active.push({ player, role: slot.role }); }));
+      document.getElementById('gamePlanAverage').innerText = active.length ? Math.round(active.reduce((sum, item) => sum + gamePlanEffectiveOvr(item.player, item.role), 0) / active.length) : '—';
+      document.getElementById('gamePlanOutOfPosition').innerText = active.filter(item => !gamePlanPositionMatches(item.player, item.role)).length;
+      document.getElementById('gamePlanSelectionHint').innerText = selectedGamePlanPlayerId ? `Selecionado: ${gamePlanEscape(gamePlanPlayer(selectedGamePlanPlayerId)?.name || 'jogador')}. Toque numa posição do campo.` : 'Arraste uma cartinha para o campo ou toque nela para selecionar.';
+      lucide.createIcons();
+    }
+    function renderRanking() { renderGamePlan(); }
+    function changeGamePlanFormation(formation) {
+      if (!gamePlanFormations[formation]) return;
+      gamePlanFormation = formation;
+      const allowed = new Set(gamePlanRows().flatMap(group => group.slots.map(slot => slot.id)));
+      Object.keys(gamePlanSlots).forEach(slot => { if (!allowed.has(slot)) delete gamePlanSlots[slot]; });
+      selectedGamePlanPlayerId = ''; renderGamePlan();
+    }
+    function selectGamePlanPlayer(encodedId) {
+      const id = gamePlanPlayerIdFromData(encodedId);
+      selectedGamePlanPlayerId = selectedGamePlanPlayerId === id ? '' : id;
+      renderGamePlan();
+    }
+    function selectGamePlanSlotPlayer(slot) { const id = gamePlanSlots[slot]; if (id != null) { selectedGamePlanPlayerId = String(id); renderGamePlan(); } }
+    function clickGamePlanSlot(slot) {
+      if (selectedGamePlanPlayerId) return placeGamePlanPlayer(selectedGamePlanPlayerId, slot);
+      selectGamePlanSlotPlayer(slot);
+    }
+    function startGamePlanDrag(event, encodedId, originSlot) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', JSON.stringify({ id: gamePlanPlayerIdFromData(encodedId), originSlot }));
+    }
+    function dropGamePlanPlayer(event, targetSlot) {
+      event.preventDefault();
+      try { const data = JSON.parse(event.dataTransfer.getData('text/plain')); placeGamePlanPlayer(String(data.id), targetSlot, data.originSlot); }
+      catch { const id = gamePlanPlayerIdFromData(event.dataTransfer.getData('text/plain')); if (gamePlanPlayer(id)) placeGamePlanPlayer(String(id), targetSlot); }
+    }
+    function placeGamePlanPlayer(id, targetSlot, originSlot = '') {
+      if (!gamePlanPlayer(id)) return;
+      const origin = originSlot || Object.keys(gamePlanSlots).find(slot => String(gamePlanSlots[slot]) === String(id));
+      const targetPlayer = gamePlanSlots[targetSlot];
+      if (origin && origin !== targetSlot) { delete gamePlanSlots[origin]; if (targetPlayer != null) gamePlanSlots[origin] = targetPlayer; }
+      else if (!origin && targetPlayer != null) delete gamePlanSlots[targetSlot];
+      gamePlanSlots[targetSlot] = String(id); selectedGamePlanPlayerId = ''; renderGamePlan();
+    }
+    function removeGamePlanPlayer(slot) { delete gamePlanSlots[slot]; selectedGamePlanPlayerId = ''; renderGamePlan(); }
+    function clearGamePlan() { if (!confirm('Limpar todos os jogadores escalados?')) return; gamePlanSlots = {}; selectedGamePlanPlayerId = ''; renderGamePlan(); }
+    function gamePlanStorageKey() { return `futmancos_game_plan_${String(loggedUser?.id || loggedUser?.email || 'member')}`; }
+    async function loadGamePlan() {
+      if (!loggedUser) return;
+      const userKey = String(loggedUser.id || loggedUser.email || '');
+      if (gamePlanLoadedFor === userKey) { renderGamePlan(); return; }
+      gamePlanFormation = '2-3-1'; gamePlanSlots = {};
+      let localPlan = null;
+      try { localPlan = JSON.parse(localStorage.getItem(gamePlanStorageKey()) || 'null'); if (localPlan) { gamePlanFormation = gamePlanFormations[localPlan.formation] ? localPlan.formation : gamePlanFormation; gamePlanSlots = localPlan.slots || {}; } } catch {}
+      renderGamePlan();
+      try {
+        const result = await apiRequest('/profile/game-plan');
+        if (result.plan) { gamePlanFormation = gamePlanFormations[result.plan.formation] ? result.plan.formation : '2-3-1'; gamePlanSlots = result.plan.slots || {}; localStorage.setItem(gamePlanStorageKey(), JSON.stringify(result.plan)); }
+        gamePlanLoadedFor = userKey;
+        document.getElementById('gamePlanSaveStatus').innerText = result.plan ? 'Plano carregado da sua conta.' : localPlan ? 'Plano deste aparelho · salve para sincronizar.' : 'Monte sua escalação e salve na sua conta.';
+      } catch (error) { document.getElementById('gamePlanSaveStatus').innerText = `Plano neste aparelho · ${error.message}`; }
+      renderGamePlan();
+    }
+    async function saveGamePlan() {
+      const status = document.getElementById('gamePlanSaveStatus'), plan = { formation: gamePlanFormation, slots: gamePlanSlots };
+      localStorage.setItem(gamePlanStorageKey(), JSON.stringify(plan)); status.innerText = 'Salvando…';
+      try { await apiRequest('/profile/game-plan', { method: 'PUT', body: JSON.stringify({ plan }) }); status.innerText = 'Plano salvo na sua conta.'; }
+      catch (error) { status.innerText = `Salvo neste aparelho · ${error.message}`; }
+    }
+    async function downloadGamePlanImage() {
+      const usedPlayers = new Set(Object.values(gamePlanSlots).map(String));
+      const substitutes = players.filter(player => !isDemoPlayer(player) && !usedPlayers.has(String(player.id)));
+      const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+      const benchRows = Math.ceil(substitutes.length / 2);
+      canvas.width = 1200; canvas.height = Math.max(1480, 1285 + benchRows * 34 + 80);
+      const bg = ctx.createLinearGradient(0,0,1200,1480); bg.addColorStop(0,'#101914'); bg.addColorStop(1,'#050807'); ctx.fillStyle = bg; ctx.fillRect(0,0,1200,1480);
+      ctx.fillStyle = '#f5c400'; ctx.font = '900 54px Arial'; ctx.textAlign = 'center'; ctx.fillText('FUTMANCOS · PLANO DE JOGO',600,78);
+      ctx.fillStyle = '#d8e2dc'; ctx.font = 'bold 30px Arial'; ctx.fillText(`${loggedUser?.name || 'Meu time'}  ·  Formação ${gamePlanFormation}`,600,126);
+      const x0=70,y0=170,w=1060,h=950; ctx.fillStyle='#176b3a'; ctx.beginPath(); if(ctx.roundRect)ctx.roundRect(x0,y0,w,h,24);else ctx.rect(x0,y0,w,h); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.78)'; ctx.lineWidth=4; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x0,y0+h/2);ctx.lineTo(x0+w,y0+h/2);ctx.stroke();ctx.beginPath();ctx.arc(600,y0+h/2,92,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(600,y0+h/2,6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+      ctx.strokeRect(370,y0,w-740,105);ctx.strokeRect(370,y0+h-105,w-740,105);ctx.strokeRect(470,y0,260,45);ctx.strokeRect(470,y0+h-45,260,45);
+      const rows=gamePlanRows(), posY={att:y0+170,mid:y0+390,def:y0+645,gk:y0+h-90};
+      const sources=[]; rows.forEach(group=>group.slots.forEach(slot=>{const player=gamePlanPlayer(gamePlanSlots[slot.id]);if(player){const src=gamePlanPhoto(player);if(src.startsWith('data:')) sources.push([slot,player,src]);else sources.push([slot,player,'']);}}));
+      const loaded=await Promise.all(sources.map(([, ,src])=>new Promise(resolve=>{if(!src)return resolve(null);const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=src;})));
+      let sourceIndex=0;
+      for (const group of rows) for (let i=0;i<group.slots.length;i++) {
+        const slot=group.slots[i], player=gamePlanPlayer(gamePlanSlots[slot.id]); if(!player)continue;
+        const x=x0+w*(i+1)/(group.slots.length+1), y=posY[group.role], pic=loaded[sourceIndex++], mismatch=!gamePlanPositionMatches(player,slot.role), tier=getCardRank(calcOVR(player));
+        ctx.beginPath();ctx.arc(x,y,58,0,Math.PI*2);ctx.fillStyle='#09120d';ctx.fill();ctx.save();ctx.beginPath();ctx.arc(x,y,52,0,Math.PI*2);ctx.clip();
+        if(pic)ctx.drawImage(pic,x-52,y-52,104,104);else{ctx.fillStyle=tier.className==='rank-scarlet'?'#9d2339':tier.className==='rank-gold'?'#916516':tier.className==='rank-silver'?'#607681':'#286b32';ctx.fillRect(x-52,y-52,104,104);ctx.fillStyle='#fff';ctx.font='bold 46px Arial';ctx.textAlign='center';ctx.fillText(String(player.name||'?').slice(0,1).toUpperCase(),x,y+16);}ctx.restore();
+        ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 24px Arial';ctx.fillText(String(player.name||'Jogador').slice(0,20),x,y+87);ctx.fillStyle=mismatch?'#ff8790':'#ffe26b';ctx.font='bold 20px Arial';ctx.fillText(`${gamePlanEffectiveOvr(player,slot.role)} OVR${mismatch?' · −30%':''}`,x,y+114);ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='16px Arial';ctx.fillText(slot.label,x,y-70);
+      }
+      ctx.fillStyle='#f5c400';ctx.textAlign='left';ctx.font='900 30px Arial';ctx.fillText(`BANCO (${substitutes.length})`,80,1190);
+      ctx.fillStyle='#e8eeea';ctx.font='22px Arial';substitutes.forEach((player,index)=>{const column=index<benchRows?0:1,row=index%benchRows;ctx.fillText(`${index+1}. ${String(player.name||'Jogador').slice(0,25)} · ${calcOVR(player)} OVR`,90+column*540,1235+row*34);});
+      ctx.fillStyle='#89958e';ctx.textAlign='center';ctx.font='16px Arial';ctx.fillText('Futmancos · Seu plano de jogo',600,canvas.height-25);
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(!blob)return alert('Não foi possível gerar a imagem neste aparelho.');
+      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`plano-de-jogo-${gamePlanFormation}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
 
     function renderEAFCCardsGrid() {
