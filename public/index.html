@@ -2185,7 +2185,7 @@
         const status = await apiRequest('/payments/status');
         loggedUser.paymentStatus = status.status; loggedUser.paidMonth = status.paidMonth;
         updateBillingNavigation();
-        if (!loggedUser.isAdmin && !isGoalkeeper(loggedUser) && status.status !== 'paid' && currentActiveTab === 'baba') navigate('financeiro');
+        if (!loggedUser.isAdmin && !isGoalkeeper(loggedUser) && status.status !== 'paid' && ['baba', 'ranking'].includes(currentActiveTab)) navigate('financeiro');
         if (status.fee) {
           globalMonthlyFee = Number(status.fee);
           const feeText = `R$ ${globalMonthlyFee.toFixed(2)}`;
@@ -2294,6 +2294,7 @@
       const goalie = !!loggedUser && isGoalkeeper(loggedUser);
       const allowedBaba = hasBabaAccess();
       ['nav-desk-baba','nav-mob-baba'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !allowedBaba); });
+      ['nav-desk-ranking','nav-mob-ranking'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !allowedBaba); });
       ['nav-desk-financeiro','nav-mob-financeiro'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !loggedUser || goalie); });
       ['nav-desk-custogo','nav-mob-custogo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !goalie || !custoGoEnabled); });
     }
@@ -2371,6 +2372,7 @@
       if (secId === 'financeiro' && isGoalkeeper(loggedUser)) return navigate('custogo');
       if (secId === 'custogo' && (!isGoalkeeper(loggedUser) || !custoGoEnabled)) { alert('A área Custo GO está indisponível no momento.'); return navigate('perfil'); }
       if (secId === 'baba' && !hasBabaAccess()) { alert('A Central do Baba fica disponível após a confirmação da mensalidade. Acesse Mensalidades para regularizar.'); return navigate('financeiro'); }
+      if (secId === 'ranking' && !hasBabaAccess()) { alert('O Plano de Jogo fica disponível após a confirmação da mensalidade. Acesse Mensalidades para regularizar.'); return navigate('financeiro'); }
       currentActiveTab = secId;
       document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
       document.getElementById(`sec-${secId}`).classList.remove('hidden');
