@@ -69,21 +69,17 @@
       #mainNav { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
     }
     
-    .card-ovr-green {
-      background: linear-gradient(135deg, #1b2e1b 0%, #0d140d 50%, #234223 100%);
-      border: 4px solid #4caf50;
-      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-    }
-    .card-ovr-silver {
-      background: linear-gradient(135deg, #1f2937 0%, #4b5563 50%, #111827 100%);
-      border: 4px solid #9ca3af;
-      box-shadow: 0 0 20px rgba(156, 163, 175, 0.4);
-    }
-    .card-ovr-gold {
-      background: linear-gradient(135deg, #3b2d07 0%, #b45309 50%, #78350f 100%);
-      border: 4px solid #fbbf24;
-      box-shadow: 0 0 22px rgba(251, 191, 36, 0.5);
-    }
+    .rank-card { --rank-main:#54b85b; --rank-light:#b8f1a9; --rank-deep:#183a22; --rank-glow:rgba(76,175,80,.3); position:relative; isolation:isolate; background:linear-gradient(150deg,color-mix(in srgb,var(--rank-main) 24%,#17201b),#0a0e0c 48%,color-mix(in srgb,var(--rank-deep) 60%,#090c0a)); border:1px solid var(--rank-main); box-shadow:0 10px 28px rgba(0,0,0,.35),0 0 20px var(--rank-glow); }
+    .rank-card::before { content:""; position:absolute; inset:6px; border:1px solid color-mix(in srgb,var(--rank-main) 65%,transparent); border-radius:12px; pointer-events:none; z-index:-1; }
+    .rank-card::after { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg,color-mix(in srgb,var(--rank-main) 15%,transparent),transparent 42%); pointer-events:none; z-index:-1; }
+    .rank-bronze { --rank-main:#54b85b; --rank-light:#c7f5b4; --rank-deep:#24472a; --rank-glow:rgba(77,190,86,.28); }
+    .rank-silver { --rank-main:#bdcbd5; --rank-light:#f2fbff; --rank-deep:#425567; --rank-glow:rgba(180,210,230,.3); }
+    .rank-gold { --rank-main:#edbd45; --rank-light:#fff1a6; --rank-deep:#76501a; --rank-glow:rgba(242,183,46,.34); }
+    .rank-scarlet { --rank-main:#ff4057; --rank-light:#ffd0d4; --rank-deep:#71192d; --rank-glow:rgba(255,48,76,.38); }
+    .rank-card .rank-accent { color:var(--rank-light); }
+    .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
+    .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
+    @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
 
     .avatar-card-zoom {
       transform: scale(1.15);
@@ -629,7 +625,7 @@
     <section id="sec-eafc" class="hidden space-y-6">
       <div class="text-center">
         <h2 class="font-teko text-3xl sm:text-4xl text-brand-gold">CARTINHAS - RANKING OVR</h2>
-        <p class="text-xs text-gray-400">Cores dinâmicas conforme a pontuação: Bronze/Verde (60-69), Prata (70-79) e Ouro (80-89).</p>
+        <p class="text-xs text-gray-400">Elos por OVR: Bronze/Verde (60–69), Prata (70–79), Ouro (80–89) e Escarlate (90–99).</p>
       </div>
 
       <div id="eafcCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center"></div>
@@ -1219,6 +1215,13 @@
       const autoBonus = getAutoBonus(p);
 
       return Math.min(99, Math.round(baseAvg + autoBonus));
+    }
+
+    function getCardRank(ovr) {
+      if (ovr >= 90) return { className: 'rank-scarlet', label: 'ESCARLATE' };
+      if (ovr >= 80) return { className: 'rank-gold', label: 'OURO' };
+      if (ovr >= 70) return { className: 'rank-silver', label: 'PRATA' };
+      return { className: 'rank-bronze', label: 'BRONZE · VERDE' };
     }
 
     function saveState() {
@@ -2532,22 +2535,21 @@
 
       sortedPlayers.forEach((p, index) => {
         const ovr = calcOVR(p);
-        let ovrCardClass = 'card-ovr-green';
-        if (ovr >= 70 && ovr <= 79) ovrCardClass = 'card-ovr-silver';
-        else if (ovr >= 80) ovrCardClass = 'card-ovr-gold';
+        const rank = getCardRank(ovr);
 
         const photoStyle = p.photo ? `style="background-image: url(${p.photo})"` : '';
         const photoContent = p.photo ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
 
         containerTop3.innerHTML += `
-          <div class="${ovrCardClass} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
+          <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
             <div class="absolute top-2 right-2 bg-black/70 px-2 py-0.5 rounded-full text-[10px] font-bold text-brand-gold border border-brand-gold/40">
               TOP ${index + 1}
             </div>
+            <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg>${rank.label}</div>
             <div class="flex justify-between items-start">
               <div class="text-center">
-                <span class="font-teko text-5xl font-extrabold text-brand-gold leading-none block">${ovr}</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-brand-lightGreen">${p.pos.substring(0,3)}</span>
+                <span class="font-teko text-5xl font-extrabold rank-accent leading-none block">${ovr}</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
               </div>
               <div class="text-right">
                 <span class="font-teko text-2xl font-bold text-gray-300">#${p.shirt}</span>
@@ -2556,7 +2558,7 @@
 
             <!-- FOTO DO JOGADOR MAIOR -->
             <div class="my-2 flex justify-center">
-              <div class="w-32 h-32 rounded-full bg-black/60 border-2 border-brand-gold overflow-hidden flex items-center justify-center shadow-lg">
+              <div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)">
                 <div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">
                   ${photoContent}
                 </div>
@@ -2568,12 +2570,12 @@
             </div>
 
             <div class="grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
-              <div class="flex justify-between"><span>RIT</span><span class="text-brand-gold">${calcAttribute(p.ritVotes)}</span></div>
-              <div class="flex justify-between"><span>DRI</span><span class="text-brand-gold">${calcAttribute(p.driVotes)}</span></div>
-              <div class="flex justify-between"><span>CHU</span><span class="text-brand-gold">${calcAttribute(p.chuVotes)}</span></div>
-              <div class="flex justify-between"><span>DEF</span><span class="text-brand-gold">${calcAttribute(p.defVotes)}</span></div>
-              <div class="flex justify-between"><span>PAS</span><span class="text-brand-gold">${calcAttribute(p.pasVotes)}</span></div>
-              <div class="flex justify-between"><span>FIS</span><span class="text-brand-gold">${calcAttribute(p.fisVotes)}</span></div>
+              <div class="flex justify-between"><span>RIT</span><span class="rank-accent">${calcAttribute(p.ritVotes)}</span></div>
+              <div class="flex justify-between"><span>DRI</span><span class="rank-accent">${calcAttribute(p.driVotes)}</span></div>
+              <div class="flex justify-between"><span>CHU</span><span class="rank-accent">${calcAttribute(p.chuVotes)}</span></div>
+              <div class="flex justify-between"><span>DEF</span><span class="rank-accent">${calcAttribute(p.defVotes)}</span></div>
+              <div class="flex justify-between"><span>PAS</span><span class="rank-accent">${calcAttribute(p.pasVotes)}</span></div>
+              <div class="flex justify-between"><span>FIS</span><span class="rank-accent">${calcAttribute(p.fisVotes)}</span></div>
             </div>
           </div>
         `;
@@ -3304,19 +3306,18 @@
 
       sorted.forEach(p => {
         const ovr = calcOVR(p);
-        let ovrCardClass = 'card-ovr-green';
-        if (ovr >= 70 && ovr <= 79) ovrCardClass = 'card-ovr-silver';
-        else if (ovr >= 80) ovrCardClass = 'card-ovr-gold';
+        const rank = getCardRank(ovr);
 
         const photoStyle = p.photo ? `style="background-image: url(${p.photo})"` : '';
         const photoContent = p.photo ? '' : '<i data-lucide="user" class="w-16 h-16 text-brand-gold"></i>';
 
         container.innerHTML += `
-          <div class="${ovrCardClass} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
+          <div class="rank-card ${rank.className} w-64 rounded-2xl p-4 text-white relative overflow-hidden transition-all hover:scale-105">
+            <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg>${rank.label}</div>
             <div class="flex justify-between items-start">
               <div class="text-center">
-                <span class="font-teko text-5xl font-extrabold text-brand-gold leading-none block">${ovr}</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-brand-lightGreen">${p.pos.substring(0,3)}</span>
+                <span class="font-teko text-5xl font-extrabold rank-accent leading-none block">${ovr}</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest rank-accent">${p.pos.substring(0,3)}</span>
               </div>
               <div class="text-right">
                 <span class="font-teko text-2xl font-bold text-gray-300">#${p.shirt}</span>
@@ -3325,7 +3326,7 @@
 
             <!-- FOTO DO JOGADOR MAIOR NAS CARTINHAS -->
             <div class="my-2 flex justify-center">
-              <div class="w-32 h-32 rounded-full bg-black/60 border-2 border-brand-gold overflow-hidden flex items-center justify-center shadow-lg">
+              <div class="rank-frame w-32 h-32 bg-black/60 border-2 overflow-hidden flex items-center justify-center shadow-lg" style="clip-path:polygon(50% 0%,91% 18%,91% 70%,50% 100%,9% 70%,9% 18%)">
                 <div ${photoStyle} class="w-full h-full avatar-card-zoom flex items-center justify-center">
                   ${photoContent}
                 </div>
@@ -3337,12 +3338,12 @@
             </div>
 
             <div class="grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
-              <div class="flex justify-between"><span>RIT</span><span class="text-brand-gold">${calcAttribute(p.ritVotes)}</span></div>
-              <div class="flex justify-between"><span>DRI</span><span class="text-brand-gold">${calcAttribute(p.driVotes)}</span></div>
-              <div class="flex justify-between"><span>CHU</span><span class="text-brand-gold">${calcAttribute(p.chuVotes)}</span></div>
-              <div class="flex justify-between"><span>DEF</span><span class="text-brand-gold">${calcAttribute(p.defVotes)}</span></div>
-              <div class="flex justify-between"><span>PAS</span><span class="text-brand-gold">${calcAttribute(p.pasVotes)}</span></div>
-              <div class="flex justify-between"><span>FIS</span><span class="text-brand-gold">${calcAttribute(p.fisVotes)}</span></div>
+              <div class="flex justify-between"><span>RIT</span><span class="rank-accent">${calcAttribute(p.ritVotes)}</span></div>
+              <div class="flex justify-between"><span>DRI</span><span class="rank-accent">${calcAttribute(p.driVotes)}</span></div>
+              <div class="flex justify-between"><span>CHU</span><span class="rank-accent">${calcAttribute(p.chuVotes)}</span></div>
+              <div class="flex justify-between"><span>DEF</span><span class="rank-accent">${calcAttribute(p.defVotes)}</span></div>
+              <div class="flex justify-between"><span>PAS</span><span class="rank-accent">${calcAttribute(p.pasVotes)}</span></div>
+              <div class="flex justify-between"><span>FIS</span><span class="rank-accent">${calcAttribute(p.fisVotes)}</span></div>
             </div>
           </div>
         `;
