@@ -410,6 +410,13 @@
 
     <!-- CENTRAL DO BABA -->
     <section id="sec-baba" class="hidden space-y-4">
+      <div id="babaModeAdminControls" class="hidden bg-black/30 border border-gray-800 p-3 rounded-2xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-teko text-2xl text-white">ETAPA DO BABA</h2><p id="babaModeAdminStatus" class="text-[11px] text-gray-400">A fase atual é compartilhada com todos os dispositivos.</p></div><span id="babaModeDateLabel" class="text-[11px] text-gray-400"></span></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><button type="button" data-baba-mode="presence" onclick="setBabaMode('presence')" class="border border-gray-700 bg-gray-900 text-gray-200 font-bold px-4 py-3 rounded-xl text-xs">1 · PRESENÇA</button><button type="button" data-baba-mode="game" onclick="setBabaMode('game')" class="border border-emerald-700 bg-emerald-950 text-emerald-100 font-bold px-4 py-3 rounded-xl text-xs">2 · MODO BABA (ADM)</button><button type="button" data-baba-mode="voting" onclick="closeMatchDayVoting()" class="border border-sky-700 bg-sky-950 text-sky-100 font-bold px-4 py-3 rounded-xl text-xs">3 · MODO VOTAÇÃO</button></div>
+        <button id="finishDayVotingBtn" type="button" onclick="finishMatchDayVoting()" class="hidden bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs">Encerrar votação</button>
+      </div>
+      <p id="babaModeMemberStatus" class="hidden bg-sky-950/50 border border-sky-800/70 text-sky-100 p-3 rounded-xl text-xs" aria-live="polite"></p>
+      <div id="babaPresenceMode" class="space-y-4">
       <div class="bg-brand-cardBg border border-gray-800 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs text-brand-lightGreen font-bold tracking-widest uppercase">Próximo Baba</span>
@@ -447,9 +454,9 @@
         <p class="text-[10px] text-gray-400">O ADM ou o associado que convidou pode marcar presença e check-in. Convidados ficam fora dos resultados oficiais, avaliações e cartinhas.</p>
         <div id="guestAttendanceList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       </div>
-
+      </div>
+      <div id="babaGameMode" class="hidden space-y-4">
       <div class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2"><h3 class="font-teko text-2xl text-sky-300">SORTEIOS DO BABA</h3><div id="babaDrawResults" class="space-y-2"></div></div>
-      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2"><div class="flex items-center justify-between gap-2"><h3 class="font-teko text-2xl text-white">RESUMO DOS JOGOS DO DIA</h3><button id="shareBabaDayBtn" type="button" onclick="shareBabaDayReport()" class="hidden bg-emerald-800/60 text-emerald-200 px-3 py-2 rounded-lg text-[10px] font-bold">Compartilhar dia</button></div><div id="babaMatchSummaries" class="space-y-2"></div></div>
 <section id="adminMatchEntry" class="admin-results hidden bg-brand-cardBg border border-amber-500/40 p-4 md:p-6 rounded-2xl space-y-4">
   <div><h3 class="font-teko text-2xl text-amber-400">SORTEAR TIMES E FECHAR RESULTADOS</h3><p class="text-xs text-gray-400">Os times são balanceados pelo OVR das cartinhas. Quem ainda não foi sorteado tem prioridade no próximo sorteio do dia. Registre todos os sorteios e, ao final, informe os resultados juntos.</p></div>
   <label class="block max-w-xs text-[10px] text-gray-400">Data do baba<input id="adminMatchDate" type="date" required onchange="onAdminMatchDateChange(this.value)" class="mt-1 w-full bg-black border border-gray-700 rounded-xl p-2 text-white"></label>
@@ -467,10 +474,13 @@
   <div><h4 class="font-teko text-xl text-white">SORTEIOS SALVOS</h4><div id="adminDrawRecords" class="space-y-2"></div></div>
   <div><h4 class="font-teko text-xl text-amber-300">RESULTADOS DO DIA</h4><p class="text-[10px] text-gray-400 mb-2">Depois de todos os jogos, informe gols, assistências e defesas, e selecione o time vencedor em cada partida.</p><div id="adminDrawFinalizeList" class="space-y-3"></div></div>
   <div><h4 class="font-teko text-xl text-sky-300">CORRIGIR RESULTADO JÁ SALVO</h4><p class="text-[10px] text-gray-400 mb-2">A correção atualiza os totais e registra os valores anteriores e novos no histórico ADM.</p><div id="adminDrawCorrectionList" class="space-y-3"></div></div>
-  <div class="flex flex-col sm:flex-row gap-2"><button type="button" onclick="saveDayDrawResults()" class="bg-amber-500 text-black font-bold px-5 py-3 rounded-xl text-xs">SALVAR RESULTADOS DE TODOS OS JOGOS</button><button id="openDayVotingBtn" type="button" onclick="closeMatchDayVoting()" class="bg-brand-green text-black font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR O DIA E LIBERAR VOTAÇÃO</button><button id="finishDayVotingBtn" type="button" onclick="finishMatchDayVoting()" class="hidden bg-rose-700 text-white font-bold px-5 py-3 rounded-xl text-xs">ENCERRAR VOTAÇÃO</button></div>
+  <div class="flex flex-col sm:flex-row gap-2"><button type="button" onclick="saveDayDrawResults()" class="bg-amber-500 text-black font-bold px-5 py-3 rounded-xl text-xs">SALVAR RESULTADOS DE TODOS OS JOGOS</button></div>
   <p id="adminVotingStatus" class="text-xs text-gray-400" aria-live="polite"></p>
 </section>
+      </div>
 
+      <div id="babaVotingMode" class="hidden space-y-4">
+      <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl space-y-2"><div class="flex items-center justify-between gap-2"><h3 class="font-teko text-2xl text-white">RESUMO DOS JOGOS DO DIA</h3><button id="shareBabaDayBtn" type="button" onclick="shareBabaDayReport()" class="hidden bg-emerald-800/60 text-emerald-200 px-3 py-2 rounded-lg text-[10px] font-bold">Compartilhar dia</button></div><div id="babaMatchSummaries" class="space-y-2"></div></div>
       <section class="bg-brand-cardBg border border-amber-500/30 p-4 md:p-6 rounded-2xl space-y-4">
         <div class="border-b border-gray-800 pb-3">
           <h3 class="font-teko text-3xl text-amber-400 flex items-center gap-2"><i data-lucide="star" class="w-6 h-6"></i> VOTAÇÃO PÓS-BABA</h3>
@@ -478,6 +488,7 @@
         </div>
         <div id="votingContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
+      </div>
     </section>
     <!-- PERFIL DO JOGADOR -->
     <section id="sec-perfil" class="hidden space-y-4">
@@ -1087,6 +1098,7 @@
     let globalGuestFee = 0, globalKeeperFee = 0, guestAttendance = [];
     let currentGuestCheckoutName = '';
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
+    let sharedBabaMode = 'presence';
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
     let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
     let sharedVotesByPlayer = {}, sharedMyVotes = [];
@@ -1293,6 +1305,50 @@
         saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderTeamDraws(); updatePresenceButton(); renderResenhaTab();
       } catch (error) { console.warn('Presença compartilhada indisponível.', error); }
     }
+    function babaModeDate() { return activeBabaDate || localDateKey(); }
+    async function refreshSharedBabaMode() {
+      if (!loggedUser) return;
+      try {
+        const date = babaModeDate(), result = await apiRequest(`/baba/mode?date=${encodeURIComponent(date)}`);
+        if (result.date === date && ['presence', 'game', 'voting'].includes(result.mode)) sharedBabaMode = result.mode;
+        applyBabaModeUi();
+      } catch (error) { console.warn('Não foi possível sincronizar a etapa da Central Baba.', error); }
+    }
+    function applyBabaModeUi() {
+      const isAdmin = !!loggedUser?.isAdmin, mode = sharedBabaMode;
+      const visibleMode = isAdmin ? mode : (mode === 'voting' ? 'voting' : 'presence');
+      document.getElementById('babaModeAdminControls')?.classList.toggle('hidden', !isAdmin);
+      document.getElementById('babaPresenceMode')?.classList.toggle('hidden', visibleMode !== 'presence');
+      document.getElementById('babaGameMode')?.classList.toggle('hidden', visibleMode !== 'game');
+      document.getElementById('babaVotingMode')?.classList.toggle('hidden', visibleMode !== 'voting');
+      const memberStatus = document.getElementById('babaModeMemberStatus');
+      if (memberStatus) {
+        const show = !isAdmin && mode === 'game'; memberStatus.classList.toggle('hidden', !show);
+        memberStatus.textContent = 'Os jogos estão acontecendo. Você ainda pode confirmar presença e fazer check-in; os recursos do Modo Baba ficam disponíveis somente para o ADM.';
+      }
+      const dateLabel = document.getElementById('babaModeDateLabel');
+      if (dateLabel) dateLabel.textContent = `Baba de ${new Date(`${babaModeDate()}T12:00:00`).toLocaleDateString('pt-BR')}`;
+      const status = document.getElementById('babaModeAdminStatus');
+      if (status) status.textContent = mode === 'presence' ? 'Associados confirmam presença e check-in.' : mode === 'game' ? 'Modo Baba ativo: sorteie os times e registre todas as partidas.' : 'Modo Votação ativo e compartilhado com os associados.';
+      document.querySelectorAll('[data-baba-mode]').forEach(button => { button.classList.toggle('ring-2', button.dataset.babaMode === mode); button.disabled = mode === 'voting'; });
+      const finishButton = document.getElementById('finishDayVotingBtn');
+      if (finishButton) finishButton.classList.toggle('hidden', !isAdmin || mode !== 'voting' || !matchHistory.some(match => match.gameDay === babaModeDate() && match.votingOpen === true));
+      const adminEntry = document.getElementById('adminMatchEntry');
+      if (adminEntry) adminEntry.classList.toggle('hidden', !isAdmin || mode !== 'game');
+    }
+    async function setBabaMode(mode) {
+      if (!loggedUser?.isAdmin) return alert('Somente o ADM pode alterar a etapa do baba.');
+      if (!['presence', 'game'].includes(mode)) return;
+      if (sharedBabaMode === 'voting') return alert('A votação já foi liberada para este baba.');
+      try {
+        const date = babaModeDate();
+        const result = await apiRequest('/admin/baba/mode', { method: 'PUT', body: JSON.stringify({ date, mode }) });
+        sharedBabaMode = result.mode;
+        const dateInput = document.getElementById('adminMatchDate'); if (dateInput) dateInput.value = date;
+        applyBabaModeUi();
+        if (mode === 'game') { await loadBabaDraws(date); await loadSharedMatchHistory(); renderMatchHistory(); renderAdminMatchPlayers(); }
+      } catch (error) { alert(`Não foi possível alterar a etapa da Central Baba: ${error.message}`); await refreshSharedBabaMode(); }
+    }
     function formatGuestCpf(input) {
       const digits = input.value.replace(/\D/g, '').slice(0, 11);
       input.value = digits.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
@@ -1405,7 +1461,7 @@
       if (sharedSyncTimer) return;
       sharedSyncTimer = window.setInterval(async () => {
         if (!loggedUser) return;
-        await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance(); await loadBabaDraws();
+        await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedBabaMode(); await loadBabaDraws();
         await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await refreshPaymentStatus();
         if (loggedUser.isAdmin) { await refreshAdminMembers(); await refreshAdminGuests(); }
         renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton();
@@ -1491,6 +1547,7 @@
         await loadSharedAppState(true);
         await loadSharedMatchHistory();
         await refreshSharedAttendance();
+        await refreshSharedBabaMode();
         await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await loadBabaDraws(activeBabaDate);
       }
       const matchDateInput = document.getElementById('adminMatchDate'); if (matchDateInput && !matchDateInput.value) matchDateInput.value = activeBabaDate || localDateKey();
@@ -1637,7 +1694,7 @@
         try { user = (await apiRequest('/auth/sync', { method: 'POST', body: '{}' })).user; }
         catch { user = await loadSupabasePlayer(); }
         loggedUser = mergeServerUser(user);
-        await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
+        await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedBabaMode(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
         startSharedSyncLoop(); saveState(); closeLoginModal(); updateAuthUI(); updatePresenceButton();
         const status = await refreshPaymentStatus(true);
         if (status?.status === 'overdue') return;
@@ -1996,7 +2053,7 @@
         try { user = (await apiRequest('/auth/sync', { method: 'POST', body: '{}' })).user; }
         catch { user = await loadSupabasePlayer(); }
         loggedUser = mergeServerUser(user);
-        await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
+        await loadSharedAppState(true); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedBabaMode(); await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay);
         startSharedSyncLoop(); saveState(); closeLoginModal(); updateAuthUI(); updatePresenceButton();
         const status = await refreshPaymentStatus(true);
         if (status?.status === 'overdue') return;
@@ -2007,7 +2064,7 @@
     async function handleLogout() {
       await supabaseClient.auth.signOut().catch(() => {});
       await apiRequest('/auth/logout', { method: 'POST' }).catch(() => {});
-      loggedUser = null; saveState(); updateAuthUI(); updatePresenceButton(); navigate('resenha');
+      loggedUser = null; sharedBabaMode = 'presence'; saveState(); updateAuthUI(); updatePresenceButton(); navigate('resenha');
     }
 
     function isGoalkeeper(user) { return String(user?.pos || user?.position || '').toLowerCase().includes('goleiro'); }
@@ -2045,6 +2102,7 @@
         document.getElementById('admNavBtn').classList.add('hidden');
         document.getElementById('nav-mob-adm').classList.add('hidden');
       }
+      applyBabaModeUi();
       updatePasskeyControls();
     }
 
@@ -2065,7 +2123,7 @@
       updateNavHighlight(secId);
 
       if (secId === 'resenha') renderResenhaTab();
-      if (secId === 'baba') { renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); renderMatchHistory(); updateAdminBabaDayControls(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
+      if (secId === 'baba') { refreshSharedBabaMode(); renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); renderMatchHistory(); updateAdminBabaDayControls(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
       if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); loadNotificationPreferences(); }
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); refreshAdminAuditLog(); }
@@ -2790,26 +2848,31 @@
     }
 
     function updateAdminBabaDayControls() {
-      const date = document.getElementById('adminMatchDate')?.value || localDateKey();
+      const date = babaModeDate();
       const dayMatches = matchHistory.filter(match => match.gameDay === date);
       const openCount = dayMatches.filter(match => match.votingOpen === true).length;
-      const openButton = document.getElementById('openDayVotingBtn'), closeButton = document.getElementById('finishDayVotingBtn'), status = document.getElementById('adminVotingStatus');
-      if (openButton) { openButton.classList.toggle('hidden', !dayMatches.length || openCount === dayMatches.length); openButton.disabled = !dayMatches.length; }
-      if (closeButton) closeButton.classList.toggle('hidden', openCount === 0);
+      const status = document.getElementById('adminVotingStatus');
       if (status) status.textContent = !dayMatches.length ? 'Nenhum jogo registrado para esta data.' : openCount === dayMatches.length ? `Votação aberta para ${dayMatches.length} jogo(s).` : openCount ? `Votação aberta parcialmente (${openCount} de ${dayMatches.length} jogos).` : 'Votação fechada para esta data.';
+      const finishButton = document.getElementById('finishDayVotingBtn');
+      if (finishButton) finishButton.classList.toggle('hidden', !loggedUser?.isAdmin || sharedBabaMode !== 'voting' || openCount === 0);
+      applyBabaModeUi();
     }
     async function closeMatchDayVoting() {
       if (!loggedUser?.isAdmin) return alert('Apenas administradores podem encerrar o dia.');
-      const date = document.getElementById('adminMatchDate')?.value || localDateKey();
+      if (sharedBabaMode === 'voting') return alert('O Modo Votação já está ativo para este baba.');
+      const date = babaModeDate();
       await loadBabaDraws(date); await loadSharedMatchHistory();
       const games = matchHistory.filter(match => match.gameDay === date);
       if (!games.length) return alert('Salve ao menos um jogo para essa data antes de liberar a votação.');
+      if (document.getElementById('adminMatchDate')?.value && document.getElementById('adminMatchDate').value !== date) return alert(`A data selecionada nos resultados (${document.getElementById('adminMatchDate').value}) não corresponde ao baba agendado (${date}). Ajuste a data antes de liberar a votação.`);
+      if (!confirm(`Liberar o Modo Votação para o baba de ${new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR')}? Os associados passarão a ver a votação e o resumo dos jogos.`)) return;
       try { await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/close`, { method: 'PUT', body: '{}' }); }
       catch (error) {
         const status = document.getElementById('adminMatchStatus');
         if (status) status.innerText = `Não foi possível encerrar o dia no servidor: ${error.message}`;
         return alert(`A votação não foi liberada. Os resultados ainda não foram salvos no servidor. ${error.message}`);
       }
+      sharedBabaMode = 'voting'; applyBabaModeUi();
       games.forEach(match => { match.votingOpen = true; });
       saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory();
       const status = document.getElementById('adminMatchStatus');
@@ -2818,7 +2881,7 @@
     }
     async function finishMatchDayVoting() {
       if (!loggedUser?.isAdmin) return alert('Apenas administradores podem encerrar a votação.');
-      const date = document.getElementById('adminMatchDate')?.value || localDateKey();
+      const date = babaModeDate();
       const games = matchHistory.filter(match => match.gameDay === date && match.votingOpen === true);
       if (!games.length) return alert('Não há votação aberta para esta data.');
       try {
@@ -2826,7 +2889,7 @@
         if (!confirm(`Encerrar a votação do baba de ${new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR')}? Foram recebidas ${counts.evaluations} avaliações de ${counts.voters} jogadores. Depois de encerrar, ninguém poderá enviar novas avaliações.`)) return;
         const closed = await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/finish-voting`, { method: 'PUT', body: '{}' });
         matchHistory.filter(match => match.gameDay === date).forEach(match => { match.votingOpen = false; });
-        saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory();
+        saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory(); applyBabaModeUi();
         const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Votação encerrada para ${games.length} jogo(s) do dia ${date}.`;
         alert(`Votação encerrada. ${closed.evaluations} avaliações de ${closed.voters} jogadores foram mantidas.`);
       } catch (error) { alert(`Não foi possível encerrar a votação: ${error.message}`); }
@@ -2911,7 +2974,11 @@
       const container = document.getElementById('votingContainer');
       if (!container) return;
       container.innerHTML = '';
-      const dayMatches = matchesForLatestDay();
+      if (sharedBabaMode !== 'voting') {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic col-span-full">A votação aparecerá aqui quando o ADM liberar o Modo Votação.</p>';
+        return;
+      }
+      const dayMatches = matchHistory.filter(match => match.gameDay === babaModeDate());
       const votingOpen = dayMatches.length > 0 && dayMatches.every(match => match.votingOpen === true);
       const votingIds = [...new Set(dayMatches.flatMap(match => Array.isArray(match.checkedInIds) ? match.checkedInIds : []))];
       const votingEmails = [...new Set(dayMatches.flatMap(match => Array.isArray(match.checkedInEmails) ? match.checkedInEmails : []))];
@@ -3228,7 +3295,7 @@
       });
     }
     function auditActionLabel(action) {
-      return ({ member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
+      return ({ member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', baba_mode_changed: 'Etapa do baba alterada', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
     }
     function renderAdminAuditLog() {
       const box = document.getElementById('adminAuditLog'); if (!box) return;
@@ -3771,7 +3838,7 @@
       if (a) {
         const game = { arenaId, name: a.name, address: a.address, date, time, latitude: a.latitude ?? null, longitude: a.longitude ?? null, radius: a.radius || 100 };
         activeBabaDate = date; localStorage.setItem('futmancos_next_game', JSON.stringify(game));
-        renderNextGameInfo(game); saveState(); refreshSharedAttendance();
+        renderNextGameInfo(game); saveState(); refreshSharedAttendance(); refreshSharedBabaMode();
         alert('Próximo baba agendado com sucesso!');
       }
     }

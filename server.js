@@ -445,6 +445,37 @@ app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res,
   } catch (error) { next(error); }
 });
 
+app.get('/api/baba/mode', authenticate, requireDatabase, async (req, res, next) => {
+  const day = String(req.query.date || '');
+  if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
+  try {
+    let mode = await setting(`baba_mode_${day}`);
+    if (!mode) {
+      const { data: openGames, error } = await supabase.from('baba_matches').select('id').eq('game_day', day).eq('voting_open', true).limit(1);
+      if (error) throw error;
+      mode = openGames?.length ? 'voting' : 'presence';
+    }
+    if (!['presence', 'game', 'voting'].includes(mode)) mode = 'presence';
+    res.json({ date: day, mode });
+  } catch (error) { next(error); }
+});
+app.put('/api/admin/baba/mode', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const day = String(req.body?.date || ''), mode = String(req.body?.mode || '');
+  if (!validDate(day) || !['presence', 'game'].includes(mode)) return res.status(400).json({ error: 'Data ou modo inválido.' });
+  try {
+    let current = await setting(`baba_mode_${day}`);
+    if (!current) {
+      const { data: openGames, error } = await supabase.from('baba_matches').select('id').eq('game_day', day).eq('voting_open', true).limit(1);
+      if (error) throw error;
+      if (openGames?.length) current = 'voting';
+    }
+    if (current === 'voting') return res.status(409).json({ error: 'A votação deste baba já foi liberada; não é possível voltar para outra etapa.' });
+    await saveSetting(`baba_mode_${day}`, mode);
+    await auditAdminAction(req.user, 'baba_mode_changed', 'baba_day', day, `Modo da Central Baba alterado para ${mode === 'game' ? 'Modo Baba' : 'Presença'} em ${day}.`, { gameDay: day, mode });
+    res.json({ ok: true, date: day, mode });
+  } catch (error) { next(error); }
+});
+
 app.get('/api/gallery', requireDatabase, async (_req, res, next) => {
   try {
     const { data, error } = await supabase.from('app_state').select('state_json').eq('id', 1).maybeSingle();
@@ -755,9 +786,10 @@ app.put('/api/admin/baba/matches/:date/close', authenticate, requireAdmin, requi
     const { data, error } = await supabase.from('baba_matches').update({ voting_open: true }).eq('game_day', date).select('id');
     if (error) throw error;
     if (!data.length) return res.status(404).json({ error: 'Não há jogos salvos para essa data.' });
+    await saveSetting(`baba_mode_${date}`, 'voting');
     await sendPushAll(`votes-open:${date}`, { category: 'votes', title: 'Votação das cartinhas liberada', body: 'O ADM encerrou os jogos do dia. Avalie as cartinhas dos jogadores que participaram.', url: '/' }, req.user.id);
     await auditAdminAction(req.user, 'voting_opened', 'baba_day', date, `Votação pós-baba liberada para ${date}.`, { gameDay: date, games: data.length });
-    res.json({ ok: true, games: data.length });
+    res.json({ ok: true, games: data.length, mode: 'voting' });
   } catch (error) { next(error); }
 });
 
