@@ -85,7 +85,6 @@
     .rank-emblem { color:var(--rank-main); filter:drop-shadow(0 3px 5px var(--rank-glow)); }
     .rank-player-cutout { position:absolute; z-index:1; top:calc(-28px + var(--card-image-y, 0px)); left:calc(50% + var(--card-image-x, 0px)); width:320px; height:228px; max-width:none; object-fit:contain; object-position:center bottom; transform:translateX(-50%) scale(var(--card-image-scale, 1)) scaleX(1.2); pointer-events:none; filter:drop-shadow(0 5px 8px rgba(0,0,0,.55)); }
     .rank-player-stage { overflow:visible; }
-    .profile-card-image-preview .rank-player-cutout { top:calc(8px + var(--card-image-preview-y, 0px)); left:calc(50% + var(--card-image-preview-x, 0px)); width:180px; height:128px; }
     .rank-player-name, .rank-player-stats { position:relative; z-index:2; }
     @supports not (color:color-mix(in srgb, red, transparent)) { .rank-card { background:#101612; } }
 
@@ -537,9 +536,11 @@
         </div>
       </div>
 
-      <div id="myCardImageEditor" class="bg-brand-cardBg border border-amber-500/30 p-4 rounded-2xl space-y-3">
-        <div><h3 class="font-teko text-2xl text-amber-300">MINHA CARTINHA</h3><p class="text-xs text-gray-400">Só você pode ajustar a imagem da sua cartinha. A prévia mostra o resultado e a alteração será compartilhada com todos.</p></div>
-        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4 items-center">
+      <details id="myCardImageEditor" class="bg-brand-cardBg border border-amber-500/30 rounded-2xl overflow-hidden">
+        <summary class="cursor-pointer list-none p-4 flex justify-between items-center gap-3"><span><strong class="block font-teko text-2xl text-amber-300">MINHA CARTINHA</strong><small class="text-xs text-gray-400">Escolha a foto e ajuste sua carta</small></span><span class="text-xs text-gray-400">Abrir / fechar</span></summary>
+        <div class="p-4 pt-0 space-y-3">
+        <p class="text-xs text-gray-400">Só você pode ajustar a imagem da sua cartinha. A prévia completa acompanha os ajustes em tempo real e será compartilhada com todos ao salvar.</p>
+        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_280px] gap-4 items-start">
           <div class="space-y-3">
             <fieldset class="flex flex-wrap gap-4 text-xs text-gray-200"><legend class="sr-only">Imagem da cartinha</legend>
               <label class="flex items-center gap-2"><input type="radio" name="myCardImageMode" value="profile" onchange="setMyCardImageMode('profile')"> Usar foto do perfil</label>
@@ -554,13 +555,19 @@
               <label class="text-xs text-gray-300">Vertical: <span id="myCardYValue">0 px</span><input id="myCardY" type="range" min="-80" max="80" value="0" oninput="previewMyCardImage()" class="mt-2 w-full accent-amber-400"></label>
             </div>
           </div>
-          <div class="profile-card-image-preview relative mx-auto h-36 w-44 overflow-hidden rounded-xl border border-gray-700 bg-black/50">
-            <img id="myCardImagePreview" class="rank-player-cutout" alt="Prévia da imagem da cartinha">
-            <span id="myCardImageEmpty" class="absolute inset-0 flex items-center justify-center text-center text-xs text-gray-500">Adicione uma foto<br>para ver a prévia</span>
+          <div id="myCardPreviewCard" class="rank-card rank-silver w-64 max-w-full mx-auto rounded-2xl p-4 text-white relative overflow-hidden shadow-xl">
+            <img id="myCardPreviewLogo" class="rank-card-background" alt="" aria-hidden="true">
+            <img id="myCardPreviewTexture" class="rank-card-texture" alt="" aria-hidden="true">
+            <div class="mb-1 flex items-center justify-center gap-1.5 text-[9px] font-black tracking-[.2em] rank-accent"><svg class="rank-emblem h-7 w-6" viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M16 2 29 9v12L16 38 3 21V9L16 2Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2"/><path d="m16 7 8 5v8l-8 11-8-11v-8l8-5Z" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 4 6-4 7-4-7 4-6Z" fill="currentColor"/></svg><span id="myCardPreviewRank">PRATA</span></div>
+            <div class="flex justify-between items-start"><div class="text-center"><span id="myCardPreviewOvr" class="font-teko text-5xl font-extrabold rank-accent leading-none block">70</span><span id="myCardPreviewPosition" class="text-[10px] font-bold uppercase tracking-widest rank-accent">MEI</span></div><span id="myCardPreviewShirt" class="font-teko text-2xl font-bold text-gray-300"></span></div>
+            <div class="rank-player-stage my-2 relative flex h-48 justify-center"><img id="myCardImagePreview" class="rank-player-cutout" alt="Prévia da imagem da cartinha"><span id="myCardImageEmpty" class="absolute inset-0 z-10 flex items-center justify-center text-center text-xs text-gray-500">Adicione uma foto<br>para ver a prévia</span></div>
+            <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2"><h3 id="myCardPreviewName" class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">JOGADOR</h3></div>
+            <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1"><div class="flex justify-between"><span>RIT</span><span id="myCardPreviewRit" class="rank-accent">70</span></div><div class="flex justify-between"><span>DRI</span><span id="myCardPreviewDri" class="rank-accent">70</span></div><div class="flex justify-between"><span>CHU</span><span id="myCardPreviewChu" class="rank-accent">70</span></div><div class="flex justify-between"><span>DEF</span><span id="myCardPreviewDef" class="rank-accent">70</span></div><div class="flex justify-between"><span>PAS</span><span id="myCardPreviewPas" class="rank-accent">70</span></div><div class="flex justify-between"><span>FIS</span><span id="myCardPreviewFis" class="rank-accent">70</span></div></div>
           </div>
         </div>
         <div class="flex flex-wrap gap-2 items-center"><button type="button" onclick="saveMyCardImage()" class="rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-black">Salvar minha cartinha</button><button type="button" onclick="resetMyCardImage()" class="rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-white">Restaurar padrão</button><span id="myCardImageStatus" class="text-xs text-emerald-300" aria-live="polite"></span></div>
-      </div>
+        </div>
+      </details>
 
       <div id="memberGuestCodePanel" class="bg-brand-cardBg border border-sky-500/30 p-4 rounded-2xl space-y-2">
         <h3 class="font-teko text-2xl text-sky-300">CÓDIGO PARA CONVIDAR</h3>
@@ -2629,8 +2636,18 @@
       document.getElementById('myCardXValue').innerText = `${x} px`;
       document.getElementById('myCardYValue').innerText = `${y} px`;
       image.src = source || '';
-      image.style.cssText = `--card-image-scale:${scale / 100};--card-image-x:${x}px;--card-image-y:${y}px;--card-image-preview-x:${x * .45}px;--card-image-preview-y:${y * .45}px;display:${source ? 'block' : 'none'}`;
+      image.style.cssText = `--card-image-scale:${scale / 100};--card-image-x:${x}px;--card-image-y:${y}px;display:${source ? 'block' : 'none'}`;
       empty.classList.toggle('hidden', !!source);
+      const card = document.getElementById('myCardPreviewCard'), ovr = calcOVR(player), rank = getCardRank(ovr);
+      card.classList.remove('rank-bronze','rank-silver','rank-gold','rank-scarlet'); card.classList.add(rank.className);
+      document.getElementById('myCardPreviewLogo').src = FUTMANCOS_CARD_LOGO;
+      document.getElementById('myCardPreviewTexture').src = FUTMANCOS_CARD_TEXTURE;
+      document.getElementById('myCardPreviewRank').innerText = rank.label;
+      document.getElementById('myCardPreviewOvr').innerText = ovr;
+      document.getElementById('myCardPreviewPosition').innerText = String(player.pos || 'Meio-Campo').substring(0,3);
+      document.getElementById('myCardPreviewShirt').innerText = player.shirt || '';
+      document.getElementById('myCardPreviewName').innerText = player.name || 'JOGADOR';
+      [['Rit','ritVotes'],['Dri','driVotes'],['Chu','chuVotes'],['Def','defVotes'],['Pas','pasVotes'],['Fis','fisVotes']].forEach(([label,key]) => { document.getElementById(`myCardPreview${label}`).innerText = calcAttribute(player[key]); });
     }
     async function saveMyCardImage() {
       if (!loggedUser) return;
