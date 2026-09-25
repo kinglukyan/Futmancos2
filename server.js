@@ -127,6 +127,7 @@ async function getFee() {
   return Number(await setting('monthly_fee')) || Number(env('MONTHLY_FEE', '50.00'));
 }
 function billingStatus(row, fee, now = new Date()) {
+  if (String(row?.position || '').toLowerCase().includes('goleiro')) return { status: 'exempt', month: monthKey(now), paidMonth: row.paid_month || '', dueDay: 12, fee: 0 };
   const month = monthKey(now), day = saoPauloDay(now);
   if (row.paid_month === month) return { status: 'paid', month, paidMonth: row.paid_month, dueDay: 12, fee };
   return { status: day <= 12 ? 'pending' : 'overdue', month, paidMonth: row.paid_month || '', dueDay: 12, fee };
@@ -153,6 +154,14 @@ async function authenticate(req, res, next) {
 function requireAdmin(req, res, next) {
   if (!req.user?.is_admin) return res.status(403).json({ error: 'Acesso restrito à administração.' });
   next();
+}
+async function requireBabaAccess(req, res, next) {
+  if (req.user?.is_admin || String(req.user?.position || '').toLowerCase().includes('goleiro')) return next();
+  try {
+    const status = billingStatus(req.user, await getFee());
+    if (status.status !== 'paid') return res.status(403).json({ code: 'BILLING_REQUIRED', error: 'A Central do Baba fica disponível após a confirmação da mensalidade. Acesse Mensalidades para regularizar.' });
+    next();
+  } catch (error) { next(error); }
 }
 function requireDatabase(req, res, next) {
   if (!supabase) return res.status(503).json({ error: 'Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no servidor.' });
@@ -275,6 +284,8 @@ app.get('/api/shared-state', authenticate, requireDatabase, async (req, res, nex
     if (error) throw error;
     const state = row?.state_json || null;
     if (state) {
+      const babaAccess = req.user.is_admin || String(req.user.position || '').toLowerCase().includes('goleiro') || billingStatus(req.user, await getFee()).status === 'paid';
+      if (!babaAccess) { state.presentPlayers = []; state.checkedInPlayers = []; }
       state.players = Array.isArray(state.players) ? state.players.filter(player => !isDemoMember(player)) : [];
       if (Array.isArray(state.transactions)) state.transactions = state.transactions.filter(item => String(item.desc || '') !== 'Mensalidade Lukyan');
       const rosterIds = new Set((row.state_json?.players || []).filter(isDemoMember).map(player => String(player.id)));
@@ -387,12 +398,12 @@ async function guestAttendanceRows(day, viewer) {
     };
   }).sort((a, b) => Number(b.checkin) - Number(a.checkin) || Number(b.presence) - Number(a.presence) || a.name.localeCompare(b.name));
 }
-app.get('/api/baba/guests/attendance', authenticate, requireDatabase, async (req, res, next) => {
+app.get('/api/baba/guests/attendance', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
   if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
   try { res.json({ guests: await guestAttendanceRows(day, req.user) }); } catch (error) { next(error); }
 });
-app.post('/api/baba/guests/:id/attendance', authenticate, requireDatabase, async (req, res, next) => {
+app.post('/api/baba/guests/:id/attendance', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), kind = String(req.body?.kind || ''), guestId = String(req.params.id || '');
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!validDate(day) || !['presence', 'checkin'].includes(kind) || !uuidPattern.test(guestId)) return res.status(400).json({ error: 'Dados de presença/check-in inválidos.' });
@@ -417,12 +428,12 @@ app.post('/api/baba/guests/:id/attendance', authenticate, requireDatabase, async
     res.json({ guests: await guestAttendanceRows(day, req.user) });
   } catch (error) { next(error); }
 });
-app.get('/api/baba/attendance', authenticate, requireDatabase, async (req, res, next) => {
+app.get('/api/baba/attendance', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
   if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
   try { res.json({ attendees: await attendanceRows(day) }); } catch (error) { next(error); }
 });
-app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res, next) => {
+app.post('/api/baba/attendance', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), kind = String(req.body?.kind || '');
   if (!validDate(day) || !['presence', 'checkin'].includes(kind)) return res.status(400).json({ error: 'Informe o baba e a ação de presença corretamente.' });
   try {
@@ -443,7 +454,7 @@ app.post('/api/baba/attendance', authenticate, requireDatabase, async (req, res,
   } catch (error) { next(error); }
 });
 
-app.get('/api/baba/mode', authenticate, requireDatabase, async (req, res, next) => {
+app.get('/api/baba/mode', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
   if (!validDate(day)) return res.status(400).json({ error: 'Informe a data do baba.' });
   try {
@@ -533,7 +544,7 @@ app.post('/api/admin/baba/checkin', authenticate, requireAdmin, requireDatabase,
   } catch (error) { next(error); }
 });
 
-app.get('/api/baba/votes', authenticate, requireDatabase, async (req, res, next) => {
+app.get('/api/baba/votes', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.query.date || '');
   if (!validDate(day)) return res.status(400).json({ error: 'Informe a data da votação.' });
   try {
@@ -542,7 +553,7 @@ app.get('/api/baba/votes', authenticate, requireDatabase, async (req, res, next)
     res.json({ votes: rows.map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })), myVotes: rows.filter(row => row.voter_id === req.user.id).map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })) });
   } catch (error) { next(error); }
 });
-app.post('/api/baba/votes', authenticate, requireDatabase, async (req, res, next) => {
+app.post('/api/baba/votes', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), playerEmail = String(req.body?.playerEmail || '').trim().toLowerCase();
   const attrKey = String(req.body?.attrKey || ''), stars = Number(req.body?.stars);
   if (!validDate(day) || !playerEmail || !['rit', 'dri', 'chu', 'def', 'pas', 'fis'].includes(attrKey) || !Number.isInteger(stars) || stars < 1 || stars > 5) return res.status(400).json({ error: 'Os dados do voto não são válidos.' });
@@ -563,14 +574,14 @@ app.post('/api/baba/votes', authenticate, requireDatabase, async (req, res, next
   } catch (error) { next(error); }
 });
 
-app.get('/api/baba/matches', authenticate, requireDatabase, async (_req, res, next) => {
+app.get('/api/baba/matches', authenticate, requireBabaAccess, requireDatabase, async (_req, res, next) => {
   try {
     const { data: rows, error } = await supabase.from('baba_matches').select('game_data,voting_open').order('game_day', { ascending: false }).order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ matches: rows.map(row => ({ ...row.game_data, votingOpen: row.voting_open })) });
   } catch (error) { next(error); }
 });
-app.get('/api/baba/draws', authenticate, requireDatabase, async (req, res, next) => {
+app.get('/api/baba/draws', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const date = String(req.query.date || '');
   if (!validDate(date)) return res.status(400).json({ error: 'Informe a data do baba.' });
   try {
@@ -989,9 +1000,10 @@ app.put('/api/admin/members/:id/shirt-number', authenticate, requireAdmin, requi
 
 app.put('/api/admin/members/:id/payment', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
   try {
-    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,paid_month').eq('id', req.params.id).maybeSingle();
+    const { data: member, error: findError } = await supabase.from('profiles').select('id,name,position,paid_month').eq('id', req.params.id).maybeSingle();
     if (findError) throw findError;
     if (!member) return res.status(404).json({ error: 'Associado não encontrado.' });
+    if (String(member.position || '').toLowerCase().includes('goleiro')) return res.status(409).json({ error: 'Goleiros são isentos da mensalidade; use o Custo GO quando houver cobrança extra.' });
     const month = monthKey();
     const alreadyPaid = member.paid_month === month;
     const { error } = await supabase.from('profiles').update({ paid_month: month }).eq('id', member.id);
@@ -1006,12 +1018,24 @@ app.put('/api/admin/monthly-fee', authenticate, requireAdmin, requireDatabase, a
   const amount = Number(req.body?.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10000) return res.status(400).json({ error: 'Informe um valor mensal válido.' });
   try {
-    const guestFee = Number(req.body?.guestFee ?? await setting('guest_daily_fee') ?? 0);
+    const [oldMonthlyFee, oldGuestFee, oldCustoGoFee, oldToggle, oldDescription] = await Promise.all([setting('monthly_fee'), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('custo_go_enabled'), setting('custo_go_description')]);
+    const guestFee = Number(req.body?.guestFee ?? oldGuestFee ?? 0);
+    const custoGoFee = Number(req.body?.custoGoFee ?? oldCustoGoFee ?? 0);
+    const custoGoDescription = String(req.body?.custoGoDescription ?? oldDescription ?? '').trim();
+    const custoGoEnabled = typeof req.body?.custoGoEnabled === 'boolean' ? req.body.custoGoEnabled : String(oldToggle || 'false').toLowerCase() === 'true';
     if (!Number.isFinite(guestFee) || guestFee < 0 || guestFee > 5000) return res.status(400).json({ error: 'Informe um valor válido para a diária do convidado.' });
+    if (!Number.isFinite(custoGoFee) || custoGoFee < 0 || custoGoFee > 5000) return res.status(400).json({ error: 'Informe um valor válido para o Custo GO.' });
+    if (custoGoDescription.length > 100) return res.status(400).json({ error: 'A descrição do Custo GO deve ter até 100 caracteres.' });
+    if (custoGoEnabled && custoGoFee <= 0) return res.status(400).json({ error: 'Defina um valor maior que zero antes de mostrar o Custo GO aos goleiros.' });
+    if (custoGoEnabled && !custoGoDescription) return res.status(400).json({ error: 'Informe o motivo do Custo GO antes de mostrá-lo aos goleiros.' });
     const fee = Math.round(amount * 100) / 100;
-    const guestDailyFee = Math.round(guestFee * 100) / 100;
-    await Promise.all([saveSetting('monthly_fee', fee), saveSetting('guest_daily_fee', guestDailyFee)]);
-    res.json({ monthlyFee: fee, guestFee: guestDailyFee });
+    const guestDailyFee = Math.round(guestFee * 100) / 100, extraFee = Math.round(custoGoFee * 100) / 100;
+    await Promise.all([saveSetting('monthly_fee', fee), saveSetting('guest_daily_fee', guestDailyFee), saveSetting('keeper_event_fee', extraFee), saveSetting('custo_go_enabled', custoGoEnabled), saveSetting('custo_go_description', custoGoDescription)]);
+    await auditAdminAction(req.user, 'billing_settings_updated', 'settings', 'association-billing', 'Configurações de mensalidade e Custo GO atualizadas.', {
+      previous: { monthlyFee: Number(oldMonthlyFee) || 0, guestFee: Number(oldGuestFee) || 0, custoGoFee: Number(oldCustoGoFee) || 0, custoGoEnabled: String(oldToggle || 'false').toLowerCase() === 'true', custoGoDescription: oldDescription || '' },
+      next: { monthlyFee: fee, guestFee: guestDailyFee, custoGoFee: extraFee, custoGoEnabled, custoGoDescription }
+    });
+    res.json({ monthlyFee: fee, guestFee: guestDailyFee, custoGoFee: extraFee, custoGoEnabled, custoGoDescription });
   } catch (error) { next(error); }
 });
 app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
@@ -1027,8 +1051,8 @@ app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, 
 });
 app.get('/api/config', requireDatabase, async (_req, res, next) => {
   try {
-    const [monthlyFee, guestFee, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('pix_key'), setting('pix_qr_data_url')]);
-    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
+    const [monthlyFee, guestFee, custoGoFee, custoGoEnabled, custoGoDescription, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('custo_go_enabled'), setting('custo_go_description'), setting('pix_key'), setting('pix_qr_data_url')]);
+    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, custoGoFee: Number(custoGoFee) || 0, custoGoEnabled: String(custoGoEnabled || 'false').toLowerCase() === 'true', custoGoDescription: custoGoDescription || '', whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
   } catch (error) { next(error); }
 });
 

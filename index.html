@@ -53,6 +53,7 @@
       color: #000 !important;
     }
     button[class*="bg-rose-"], button[class*="bg-red-"] { background-image: linear-gradient(120deg, #fb7185 0%, #e11d48 55%, #881337 100%) !important; }
+    button[class~="bg-blue-600/20"], button[class~="bg-rose-600/20"] { color: #000 !important; }
     button[class*="bg-pink-"] { background-image: linear-gradient(120deg, #f472b6 0%, #db2777 55%, #831843 100%) !important; }
     button[class*="bg-gray-800"], button[class*="bg-gray-900"], button[class*="bg-black"] { background-image: linear-gradient(120deg, #334155 0%, #1e293b 52%, #090d14 100%) !important; }
     button:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 5px 16px rgba(0,0,0,.2); }
@@ -112,6 +113,11 @@
     .admin-module > summary small { color: #9ca3af; font-size: .7rem; font-weight: 400; text-align: right; }
     .admin-module[open] > summary { border-bottom: 1px solid #263244; }
     .admin-module-content { display: grid; gap: 1rem; padding: 1rem; }
+    .custogo-switch input { appearance: none; position: relative; width: 2.75rem; height: 1.5rem; flex: 0 0 auto; border-radius: 9999px; background: #475569; cursor: pointer; transition: background .2s ease; }
+    .custogo-switch input::before { content: ''; position: absolute; top: .2rem; left: .2rem; width: 1.1rem; height: 1.1rem; border-radius: 9999px; background: #fff; transition: transform .2s ease; }
+    .custogo-switch input:checked { background: #059669; }
+    .custogo-switch input:checked::before { transform: translateX(1.25rem); }
+    .custogo-switch input:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
     @media (max-width: 640px) { .admin-module > summary { align-items: flex-start; flex-wrap: wrap; } .admin-module > summary small { order: 3; width: 100%; text-align: left; } .admin-module-content { padding: .75rem; } }
 </style>
 </head>
@@ -139,6 +145,7 @@
         <button id="nav-desk-ranking" onclick="navigate('ranking')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition">Rankings</button>
         <button id="nav-desk-eafc" onclick="navigate('eafc')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Cartinhas</button>
         <button id="nav-desk-financeiro" onclick="navigate('financeiro')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Mensalidades</button>
+        <button id="nav-desk-custogo" onclick="navigate('custogo')" class="nav-btn-desk px-3 py-1.5 rounded-lg transition logged-only hidden">Custo GO</button>
         <button id="admNavBtn" onclick="navigate('adm')" class="nav-btn-desk text-amber-400 hover:text-amber-300 px-3 py-1.5 rounded-lg transition hidden">Painel ADM</button>
       </nav>
 
@@ -336,7 +343,7 @@
           </div>
           <div id="instaFeedBox" class="bg-black/60 border border-gray-800 rounded-xl p-4 text-center text-xs text-gray-400 min-h-[220px] flex flex-col items-center justify-center space-y-2">
             <i data-lucide="instagram" class="w-12 h-12 text-gray-600"></i>
-            <p id="instaFeedText">Siga nosso Instagram oficial e acompanhe as fotos e stories dos jogos!</p>
+            <p>Siga nosso Instagram oficial e acompanhe as fotos e stories dos jogos!</p>
           </div>
         </div>
 
@@ -653,7 +660,7 @@
 
         <div class="space-y-3 text-xs text-gray-300 leading-relaxed border-t border-gray-800 pt-4">
           <p>
-            Na <strong>Futmancos</strong>, a mensalidade é arrecadada para manter a sustentabilidade financeira do nosso baba. O valor é fixo para todos os atletas associados.
+            Na <strong>Futmancos</strong>, a mensalidade mantém a estrutura e os jogos da associação. Goleiros são isentos; quando houver um extra, o ADM poderá publicar a contribuição opcional na área Custo GO.
           </p>
           <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
             <h4 class="font-bold text-white uppercase text-[11px] text-brand-lightGreen">Como Utilizamos o Dinheiro?</h4>
@@ -664,6 +671,14 @@
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="sec-custogo" class="hidden space-y-4">
+      <div class="mx-auto max-w-2xl space-y-4 rounded-2xl border border-amber-500/30 bg-brand-cardBg p-5 sm:p-7">
+        <div class="text-center"><span class="text-xs font-bold uppercase tracking-widest text-amber-300">Contribuição extra campo</span><h2 class="mt-1 font-teko text-4xl text-white">CUSTO GO</h2><p class="text-sm text-gray-400">Contribuição para confraternizações ou outras atividades fora de campo. Goleiros continuam isentos da mensalidade.</p></div>
+        <div class="rounded-xl border border-amber-500/30 bg-black/40 p-4 text-center"><span id="custoGoReason" class="text-xs font-bold uppercase text-amber-200"></span><span class="mt-2 block text-xs uppercase text-gray-400">Valor definido pela administração</span><p id="custoGoDisplayAmount" class="my-1 font-teko text-5xl font-bold text-brand-gold">R$ 0,00</p><p id="custoGoDescription" class="text-xs text-gray-400"></p></div>
+        <div class="space-y-3 rounded-xl border border-emerald-500/30 bg-black/40 p-4 text-center"><h3 class="font-teko text-2xl text-emerald-300">PAGAMENTO VIA PIX</h3><p id="custoGoPixEmpty" class="text-xs text-amber-200">A associação ainda não cadastrou a chave Pix ou o QR Code.</p><img id="custoGoQr" alt="QR Code Pix da associação" class="hidden mx-auto h-48 w-48 rounded-xl bg-white p-2 object-contain"><div id="custoGoKeyBox" class="hidden space-y-2"><p class="text-[10px] text-gray-400">Chave Pix</p><code id="custoGoKey" class="block break-all text-sm text-white"></code><button type="button" onclick="copyPixKey()" class="rounded-lg bg-gray-700 px-4 py-2 text-xs font-bold text-white">Copiar chave Pix</button></div><a id="custoGoWhatsapp" target="_blank" rel="noopener" class="inline-flex rounded-xl bg-emerald-700 px-5 py-3 text-xs font-bold text-white">Já paguei — enviar comprovante</a></div>
       </div>
     </section>
 
@@ -895,11 +910,14 @@
       <div class="bg-brand-cardBg border border-gray-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
           <h3 class="font-teko text-2xl text-white">DEFINIR VALOR DA MENSALIDADE</h3>
-          <p class="text-xs text-gray-400">Define o valor cobrado de todos os associados (membros e ADMs pagantes).</p>
+          <p class="text-xs text-gray-400">Define o valor mensal dos associados; goleiros são isentos. O Custo GO é separado e pode ser ativado quando houver uma contribuição extra.</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-auto">
-          <label class="text-[10px] text-gray-400">Mensalidade (todos os associados)<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+        <div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-6">
+          <label class="text-[10px] text-gray-400">Mensalidade dos associados<input type="number" min="0.01" step="0.01" id="admGlobalFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
           <label class="text-[10px] text-gray-400">Diária de convidado<input type="number" min="0" step="0.01" id="admGuestFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+          <label class="text-[10px] text-gray-400">Valor do Custo GO<input type="number" min="0" step="0.01" id="admCustoGoFeeInput" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+          <label class="text-[10px] text-gray-400">Motivo (ex.: confraternização)<input type="text" maxlength="100" id="admCustoGoDescription" placeholder="Ex.: Confraternização de fim de ano" class="mt-1 w-full rounded-xl border border-gray-800 bg-black p-2 text-xs font-bold text-white"></label>
+          <label class="custogo-switch flex cursor-pointer items-center justify-between gap-3 self-end rounded-xl border border-gray-700 bg-black/40 p-2.5 text-[10px] text-gray-300" for="admCustoGoEnabled"><span>Mostrar Custo GO aos goleiros</span><input id="admCustoGoEnabled" type="checkbox" role="switch" class="h-5 w-5 accent-emerald-500"></label>
           <button onclick="saveGlobalFee()" class="self-end rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-black">Salvar valores</button>
         </div>
       </div>
@@ -1087,6 +1105,7 @@
         <i data-lucide="wallet" class="w-5 h-5"></i>
         <span class="text-[10px]">Mensal.</span>
         </button>
+      <button id="nav-mob-custogo" onclick="navigate('custogo')" class="mobile-nav-btn flex flex-col items-center gap-0.5 logged-only hidden"><i data-lucide="party-popper" class="w-5 h-5"></i><span class="text-[10px]">Custo GO</span></button>
       <button id="nav-mob-adm" onclick="navigate('adm')" class="mobile-nav-btn text-amber-400 flex flex-col items-center gap-0.5 hidden">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span class="text-[10px]">ADM</span>
@@ -1102,8 +1121,9 @@
       { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, experimental: { passkey: true } } }
     );
     let loggedUser = JSON.parse(localStorage.getItem('futmancos_loggedUser')) || null;
+    let billingWatchTimer = null;
     let globalMonthlyFee = parseFloat(localStorage.getItem('futmancos_monthly_fee')) || 50.00;
-    let globalGuestFee = 0, guestAttendance = [];
+    let globalGuestFee = 0, globalCustoGoFee = 0, custoGoDescription = '', custoGoEnabled = false, guestAttendance = [];
     let currentGuestCheckoutName = '';
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
     let sharedBabaMode = 'presence';
@@ -1573,6 +1593,7 @@
       updateAuthUI();
       updateFinanceCategories();
       updatePresenceButton();
+      if (!billingWatchTimer) billingWatchTimer = window.setInterval(() => { if (loggedUser) { refreshPaymentStatus(); syncCustoGoConfig(); } }, 60000);
 
       if (loggedUser) await refreshPaymentStatus(true);
       document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
@@ -1825,11 +1846,36 @@
     let adminWhatsapp = '5575998572594';
     let associationPixKey = '';
     let associationPixQrDataUrl = '';
+    async function syncCustoGoConfig() {
+      try {
+        const config = await apiRequest('/config');
+        globalCustoGoFee = Number(config.custoGoFee) || 0;
+        custoGoDescription = String(config.custoGoDescription || '');
+        custoGoEnabled = config.custoGoEnabled === true;
+        associationPixKey = config.pixKey || '';
+        associationPixQrDataUrl = config.pixQrDataUrl || '';
+        if (config.whatsapp) adminWhatsapp = String(config.whatsapp).replace(/\D/g, '');
+        if (!(loggedUser?.isAdmin && currentActiveTab === 'adm')) {
+          const feeInput = document.getElementById('admCustoGoFeeInput'); if (feeInput) feeInput.value = globalCustoGoFee;
+          const descriptionInput = document.getElementById('admCustoGoDescription'); if (descriptionInput) descriptionInput.value = custoGoDescription;
+          const toggle = document.getElementById('admCustoGoEnabled'); if (toggle) toggle.checked = custoGoEnabled;
+        }
+        updateBillingNavigation();
+        if (isGoalkeeper(loggedUser) && !custoGoEnabled && currentActiveTab === 'custogo') navigate('perfil');
+        if (currentActiveTab === 'custogo' && custoGoEnabled) renderCustoGoPage();
+      } catch { /* Mantém os valores já carregados enquanto o servidor estiver indisponível. */ }
+    }
     async function loadAppConfig() {
       try {
         const config = await apiRequest('/config');
         globalMonthlyFee = Number(config.monthlyFee) || globalMonthlyFee;
         globalGuestFee = Number(config.guestFee) || 0;
+        globalCustoGoFee = Number(config.custoGoFee) || 0;
+        custoGoDescription = String(config.custoGoDescription || '');
+        custoGoEnabled = config.custoGoEnabled === true;
+        const custoFeeInput = document.getElementById('admCustoGoFeeInput'); if (custoFeeInput) custoFeeInput.value = globalCustoGoFee;
+        const custoDescriptionInput = document.getElementById('admCustoGoDescription'); if (custoDescriptionInput) custoDescriptionInput.value = custoGoDescription;
+        const custoToggle = document.getElementById('admCustoGoEnabled'); if (custoToggle) custoToggle.checked = custoGoEnabled;
         if (config.whatsapp) adminWhatsapp = String(config.whatsapp).replace(/\D/g, '');
         associationPixKey = config.pixKey || '';
         associationPixQrDataUrl = config.pixQrDataUrl || '';
@@ -1837,6 +1883,8 @@
         const preview = document.getElementById('admPixQrPreview'); if (preview && associationPixQrDataUrl) { preview.src = associationPixQrDataUrl; preview.classList.remove('hidden'); }
         renderPixPaymentDetails();
         renderGuestPix();
+        renderCustoGoPage();
+        updateBillingNavigation();
         try { associationGallery = (await apiRequest('/gallery')).images || []; renderAssociationGallery(); } catch { /* Galeria vazia enquanto a API não responde. */ }
         const guestSignup = document.getElementById('guestSignupDailyFee'); if (guestSignup) guestSignup.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         const guestDaily = document.getElementById('guestDailyFee'); if (guestDaily) guestDaily.textContent = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
@@ -1967,23 +2015,26 @@
       try {
         const status = await apiRequest('/payments/status');
         loggedUser.paymentStatus = status.status; loggedUser.paidMonth = status.paidMonth;
+        updateBillingNavigation();
+        if (!loggedUser.isAdmin && !isGoalkeeper(loggedUser) && status.status !== 'paid' && currentActiveTab === 'baba') navigate('financeiro');
         if (status.fee) {
           globalMonthlyFee = Number(status.fee);
           const feeText = `R$ ${globalMonthlyFee.toFixed(2)}`;
           const feeDisplay = document.getElementById('displayMonthlyFee'); if (feeDisplay) feeDisplay.innerText = feeText;
         }
+        const exempt = status.status === 'exempt';
         const paid = status.status === 'paid';
         const late = status.status === 'overdue';
-        const label = paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
-        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
-        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        const label = exempt ? 'ISENTO — GOLEIRO' : paid ? 'PAGO NESTE MÊS' : late ? 'ATRASADO' : 'PENDENTE';
+        if (badge) { badge.innerText = label; badge.className = `text-sm font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
+        if (profileBadge) { profileBadge.innerText = label; profileBadge.className = `text-xs font-bold ${paid || exempt ? 'text-emerald-400' : late ? 'text-rose-400' : 'text-amber-300'}`; }
         const [year, month] = status.month.split('-');
-        if (line) line.innerText = paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
-        if (profileCycle) profileCycle.innerText = paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
-        if (payBox) payBox.classList.toggle('hidden', paid);
-        if (profilePay) profilePay.classList.toggle('hidden', paid);
-        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late); } });
-        if (!paid && !late && Number(new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date())) >= 9) {
+        if (line) line.innerText = exempt ? 'Goleiros são isentos da mensalidade. Confira a área Custo GO para contribuições extras quando estiver disponível.' : paid ? `Mensalidade ${month}/${year} confirmada pela administração.` : late ? 'Prazo encerrado no dia 12. Envie o comprovante pelo WhatsApp e aguarde a conferência.' : `Pagamento via Pix disponível até o dia 12/${month}/${year}. Após pagar, envie o comprovante pelo WhatsApp.`;
+        if (profileCycle) profileCycle.innerText = exempt ? 'Isento da mensalidade.' : paid ? `Nova mensalidade a partir de 01/${String(Number(month) % 12 + 1).padStart(2, '0')}.` : late ? 'Entre em contato com a administração.' : `Vencimento: dia 12/${month}/${year}`;
+        if (payBox) payBox.classList.toggle('hidden', paid || exempt);
+        if (profilePay) profilePay.classList.toggle('hidden', paid || exempt);
+        lateLinks.forEach(link => { if (link) { link.href = buildLateWhatsAppUrl(); link.classList.toggle('hidden', !late || exempt); } });
+        if (!paid && !late && !exempt && Number(new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date())) >= 9) {
           const reminderKey = `futmancos-fee-reminder-${status.month}`;
           if (!localStorage.getItem(reminderKey)) { localStorage.setItem(reminderKey, '1'); showFutmancosNotice('Mensalidade próxima do vencimento', `O prazo para pagar termina no dia 12/${month}.`); }
         }
@@ -2006,6 +2057,7 @@
 
     function requestPixPayment() {
       if (!loggedUser) return openLoginModal();
+      if (isGoalkeeper(loggedUser)) return alert('Goleiros não pagam mensalidade. Confira a área Custo GO quando houver uma contribuição extra.');
       if (loggedUser.paymentStatus === 'paid') return alert('A mensalidade deste mês já consta como paga.');
       const date = new Date();
       const month = new Intl.DateTimeFormat('pt-BR', { month: '2-digit', timeZone: 'America/Sao_Paulo' }).format(date);
@@ -2068,6 +2120,33 @@
     }
 
     function isGoalkeeper(user) { return String(user?.pos || user?.position || '').toLowerCase().includes('goleiro'); }
+    function hasBabaAccess() { return !!loggedUser && (loggedUser.isAdmin || isGoalkeeper(loggedUser) || loggedUser.paymentStatus === 'paid'); }
+    function updateBillingNavigation() {
+      const goalie = !!loggedUser && isGoalkeeper(loggedUser);
+      const allowedBaba = hasBabaAccess();
+      ['nav-desk-baba','nav-mob-baba'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !allowedBaba); });
+      ['nav-desk-financeiro','nav-mob-financeiro'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !loggedUser || goalie); });
+      ['nav-desk-custogo','nav-mob-custogo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !goalie || !custoGoEnabled); });
+    }
+    function renderCustoGoPage() {
+      const amount = document.getElementById('custoGoDisplayAmount');
+      const reason = document.getElementById('custoGoReason');
+      const description = document.getElementById('custoGoDescription');
+      const qr = document.getElementById('custoGoQr');
+      const keyBox = document.getElementById('custoGoKeyBox');
+      const key = document.getElementById('custoGoKey');
+      const empty = document.getElementById('custoGoPixEmpty');
+      const link = document.getElementById('custoGoWhatsapp');
+      if (!amount) return;
+      amount.textContent = `R$ ${globalCustoGoFee.toFixed(2).replace('.', ',')}`;
+      if (reason) reason.textContent = custoGoDescription || 'Contribuição da associação';
+      if (description) description.textContent = globalCustoGoFee > 0 ? 'Confira o valor do extra divulgado pela associação antes de fazer o Pix.' : 'Nenhum valor de contribuição extra foi definido. Consulte a administração antes de pagar.';
+      if (qr) { qr.src = associationPixQrDataUrl || ''; qr.classList.toggle('hidden', !associationPixQrDataUrl); }
+      if (keyBox) keyBox.classList.toggle('hidden', !associationPixKey);
+      if (key) key.textContent = associationPixKey;
+      if (empty) empty.classList.toggle('hidden', !!(associationPixKey || associationPixQrDataUrl));
+      if (link) { const msg = encodeURIComponent(`Olá! Sou ${loggedUser?.name || 'goleiro'} da Futmancos. Fiz o Pix do Custo GO no valor de R$ ${globalCustoGoFee.toFixed(2)}. Estou enviando o comprovante.`); link.href = `https://wa.me/${adminWhatsapp}?text=${msg}`; }
+    }
     function updateAuthUI() {
       const authBtn = document.getElementById('authActionBtn');
 
@@ -2100,6 +2179,7 @@
       }
       applyBabaModeUi();
       updatePasskeyControls();
+      updateBillingNavigation();
     }
 
 
@@ -2113,12 +2193,15 @@
     }
     function navigate(secId) {
       if (loggedUser && secId === 'convidado') { alert('A aba de cadastro de convidados fica disponível para pessoas sem conta. Compartilhe seu código no Perfil.'); return navigate('perfil'); }
-      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro'].includes(secId)) {
+      if (!loggedUser && ['baba', 'perfil', 'eafc', 'adm', 'financeiro', 'custogo'].includes(secId)) {
         openLoginModal();
         return;
       }
 
       if (secId === 'adm' && !loggedUser?.isAdmin) { alert('Acesso restrito à administração.'); return; }
+      if (secId === 'financeiro' && isGoalkeeper(loggedUser)) return navigate('custogo');
+      if (secId === 'custogo' && (!isGoalkeeper(loggedUser) || !custoGoEnabled)) { alert('A área Custo GO está indisponível no momento.'); return navigate('perfil'); }
+      if (secId === 'baba' && !hasBabaAccess()) { alert('A Central do Baba fica disponível após a confirmação da mensalidade. Acesse Mensalidades para regularizar.'); return navigate('financeiro'); }
       currentActiveTab = secId;
       document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
       document.getElementById(`sec-${secId}`).classList.remove('hidden');
@@ -2131,6 +2214,7 @@
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); refreshAdminAuditLog(); }
       if (secId === 'financeiro') refreshPaymentStatus();
+      if (secId === 'custogo') renderCustoGoPage();
     }
 
     function updateNavHighlight(secId) {
@@ -3297,7 +3381,7 @@
       });
     }
     function auditActionLabel(action) {
-      return ({ member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', baba_mode_changed: 'Etapa do baba alterada', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
+      return ({ billing_settings_updated: 'Configurações de cobrança alteradas', member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', baba_mode_changed: 'Etapa do baba alterada', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
     }
     function renderAdminAuditLog() {
       const box = document.getElementById('adminAuditLog'); if (!box) return;
@@ -3416,7 +3500,7 @@
 
       document.getElementById('memberCount').innerText = players.length;
       document.getElementById('countPaid').innerText = players.filter(x => x.paid).length;
-      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid).length;
+      document.getElementById('countUnpaid').innerText = players.filter(x => !x.paid && !isGoalkeeper(x)).length;
 
       if (tbody) tbody.innerHTML = '';
       if (mobileCards) mobileCards.innerHTML = '';
@@ -3424,8 +3508,9 @@
         const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
         const memberKey = escape(p.id);
         const editable = Boolean(loggedUser?.isAdmin) || String(p.id) === String(loggedUser?.id);
-        const paymentText = p.paid ? 'PAGO' : 'PENDENTE';
-        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid;
+        const exempt = isGoalkeeper(p);
+        const paymentText = exempt ? 'ISENTO' : p.paid ? 'PAGO' : 'PENDENTE';
+        const paymentAction = loggedUser?.isAdmin && p.serverId && !p.paid && !exempt;
         const deleteAction = loggedUser?.isAdmin;
         const deletionKey = escape(p.serverId || p.authUserId || p.id);
         if (tbody) tbody.innerHTML += `
@@ -3433,7 +3518,7 @@
             <td class="p-2.5 font-bold text-white">${p.name} (#${p.shirt})</td>
             <td class="p-2.5 text-gray-300">${p.age} anos</td>
             <td class="p-2.5 text-gray-300">${p.pos}</td>
-            <td class="p-2.5 font-bold ${p.paid ? 'text-emerald-400' : 'text-rose-400'}">${paymentText}</td>
+            <td class="p-2.5 font-bold ${exempt || p.paid ? 'text-emerald-400' : 'text-rose-400'}">${paymentText}</td>
             <td class="p-2.5 text-center">
               <button onclick="openMemberDetailModal('${memberKey}')" class="bg-amber-500 text-black border border-amber-500/30 px-2 py-1 rounded text-[10px] font-bold">
                 Inspecionar
@@ -3448,7 +3533,7 @@
         `;
         if (mobileCards) mobileCards.innerHTML += `
           <article class="bg-black/35 border border-gray-800 rounded-xl p-3 space-y-2">
-            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${p.paid ? 'text-emerald-300' : 'text-rose-300'}">${paymentText}</span></div>
+            <div class="flex justify-between items-start gap-2"><div><h4 class="font-bold text-white">${escape(p.name)} <span class="text-gray-400">#${escape(p.shirt || 0)}</span></h4><p class="text-[11px] text-gray-400">${escape(p.age)} anos · ${escape(p.pos)}</p></div><span class="shrink-0 text-[10px] font-bold ${exempt || p.paid ? 'text-emerald-300' : 'text-rose-300'}">${paymentText}</span></div>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" data-member-inspect="${memberKey}" class="bg-amber-500 text-black border border-amber-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Inspecionar</button>
               ${editable ? `<button type="button" data-member-edit="${memberKey}" class="bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-2 rounded-lg text-[11px] font-bold">Editar dados</button>` : ''}
@@ -3574,8 +3659,13 @@
       const amount = Number(document.getElementById('admGlobalFeeInput').value);
       try {
         const guestFee = Number(document.getElementById('admGuestFeeInput').value);
-        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee }) });
+        const custoGoFee = Number(document.getElementById('admCustoGoFeeInput').value);
+        const custoGoDescription = document.getElementById('admCustoGoDescription').value.trim();
+        const custoGoEnabled = document.getElementById('admCustoGoEnabled').checked;
+        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee, custoGoFee, custoGoDescription, custoGoEnabled }) });
         globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee);
+        globalCustoGoFee = Number(data.custoGoFee); custoGoDescription = String(data.custoGoDescription || ''); custoGoEnabled = data.custoGoEnabled === true;
+        renderCustoGoPage(); updateBillingNavigation();
         document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
         document.getElementById('guestSignupDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         document.getElementById('guestDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
@@ -3840,6 +3930,7 @@
   </script>
 </body>
 </html>
+
 
 
 
