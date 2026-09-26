@@ -73,6 +73,9 @@
     .weekly-slot-label { color:#b9f5dc; font-size:9px; line-height:1; font-weight:900; letter-spacing:.05em; }
     .weekly-slot-name { width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; line-height:1.1; font-weight:800; }
     .weekly-slot-ovr { color:#fcd34d; font:700 14px/1 Teko,sans-serif; }
+    .weekly-slot[data-slot="fb"] { border-color:#67e8f9a8; }
+    .weekly-slot[data-slot^="cb"] { border-color:#86efaca8; }
+    .weekly-slot[data-slot="dm"] { border-color:#fcd34da8; }
     @media(max-width:767px) {
       .weekly-field { aspect-ratio:8/13; min-height:460px; max-height:620px; }
       .weekly-field-lines::before { left:0; right:0; top:50%; bottom:auto; border-left:0; border-top:1px solid #c5f5e280; }
@@ -82,11 +85,11 @@
       .weekly-slot { width:clamp(82px,27%,108px); min-height:72px; }
       .weekly-slot-avatar { width:32px; height:32px; }
       .weekly-slot[data-slot="gk"] { left:50%; top:88%; }
-      .weekly-slot[data-slot="def1"] { left:27%; top:70%; }
-      .weekly-slot[data-slot="def2"] { left:73%; top:70%; }
-      .weekly-slot[data-slot="mid1"] { left:19%; top:50%; }
-      .weekly-slot[data-slot="mid2"] { left:50%; top:50%; }
-      .weekly-slot[data-slot="mid3"] { left:81%; top:50%; }
+      .weekly-slot[data-slot="cb1"] { left:31%; top:73%; }
+      .weekly-slot[data-slot="cb2"] { left:69%; top:73%; }
+      .weekly-slot[data-slot="fb"] { left:50%; top:60%; }
+      .weekly-slot[data-slot="dm"] { left:25%; top:50%; }
+      .weekly-slot[data-slot="mid"] { left:75%; top:50%; }
       .weekly-slot[data-slot="att"] { left:50%; top:27%; }
     }
     @media (max-width: 767px) {
@@ -110,6 +113,13 @@
     .rank-gold { --rank-main:#edbd45; --rank-light:#fff1a6; --rank-deep:#76501a; --rank-glow:rgba(242,183,46,.34); --rank-hue:350deg; --texture-hue:150deg; }
     .rank-scarlet { --rank-main:#ff4057; --rank-light:#ffd0d4; --rank-deep:#71192d; --rank-glow:rgba(255,48,76,.38); --rank-hue:325deg; --texture-hue:125deg; }
     .rank-card .rank-accent { color:var(--rank-light); }
+    .game-plan-role-guide { display:flex; flex-wrap:wrap; justify-content:center; gap:.35rem .8rem; color:#d1d5db; font-size:10px; }
+    .game-plan-role-guide strong { color:#fde68a; }
+    .game-plan-role-label[data-role="lateral"] { color:#67e8f9; }
+    .game-plan-role-label[data-role="zagueiro"] { color:#86efac; }
+    .game-plan-role-label[data-role="volante"] { color:#fcd34d; }
+    .game-plan-role-label[data-role="mid"] { color:#7dd3fc; }
+    .game-plan-role-label[data-role="att"] { color:#fda4af; }
     .rank-card .rank-frame { border-color:var(--rank-main); box-shadow:0 0 18px var(--rank-glow); }
     .rank-foot-icons { position:relative; z-index:6; display:flex; justify-content:center; align-items:center; gap:4px; height:22px; margin-top:2px; }
     .rank-foot-trigger { position:relative; display:inline-flex; min-height:0; width:16px; height:22px; align-items:center; justify-content:center; padding:0; border:0; background:transparent; line-height:1; cursor:pointer; }
@@ -746,8 +756,9 @@
             <div class="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 pointer-events-none"></div>
             <div class="absolute left-1/4 right-1/4 top-3 h-16 border-x border-b border-white/50 pointer-events-none"></div>
             <div class="absolute left-1/4 right-1/4 bottom-3 h-16 border-x border-t border-white/50 pointer-events-none"></div>
-            <div id="gamePlanFieldSlots" class="relative z-10 flex min-h-[560px] flex-col justify-around px-2 py-4 sm:px-5"></div>
+            <div id="gamePlanFieldSlots" class="absolute inset-0 z-10"></div>
           </div>
+          <div class="game-plan-role-guide mt-2" aria-label="Zonas táticas"><span><strong>LAT</strong> · faixa lateral defensiva</span><span><strong>ZAG</strong> · centro da defesa</span><span><strong>VOL</strong> · à frente da zaga</span><span><strong>MEI</strong> · meio-campo</span><span><strong>ATA</strong> · setor avançado</span></div>
           <p id="gamePlanFieldHint" class="mt-2 text-center text-[10px] text-gray-500">Toque em uma cartinha e depois em uma posição para escalar pelo celular.</p>
         </div>
         <div class="space-y-3">
@@ -2825,7 +2836,7 @@
       if (!field) return;
       const lineup = Array.isArray(data.lineup) ? data.lineup : [];
       const container = field.querySelector('.weekly-slots');
-      const positions = { gk:[8,50], def1:[27,31], def2:[27,69], mid1:[50,20], mid2:[50,50], mid3:[50,80], att:[76,50] };
+      const positions = { gk:[8,50], cb1:[29,71], cb2:[29,29], fb:[43,50], dm:[58,50], mid:[74,50], att:[91,50] };
       container.innerHTML = lineup.map(slot => {
         const [x,y] = positions[slot.id] || [50,50], player = slot.player;
         const avatar = player?.photo ? `<img src="${gamePlanEscape(player.photo)}" alt="">` : (player ? gamePlanEscape(String(player.name || '?').slice(0,1).toUpperCase()) : '<span aria-hidden="true">＋</span>');
@@ -3001,17 +3012,17 @@
           const photo = source ? gamePlanPhoto(source) : (String(player.photo || '').startsWith('https://') ? player.photo : '');
           const name = player.nickname || player.name || source?.nickname || source?.name || 'Jogador', rank = getCardRank(Number(player.ovr) || 60);
           const isKeeper = player.isKeeper || keeperSet.has(id) || String(player.position || player.pos || '').toLowerCase().includes('goleiro');
-          const role = isKeeper ? 'GO' : ({ defense: 'DEF', midfield: 'MEI', attack: 'ATA' }[footballPositionGroup(player)] || 'MEI');
+          const role = ({ keeper:'GO', lateral:'LAT', zagueiro:'ZAG', volante:'VOL', midfield:'MEI', attack:'ATA' })[isKeeper ? 'keeper' : footballTacticalPosition(player)];
           return `<div class="${rank.className} relative z-10 flex h-[66px] w-[48px] shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border ${player.team === 'A' ? 'border-emerald-300/80' : 'border-gray-300/80'} bg-black/80 px-0.5 text-center text-white shadow-lg sm:h-[74px] sm:w-[56px] md:h-[82px] md:w-[68px] md:px-1" title="${safe(name)} · ${role} · OVR ${Number(player.ovr) || 0}">${photo ? `<img src="${safe(photo)}" alt="" class="h-6 w-6 rounded-full border border-white/60 object-cover md:h-8 md:w-8">` : `<span class="flex h-6 w-6 items-center justify-center rounded-full border border-white/50 bg-black/50 font-teko text-sm md:h-8 md:w-8 md:text-base">${safe(String(name).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[7px] font-bold leading-tight md:text-[8px]">${safe(name)}</span><span class="text-[6px] font-black text-white/65 md:text-[7px]">${role}</span><span class="text-[8px] font-black md:text-[9px] ${player.team === 'A' ? 'text-emerald-200' : 'text-gray-100'}">${Number(player.ovr) || 0}</span></div>`;
         };
         const teamHalf = key => {
-          const isGreen = key === 'A', rows = { keeper: [], defense: [], midfield: [], attack: [] };
+          const isGreen = key === 'A', rows = { keeper: [], zagueiro: [], lateral: [], volante: [], midfield: [], attack: [] };
           teams[key].forEach(player => {
             const isKeeper = player.isKeeper || keeperSet.has(String(player.userId || player.serverId || player.id)) || String(player.position || player.pos || '').toLowerCase().includes('goleiro');
-            const group = isKeeper ? 'keeper' : footballPositionGroup(player);
+            const group = isKeeper ? 'keeper' : footballTacticalPosition(player);
             (rows[group] || rows.midfield).push(player);
           });
-          const order = ['keeper','defense','midfield','attack'];
+          const order = ['keeper','zagueiro','lateral','volante','midfield','attack'];
           const mobileOrder = isGreen ? order : [...order].reverse();
           const wrapper = isGreen
             ? 'absolute left-2 right-2 top-2 bottom-1/2 md:inset-y-2 md:left-2 md:right-1/2'
@@ -3089,6 +3100,15 @@
       const position = String(player.position || player.pos || '').toLowerCase();
       if (player.isKeeper || position.includes('goleiro')) return 'keeper';
       if (position.includes('zague') || position.includes('later') || position.includes('defens')) return 'defense';
+      if (position.includes('atac') || position.includes('ponta') || position.includes('centroav')) return 'attack';
+      return 'midfield';
+    }
+    function footballTacticalPosition(player) {
+      const position = String(player.position || player.pos || '').toLocaleLowerCase('pt-BR');
+      if (player.isKeeper || position.includes('goleiro')) return 'keeper';
+      if (position.includes('later')) return 'lateral';
+      if (position.includes('zague') || position.includes('defens')) return 'zagueiro';
+      if (position.includes('volante')) return 'volante';
       if (position.includes('atac') || position.includes('ponta') || position.includes('centroav')) return 'attack';
       return 'midfield';
     }
@@ -3547,24 +3567,55 @@
     }
 
     const gamePlanFormations = { '2-3-1': { def: 2, mid: 3, att: 1 }, '3-2-1': { def: 3, mid: 2, att: 1 }, '2-2-2': { def: 2, mid: 2, att: 2 }, '1-4-1': { def: 1, mid: 4, att: 1 }, '1-3-2': { def: 1, mid: 3, att: 2 }, '1-2-3': { def: 1, mid: 2, att: 3 }, '2-1-3': { def: 2, mid: 1, att: 3 }, '3-1-2': { def: 3, mid: 1, att: 2 }, '4-1-1': { def: 4, mid: 1, att: 1 }, '3-3-0': { def: 3, mid: 3, att: 0 }, '2-4-0': { def: 2, mid: 4, att: 0 }, '0-3-3': { def: 0, mid: 3, att: 3 } };
-    const defaultGamePlanCustomPositions = () => Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`custom${i + 1}`, { x: [25, 75, 25, 75, 25, 75][i], y: [30, 30, 50, 50, 70, 70][i] }]));
+    const defaultGamePlanCustomPositions = () => Object.fromEntries([
+      ['custom1', { x: 50, y: 21 }], ['custom2', { x: 24, y: 43 }], ['custom3', { x: 50, y: 58 }],
+      ['custom4', { x: 76, y: 43 }], ['custom5', { x: 34, y: 76 }], ['custom6', { x: 72, y: 76 }]
+    ]);
     function gamePlanRows() {
       if (gamePlanFormation === 'custom') return [{ role: 'custom', label: 'LINHA', slots: Array.from({ length: 6 }, (_, i) => ({ id: `custom${i + 1}`, role: 'custom', label: `JOGADOR ${i + 1}` })) }, { role: 'gk', label: 'GOL', slots: [{ id: 'gk', role: 'gk', label: 'GOLEIRO' }] }];
       const shape = gamePlanFormations[gamePlanFormation] || gamePlanFormations['2-3-1'];
-      const row = (role, count, label) => ({ role, label, slots: Array.from({ length: count }, (_, i) => ({ id: `${role}${i + 1}`, role, label: `${label} ${i + 1}` })) });
+      const row = (role, count, label) => ({ role, label, slots: Array.from({ length: count }, (_, i) => ({ id: `${role}${i + 1}`, role, formationRole: role, index: i, count, label: `${label} ${i + 1}` })) });
       return [row('att', shape.att, 'ATA'), row('mid', shape.mid, 'MEI'), row('def', shape.def, 'DEF'), { role: 'gk', label: 'GOL', slots: [{ id: 'gk', role: 'gk', label: 'GOLEIRO' }] }].filter(group => group.slots.length);
     }
-    function gamePlanSlotRole(slot) { if (slot.role !== 'custom') return slot.role; const y = Number(gamePlanCustomPositions[slot.id]?.y ?? 50); return y < 40 ? 'att' : y < 62 ? 'mid' : 'def'; }
-    function gamePlanSlotLabel(slot) { const role = gamePlanSlotRole(slot); return slot.role === 'custom' ? `${role === 'att' ? 'ATA' : role === 'mid' ? 'MEI' : 'DEF'} ${slot.id.slice(-1)}` : slot.label; }
+    function gamePlanSlotCoordinates(slot) {
+      if (slot.role === 'custom') return gamePlanCustomPositions[slot.id] || { x: 50, y: 50 };
+      if (slot.role === 'gk') return { x: 50, y: 89 };
+      const { formationRole, index = 0, count = 1 } = slot;
+      if (formationRole === 'att') return { x: count === 1 ? 50 : 18 + index * (64 / (count - 1)), y: 21 };
+      if (formationRole === 'mid') {
+        if (count > 1 && index === 0) return { x: 50, y: 58 };
+        const otherCount = count > 1 ? count - 1 : 1, otherIndex = count > 1 ? index - 1 : 0;
+        return { x: otherCount === 1 ? 50 : 18 + otherIndex * (64 / (otherCount - 1)), y: 43 };
+      }
+      if (formationRole === 'def') {
+        if (count === 1) return { x: 50, y: 76 };
+        if (count === 2) return { x: index === 0 ? 39 : 61, y: 76 };
+        return { x: 14 + index * (72 / (count - 1)), y: 76 };
+      }
+      return { x: 50, y: 50 };
+    }
+    function gamePlanSlotRole(slot) {
+      if (slot.role === 'gk') return 'gk';
+      const { x, y } = gamePlanSlotCoordinates(slot);
+      if (y < 35) return 'att';
+      if (y >= 68) return x <= 29 || x >= 71 ? 'lateral' : 'zagueiro';
+      if (y >= 53) return x <= 27 || x >= 73 ? 'lateral' : 'volante';
+      return 'mid';
+    }
+    function gamePlanRoleLabel(role) { return ({ gk:'GOLEIRO', lateral:'LAT', zagueiro:'ZAG', volante:'VOL', mid:'MEI', att:'ATA' })[role] || 'MEI'; }
+    function gamePlanSlotLabel(slot) { return `${gamePlanRoleLabel(gamePlanSlotRole(slot))}${slot.role === 'custom' ? ` ${slot.id.slice(-1)}` : (slot.role === 'gk' ? '' : ` ${slot.index + 1}`)}`; }
     function gamePlanPlayer(id) { return players.find(player => String(player.id) === String(id)); }
     function gamePlanPositionPenalty(player, role) {
       const position = String(player?.pos || '').toLocaleLowerCase('pt-BR');
       const keeper = position.includes('goleiro'), defender = position.includes('zagueiro'), lateral = position.includes('lateral'), volante = position.includes('volante'), midfielder = position.includes('meio') && !volante, attacker = position.includes('atacante');
       if (role === 'gk') return keeper ? 0 : 50;
       if (keeper) return 45;
+      if (role === 'zagueiro') return defender ? 0 : lateral ? 10 : volante ? 12 : midfielder ? 20 : attacker ? 32 : 22;
+      if (role === 'lateral') return lateral ? 0 : defender ? 10 : midfielder ? 12 : volante ? 16 : attacker ? 26 : 22;
+      if (role === 'volante') return volante ? 0 : midfielder ? 8 : defender ? 12 : lateral ? 16 : attacker ? 24 : 20;
       if (role === 'def') return defender ? 0 : lateral ? 8 : volante ? 12 : midfielder ? 20 : attacker ? 32 : 22;
-      if (role === 'mid') return (volante || midfielder) ? 0 : lateral ? 12 : attacker ? 16 : defender ? 20 : 20;
-      if (role === 'att') return attacker ? 0 : midfielder ? 15 : volante ? 20 : lateral ? 25 : defender ? 35 : 25;
+      if (role === 'mid') return midfielder ? 0 : volante ? 8 : attacker ? 15 : lateral ? 15 : defender ? 20 : 20;
+      if (role === 'att') return attacker ? 0 : midfielder ? 15 : volante ? 24 : lateral ? 26 : defender ? 35 : 25;
       return 0;
     }
     function gamePlanPositionMatches(player, role) { return gamePlanPositionPenalty(player, role) === 0; }
@@ -3580,17 +3631,17 @@
       if (!field || !bench) return;
       const formationSelect = document.getElementById('gamePlanFormation');
       if (formationSelect) formationSelect.value = gamePlanFormation;
-      document.getElementById('gamePlanFieldHint').innerText = gamePlanFormation === 'custom' ? 'Arraste o boneco para mover o jogador; arraste a área da posição para reposicioná-la. No celular, selecione e toque no campo. O goleiro fica fixo.' : 'Toque em uma cartinha e depois em uma posição para escalar pelo celular.';
+      document.getElementById('gamePlanFieldHint').innerText = gamePlanFormation === 'custom' ? 'Arraste cada posição para o setor desejado: laterais ficam abertos, zagueiros no centro da defesa e volante à frente da zaga. No celular, selecione e toque no campo. O goleiro fica fixo.' : 'As vagas mostram os setores de lateral, zagueiro, volante, meio-campo e ataque. Toque em uma cartinha e depois em uma vaga para escalar ou substituir.';
       Object.entries(gamePlanSlots).forEach(([slot, id]) => { if (!gamePlanPlayer(id)) delete gamePlanSlots[slot]; });
       const rows = gamePlanRows(), assigned = new Set(Object.values(gamePlanSlots).map(String));
-      field.className = gamePlanFormation === 'custom' ? 'absolute inset-0 z-10' : 'relative z-10 flex min-h-[560px] flex-col justify-around px-2 py-4 sm:px-5';
-      field.innerHTML = rows.map(group => `<div class="${gamePlanFormation === 'custom' ? 'contents' : 'flex items-center justify-around gap-1 sm:gap-3'}">${group.slots.map(slot => {
+      field.className = 'absolute inset-0 z-10';
+      field.innerHTML = rows.flatMap(group => group.slots.map(slot => {
         const id = gamePlanSlots[slot.id], player = id != null ? gamePlanPlayer(id) : null;
-        const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanCustomPositions[slot.id] || { x: 50, y: 50 }, isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = gamePlanFormation === 'custom' ? (slot.id === 'gk' ? 'style="position:absolute;left:50%;top:auto;bottom:12px;transform:translateX(-50%)"' : `style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);touch-action:none;cursor:grab"`) : '', markerPointers = isCustomFieldSlot ? `onpointerdown="beginGamePlanMarkerMove(event,'${slot.id}')" onpointermove="moveGamePlanMarker(event)" onpointerup="endGamePlanMarkerMove(event)" onpointercancel="endGamePlanMarkerMove(event)"` : '';
-        if (!player) return `<div data-game-plan-slot="${slot.id}" ${markerPointers} role="button" tabindex="0" ${customStyle} aria-label="${label}, arraste para reposicionar" onclick="handleGamePlanSlotClick(event,'${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span class="text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
+        const role = gamePlanSlotRole(slot), label = gamePlanSlotLabel(slot), pos = gamePlanSlotCoordinates(slot), isCustomFieldSlot = gamePlanFormation === 'custom' && slot.id !== 'gk', customStyle = `style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);${isCustomFieldSlot ? 'touch-action:none;cursor:grab' : ''}"`, markerPointers = isCustomFieldSlot ? `onpointerdown="beginGamePlanMarkerMove(event,'${slot.id}')" onpointermove="moveGamePlanMarker(event)" onpointerup="endGamePlanMarkerMove(event)" onpointercancel="endGamePlanMarkerMove(event)"` : '';
+        if (!player) return `<div data-game-plan-slot="${slot.id}" ${markerPointers} role="button" tabindex="0" ${customStyle} aria-label="${label}" onclick="handleGamePlanSlotClick(event,'${slot.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickGamePlanSlot('${slot.id}')}" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="absolute z-10 flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/60 bg-black/35 text-center text-white/90 hover:bg-black/50"><span data-role="${role}" class="game-plan-role-label text-[9px] font-black tracking-wide">${label}</span><span class="flex h-7 w-7 items-center justify-center rounded-full border border-white/60 text-lg leading-none">+</span><span class="text-[8px]">Posicionar</span></div>`;
         const positionPenalty = gamePlanPositionPenalty(player, role), mismatch = positionPenalty > 0, picture = gamePlanPhoto(player), selected = selectedGamePlanPlayerId === String(player.id), tier = getCardRank(calcOVR(player));
-        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="${gamePlanFormation === 'custom' ? 'absolute ' : ''}rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span class="absolute left-1 top-1 z-10 text-[8px] font-black text-white/70">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ` · −${positionPenalty}%` : ''}</span>${playerFootIconsMarkup(player.foot, true)}${gamePlanCardFatigueMarkup(player)}</button></div>`;
-      }).join('')}</div>`).join('');
+        return `<div data-game-plan-slot="${slot.id}" ${markerPointers} ${customStyle} onclick="handleGamePlanSlotClick(event,'${slot.id}')" ondragover="event.preventDefault()" ondrop="event.stopPropagation();dropGamePlanPlayer(event,'${slot.id}')" class="absolute z-10 rank-card ${tier.className} relative flex h-[78px] w-[72px] sm:h-[88px] sm:w-[82px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-white shadow-lg ${selected ? 'ring-2 ring-amber-300' : ''}"><span data-role="${role}" class="game-plan-role-label absolute left-1 top-1 z-10 text-[8px] font-black">${label}</span><button type="button" draggable="true" ondragstart="startGamePlanDrag(event,'${encodeURIComponent(String(player.id))}','${slot.id}')" onclick="event.stopPropagation();selectGamePlanSlotPlayer('${slot.id}')" class="mt-2 flex w-full flex-col items-center" aria-label="${gamePlanEscape(playerCardName(player))}, ${label}, OVR ${gamePlanEffectiveOvr(player, role)}">${picture ? `<img src="${picture}" alt="" class="h-8 w-8 rounded-full border border-white/60 bg-black object-cover">` : `<span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-emerald-950 font-teko text-lg">${gamePlanEscape(playerCardName(player).slice(0,1))}</span>`}<span class="mt-0.5 w-full truncate text-[8px] font-bold">${gamePlanEscape(playerCardName(player))}</span><span class="text-[8px] font-black ${mismatch ? 'text-rose-300' : 'text-amber-200'}">${gamePlanEffectiveOvr(player, role)}${mismatch ? ` · −${positionPenalty}%` : ''}</span>${playerFootIconsMarkup(player.foot, true)}${gamePlanCardFatigueMarkup(player)}</button></div>`;
+      })).join('');
 
       const available = [...players].filter(player => !isDemoPlayer(player) && !assigned.has(String(player.id))).sort((a, b) => calcOVR(b) - calcOVR(a));
       bench.innerHTML = available.length ? available.map(player => {

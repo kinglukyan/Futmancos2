@@ -253,19 +253,31 @@ function leagueOvr(player) {
 }
 function leagueRole(slot, plan) {
   if (slot === 'gk') return 'gk';
-  if (slot.startsWith('def')) return 'def';
+  if (slot.startsWith('custom')) {
+    const { x, y } = plan.positions?.[slot] || { x: 50, y: 50 };
+    if (Number(y) < 35) return 'att';
+    if (Number(y) >= 68) return Number(x) <= 29 || Number(x) >= 71 ? 'lateral' : 'zagueiro';
+    if (Number(y) >= 53) return Number(x) <= 27 || Number(x) >= 73 ? 'lateral' : 'volante';
+    return 'mid';
+  }
   if (slot.startsWith('att')) return 'att';
-  if (slot.startsWith('mid')) return 'mid';
-  if (slot.startsWith('custom')) { const y = Number(plan.positions?.[slot]?.y ?? 50); return y < 40 ? 'att' : y < 62 ? 'mid' : 'def'; }
+  const shape = ({ '2-3-1': { def: 2, mid: 3 }, '3-2-1': { def: 3, mid: 2 }, '2-2-2': { def: 2, mid: 2 }, '1-4-1': { def: 1, mid: 4 }, '1-3-2': { def: 1, mid: 3 }, '1-2-3': { def: 1, mid: 2 }, '2-1-3': { def: 2, mid: 1 }, '3-1-2': { def: 3, mid: 1 }, '4-1-1': { def: 4, mid: 1 }, '3-3-0': { def: 3, mid: 3 }, '2-4-0': { def: 2, mid: 4 }, '0-3-3': { def: 0, mid: 3 } })[plan.formation] || { def: 2, mid: 3 };
+  if (slot.startsWith('def')) {
+    const index = Math.max(0, Number(slot.slice(3)) - 1), count = shape.def;
+    return count >= 3 && (index === 0 || index === count - 1) ? 'lateral' : 'zagueiro';
+  }
+  if (slot.startsWith('mid')) return shape.mid > 1 && Number(slot.slice(3)) === 1 ? 'volante' : 'mid';
   return 'mid';
 }
 function leaguePositionPenalty(position, role) {
   const p = String(position || '').toLocaleLowerCase('pt-BR'), gk = p.includes('goleiro'), cb = p.includes('zagueiro'), fb = p.includes('lateral'), dm = p.includes('volante'), mid = p.includes('meio') && !dm, fw = p.includes('atacante');
   if (role === 'gk') return gk ? 0 : 50;
   if (gk) return 45;
-  if (role === 'def') return cb ? 0 : fb ? 8 : dm ? 12 : mid ? 20 : fw ? 32 : 22;
-  if (role === 'mid') return (dm || mid) ? 0 : fb ? 12 : fw ? 16 : cb ? 20 : 20;
-  return fw ? 0 : mid ? 15 : dm ? 20 : fb ? 25 : cb ? 35 : 25;
+  if (role === 'zagueiro') return cb ? 0 : fb ? 10 : dm ? 12 : mid ? 20 : fw ? 32 : 22;
+  if (role === 'lateral') return fb ? 0 : cb ? 10 : mid ? 12 : dm ? 16 : fw ? 26 : 22;
+  if (role === 'volante') return dm ? 0 : mid ? 8 : cb ? 12 : fb ? 16 : fw ? 24 : 20;
+  if (role === 'mid') return mid ? 0 : dm ? 8 : fw ? 15 : fb ? 15 : cb ? 20 : 20;
+  return fw ? 0 : mid ? 15 : dm ? 24 : fb ? 26 : cb ? 35 : 25;
 }
 function leagueTeamFromPlan(state, userId, league) {
   const plan = state.memberGamePlans?.[String(userId)];
@@ -897,7 +909,9 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
     const groupFor = position => {
       const value = String(position || '').toLocaleLowerCase('pt-BR');
       if (value.includes('goleiro')) return 'keeper';
-      if (value.includes('zague') || value.includes('later') || value.includes('defens')) return 'defense';
+      if (value.includes('zague') || value.includes('defens')) return 'zagueiro';
+      if (value.includes('later')) return 'lateral';
+      if (value.includes('volante')) return 'volante';
       if (value.includes('atac') || value.includes('ponta') || value.includes('centroav')) return 'attack';
       return 'midfield';
     };
@@ -908,8 +922,8 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
     }).filter(Boolean).sort((a, b) => b.ovr - a.ovr || b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'pt-BR'));
     const slots = [
       { id: 'gk', label: 'GOL', group: 'keeper' },
-      { id: 'def1', label: 'DEF', group: 'defense' }, { id: 'def2', label: 'DEF', group: 'defense' },
-      { id: 'mid1', label: 'MEI', group: 'midfield' }, { id: 'mid2', label: 'MEI', group: 'midfield' }, { id: 'mid3', label: 'MEI', group: 'midfield' },
+      { id: 'cb1', label: 'ZAG', group: 'zagueiro' }, { id: 'cb2', label: 'ZAG', group: 'zagueiro' },
+      { id: 'fb', label: 'LAT', group: 'lateral' }, { id: 'dm', label: 'VOL', group: 'volante' }, { id: 'mid', label: 'MEI', group: 'midfield' },
       { id: 'att', label: 'ATA', group: 'attack' }
     ];
     const used = new Set();
