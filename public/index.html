@@ -1311,7 +1311,9 @@
     let activeBabaDate = localStorage.getItem('futmancos_baba_date') || localDateKey();
     let sharedBabaMode = 'presence';
     let sharedStateReady = false, applyingSharedState = false, sharedSaveTimer = null, sharedSyncTimer = null;
-    let sharedStateDirty = localStorage.getItem('futmancos_shared_state_pending') === '1';
+    // Local storage is a display cache only. Never treat an old browser snapshot
+    // as a pending server write after a reload; another device may be newer.
+    let sharedStateDirty = false;
     let sharedVotesByPlayer = {}, sharedMyVotes = [];
     let notificationPreferences = { baba: true, payments: true, votes: true };
     let locationWatchId = null, locationAutoCheckinBusy = false;
@@ -1453,7 +1455,7 @@
       localStorage.setItem('futmancos_gallery', JSON.stringify(associationGallery));
       localStorage.setItem('futmancos_card_image_adjustments', JSON.stringify(cardImageAdjustments));
       localStorage.setItem('futmancos_baba_date', activeBabaDate);
-      if (!applyingSharedState && sharedStateReady && loggedUser?.isAdmin) { sharedStateDirty = true; localStorage.setItem('futmancos_shared_state_pending', '1'); scheduleSharedStateSave(); }
+      if (!applyingSharedState && sharedStateReady && loggedUser?.isAdmin) { sharedStateDirty = true; scheduleSharedStateSave(); }
     }
 
     function buildSharedAppState() {
@@ -1469,7 +1471,7 @@
       sharedSaveTimer = setTimeout(async () => {
         try {
           await apiRequest('/shared-state', { method: 'PUT', body: JSON.stringify({ state: buildSharedAppState() }) });
-          sharedStateDirty = false; localStorage.removeItem('futmancos_shared_state_pending');
+          sharedStateDirty = false;
         }
         catch (error) { console.warn('Não foi possível sincronizar os dados da associação.', error); }
       }, 600);
@@ -1501,7 +1503,7 @@
         const result = await apiRequest('/shared-state');
         if (result.state && loggedUser?.isAdmin && sharedStateDirty) {
           await apiRequest('/shared-state', { method: 'PUT', body: JSON.stringify({ state: buildSharedAppState() }) });
-          sharedStateDirty = false; localStorage.removeItem('futmancos_shared_state_pending');
+          sharedStateDirty = false;
         } else if (result.state) {
           const nextSnapshot = JSON.stringify(result.state.nextGame || null);
           if (lastSharedGameSnapshot !== null && nextSnapshot !== lastSharedGameSnapshot && result.state.nextGame && !loggedUser?.isAdmin) {
@@ -1513,12 +1515,12 @@
           applySharedAppState(sanitizedState);
           if (demosWereRemoved && loggedUser?.isAdmin) {
             await apiRequest('/shared-state', { method: 'PUT', body: JSON.stringify({ state: buildSharedAppState() }) });
-            sharedStateDirty = false; localStorage.removeItem('futmancos_shared_state_pending');
+            sharedStateDirty = false;
           }
         }
         else if (seedIfEmpty && loggedUser?.isAdmin) {
           await apiRequest('/shared-state', { method: 'PUT', body: JSON.stringify({ state: buildSharedAppState() }) });
-          sharedStateDirty = false; localStorage.removeItem('futmancos_shared_state_pending');
+          sharedStateDirty = false;
         }
         sharedStateReady = true;
         if (loggedUser) loggedUser = mergeServerUser(loggedUser);
@@ -1715,6 +1717,20 @@
         if (currentActiveTab === 'adm' && loggedUser.isAdmin) { renderMemberList(); renderFinanceModule(); }
       }, 20000);
     }
+    let activeTabRefreshPromise = null;
+    async function refreshSharedDataForActiveTab() {
+      if (!loggedUser || document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (activeTabRefreshPromise) return activeTabRefreshPromise;
+      activeTabRefreshPromise = (async () => {
+        await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedBabaMode(); await loadBabaDraws();
+        await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await refreshPaymentStatus();
+        renderPresence(); renderCheckInList(); updatePresenceButton(); renderVotingSection(); renderRanking(); renderEAFCCardsGrid(); renderMatchHistory(); renderResenhaTab();
+        if (loggedUser?.isAdmin) { await refreshAdminMembers(); if (currentActiveTab === 'adm') { await refreshAdminGuests(); renderMemberList(); renderFinanceModule(); } }
+      })();
+      try { await activeTabRefreshPromise; } finally { activeTabRefreshPromise = null; }
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshSharedDataForActiveTab(); });
+    window.addEventListener('online', () => refreshSharedDataForActiveTab());
 
     let deferredInstallPrompt = null;
     function configureFutmancosPWA() {
@@ -2108,7 +2124,7 @@
       const accessToken = authData?.session?.access_token;
       let response;
       try { response = await fetch(`/api${path}`, {
-        credentials: 'same-origin', ...options,
+        cache: 'no-store', credentials: 'same-origin', ...options,
         headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...(options.headers || {}) }
       }); } catch { throw new Error('Não foi possível conectar ao servidor. Abra o site pelo endereço hospedado e tente novamente.'); }
       const data = await response.json().catch(() => ({}));
