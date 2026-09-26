@@ -954,6 +954,31 @@
           </div>
         </div>
 
+        <section class="rounded-xl border border-sky-500/30 bg-sky-950/20 p-4 space-y-3" aria-labelledby="membershipProjectionTitle">
+          <div>
+            <h4 id="membershipProjectionTitle" class="font-teko text-2xl text-sky-300">PROJEÇÃO DE RECEITA DAS MENSALIDADES</h4>
+            <p class="text-xs text-gray-400">Estimativa bruta com base nos associados pagantes e no valor mensal configurado. Não desconta despesas.</p>
+          </div>
+          <label class="block max-w-xs text-[11px] text-gray-300">Quantidade de associados pagantes prevista
+            <input id="finProjectedPayers" type="number" min="0" step="1" inputmode="numeric" oninput="renderMembershipProjection()" class="mt-1 block h-12 w-full rounded-xl border border-gray-800 bg-black px-3 text-sm font-bold text-white">
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="rounded-xl border border-gray-800 bg-black/50 p-3 text-center">
+              <span class="text-[10px] uppercase text-gray-400">Pagantes confirmados neste mês</span>
+              <p id="finCurrentPaidMembers" class="font-teko text-2xl font-bold text-gray-200">0</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/30 bg-black/50 p-3 text-center">
+              <span class="text-[10px] uppercase text-gray-400">Receita mensal projetada</span>
+              <p id="finProjectedMonthlyRevenue" aria-live="polite" class="font-teko text-3xl font-bold text-emerald-400">R$ 0,00</p>
+            </div>
+            <div class="rounded-xl border border-sky-500/30 bg-black/50 p-3 text-center">
+              <span class="text-[10px] uppercase text-gray-400">Projeção para 12 meses</span>
+              <p id="finProjectedAnnualRevenue" aria-live="polite" class="font-teko text-3xl font-bold text-sky-300">R$ 0,00</p>
+            </div>
+          </div>
+          <p class="text-[10px] text-gray-500">Valor mensal por associado: <span id="finProjectionMonthlyFee">R$ 0,00</span>. A projeção anual considera a mesma quantidade de pagantes por 12 meses.</p>
+        </section>
+
         <label class="block max-w-xs text-[10px] text-gray-400">Filtrar histórico por mês<input id="financeMonthFilter" type="month" onchange="renderFinanceModule()" class="mt-1 w-full bg-black border border-gray-800 rounded-lg p-2 text-xs text-white"></label>
 
         <form onsubmit="handleTransactionSubmit(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-black/40 p-3 rounded-xl border border-gray-800">
@@ -3676,6 +3701,7 @@
         globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee);
         globalCustoGoFee = Number(data.custoGoFee); custoGoDescription = String(data.custoGoDescription || ''); custoGoEnabled = data.custoGoEnabled === true;
         renderCustoGoPage(); updateBillingNavigation();
+        renderMembershipProjection();
         document.getElementById('displayMonthlyFee').innerText = `R$ ${globalMonthlyFee.toFixed(2)}`;
         document.getElementById('guestSignupDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
         document.getElementById('guestDailyFee').innerText = `R$ ${globalGuestFee.toFixed(2).replace('.', ',')}`;
@@ -3776,6 +3802,7 @@
       document.getElementById('finTotalIn').innerText = `R$ ${inVal.toFixed(2)}`;
       document.getElementById('finTotalOut').innerText = `R$ ${outVal.toFixed(2)}`;
       document.getElementById('finBalance').innerText = `R$ ${(inVal - outVal).toFixed(2)}`;
+      renderMembershipProjection();
 
       const ctx = document.getElementById('financeChart').getContext('2d');
       if (myChartInstance) myChartInstance.destroy();
@@ -3792,6 +3819,27 @@
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
+    }
+
+    function renderMembershipProjection() {
+      const input = document.getElementById('finProjectedPayers');
+      if (!input) return;
+
+      const paidMembers = players.filter(player => !isGoalkeeper(player) && (player.paid || player.paymentStatus === 'paid')).length;
+      if (input.dataset.initialized !== 'true') {
+        input.value = String(paidMembers);
+        input.dataset.initialized = 'true';
+      }
+
+      const enteredCount = input.value.trim();
+      const projectedPayers = enteredCount === '' ? 0 : Math.max(0, Math.floor(Number(enteredCount) || 0));
+      const monthlyFee = Math.max(0, Number(globalMonthlyFee) || 0);
+      const currency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      document.getElementById('finCurrentPaidMembers').innerText = String(paidMembers);
+      document.getElementById('finProjectionMonthlyFee').innerText = currency(monthlyFee);
+      document.getElementById('finProjectedMonthlyRevenue').innerText = currency(projectedPayers * monthlyFee);
+      document.getElementById('finProjectedAnnualRevenue').innerText = currency(projectedPayers * monthlyFee * 12);
     }
 
     async function deleteCashTransaction(id) {
