@@ -73,24 +73,19 @@
     .weekly-slot-label { color:#b9f5dc; font-size:9px; line-height:1; font-weight:900; letter-spacing:.05em; }
     .weekly-slot-name { width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; line-height:1.1; font-weight:800; }
     .weekly-slot-ovr { color:#fcd34d; font:700 14px/1 Teko,sans-serif; }
-    .weekly-slot[data-slot="fb"] { border-color:#67e8f9a8; }
-    .weekly-slot[data-slot^="cb"] { border-color:#86efaca8; }
-    .weekly-slot[data-slot="dm"] { border-color:#fcd34da8; }
+    .weekly-slot[data-role="lateral"] { border-color:#67e8f9a8; }
+    .weekly-slot[data-role="zagueiro"] { border-color:#86efaca8; }
+    .weekly-slot[data-role="volante"] { border-color:#fcd34da8; }
+    .weekly-lineup-admin { display:flex; flex-wrap:wrap; align-items:end; gap:.6rem; }
     @media(max-width:767px) {
       .weekly-field { aspect-ratio:8/13; min-height:460px; max-height:620px; }
       .weekly-field-lines::before { left:0; right:0; top:50%; bottom:auto; border-left:0; border-top:1px solid #c5f5e280; }
       .weekly-field-lines::after { width:24%; }
       .weekly-field-box { left:31%; top:0; width:38%; height:9%; }
       .weekly-field-box.away { left:31%; right:auto; top:auto; bottom:0; }
-      .weekly-slot { width:clamp(82px,27%,108px); min-height:72px; }
+      .weekly-slot { width:clamp(66px,24%,88px); min-height:72px; }
       .weekly-slot-avatar { width:32px; height:32px; }
-      .weekly-slot[data-slot="gk"] { left:50%; top:88%; }
-      .weekly-slot[data-slot="cb1"] { left:31%; top:73%; }
-      .weekly-slot[data-slot="cb2"] { left:69%; top:73%; }
-      .weekly-slot[data-slot="fb"] { left:50%; top:60%; }
-      .weekly-slot[data-slot="dm"] { left:25%; top:50%; }
-      .weekly-slot[data-slot="mid"] { left:75%; top:50%; }
-      .weekly-slot[data-slot="att"] { left:50%; top:27%; }
+      .weekly-slot { left:var(--slot-mobile-x,var(--slot-x)); top:var(--slot-mobile-y,var(--slot-y)); }
     }
     @media (max-width: 767px) {
       body { padding-top: 0; }
@@ -390,7 +385,19 @@
       <section class="rounded-2xl border border-emerald-900/70 bg-brand-cardBg p-4 sm:p-5 space-y-3" aria-labelledby="weeklyLineupTitle">
         <div class="flex flex-wrap items-end justify-between gap-2">
           <div><h3 id="weeklyLineupTitle" class="font-teko text-3xl text-brand-lightGreen tracking-wide">CRAQUES DA SEMANA</h3><p id="weeklyLineupSubtitle" class="text-xs text-gray-400">Os destaques aparecem depois das votações da semana.</p></div>
-          <span id="weeklyLineupVoteCount" class="text-[10px] font-bold uppercase tracking-wider text-emerald-200/80"></span>
+          <div class="flex items-center gap-2"><span id="weeklyLineupVoteCount" class="text-[10px] font-bold uppercase tracking-wider text-emerald-200/80"></span><button id="weeklyLineupManageBtn" type="button" onclick="toggleWeeklyLineupEditor()" class="hidden rounded-lg border border-amber-400/60 bg-amber-400 px-3 py-2 text-[10px] font-black text-black">Mudar formação</button></div>
+        </div>
+        <div id="weeklyLineupAdminEditor" class="hidden rounded-xl border border-amber-400/30 bg-black/30 p-3">
+          <div class="weekly-lineup-admin">
+            <label class="min-w-[220px] flex-1 text-[10px] font-bold text-amber-100">FORMAÇÃO DOS CRAQUES DA SEMANA
+              <select id="weeklyLineupFormationSelect" class="mt-1 w-full rounded-lg border border-gray-700 bg-black px-3 py-2 text-xs text-white">
+                <option value="2-3-1">2–3–1 · Equilibrada</option><option value="3-2-1" selected>3–2–1 · Defesa reforçada</option><option value="2-2-2">2–2–2 · Duas linhas</option><option value="1-4-1">1–4–1 · Meio-campo forte</option><option value="1-3-2">1–3–2 · Ataque apoiado</option><option value="1-2-3">1–2–3 · Ofensiva</option><option value="2-1-3">2–1–3 · Pressão alta</option><option value="3-1-2">3–1–2 · Compacta</option><option value="4-1-1">4–1–1 · Defesa reforçada</option><option value="3-3-0">3–3–0 · Sem atacante fixo</option><option value="2-4-0">2–4–0 · Posse de bola</option><option value="0-3-3">0–3–3 · Ataque total</option>
+              </select>
+            </label>
+            <button id="weeklyLineupSaveFormationBtn" type="button" onclick="saveWeeklyLineupFormation()" class="rounded-lg bg-emerald-500 px-4 py-2 text-[10px] font-black text-black">Aplicar para todos</button>
+            <span id="weeklyLineupAdminStatus" class="text-[10px] text-gray-400" aria-live="polite"></span>
+          </div>
+          <p class="mt-2 text-[10px] text-gray-400">A formação organiza os craques por posição e deixa vagas sem votação como “Aguardando Craque”. A alteração vale para todos.</p>
         </div>
         <div id="weeklyLineupField" class="weekly-field" aria-label="Escalação dos melhores da semana">
           <div class="weekly-field-lines" aria-hidden="true"></div><div class="weekly-field-box" aria-hidden="true"></div><div class="weekly-field-box away" aria-hidden="true"></div>
@@ -2830,23 +2837,28 @@
       await saveMyCardImage();
     }
 
-    let weeklyLineupLoadedAt = 0, weeklyLineupRequest = null;
+    let weeklyLineupLoadedAt = 0, weeklyLineupRequest = null, weeklyLineupFormation = '3-2-1';
     function renderWeeklyLineup(data = {}) {
       const field = document.getElementById('weeklyLineupField');
       if (!field) return;
       const lineup = Array.isArray(data.lineup) ? data.lineup : [];
       const container = field.querySelector('.weekly-slots');
-      const positions = { gk:[8,50], cb1:[29,71], cb2:[29,29], fb:[43,50], dm:[58,50], mid:[74,50], att:[91,50] };
       container.innerHTML = lineup.map(slot => {
-        const [x,y] = positions[slot.id] || [50,50], player = slot.player;
+        const player = slot.player, x = Number.isFinite(Number(slot.x)) ? Number(slot.x) : 50, y = Number.isFinite(Number(slot.y)) ? Number(slot.y) : 50;
+        const mobileX = Number.isFinite(Number(slot.mobileX)) ? Number(slot.mobileX) : x, mobileY = Number.isFinite(Number(slot.mobileY)) ? Number(slot.mobileY) : y;
         const avatar = player?.photo ? `<img src="${gamePlanEscape(player.photo)}" alt="">` : (player ? gamePlanEscape(String(player.name || '?').slice(0,1).toUpperCase()) : '<span aria-hidden="true">＋</span>');
         const details = player ? `<span class="weekly-slot-name" title="${gamePlanEscape(player.name)}">${gamePlanEscape(player.name)}</span><span class="weekly-slot-ovr">OVR ${Number(player.ovr) || 0}</span>` : '<span class="weekly-slot-name text-gray-300">Aguardando Craque</span>';
-        return `<div class="weekly-slot" data-slot="${gamePlanEscape(slot.id)}" style="--slot-x:${x}%;--slot-y:${y}%" aria-label="${gamePlanEscape(slot.label)}: ${gamePlanEscape(player?.name || 'Aguardando Craque')}"><span class="weekly-slot-label">${gamePlanEscape(slot.label)}</span><span class="weekly-slot-avatar">${avatar}</span>${details}</div>`;
+        return `<div class="weekly-slot" data-slot="${gamePlanEscape(slot.id)}" data-role="${gamePlanEscape(slot.role || '')}" style="--slot-x:${x}%;--slot-y:${y}%;--slot-mobile-x:${mobileX}%;--slot-mobile-y:${mobileY}%" aria-label="${gamePlanEscape(slot.label)}: ${gamePlanEscape(player?.name || 'Aguardando Craque')}"><span class="weekly-slot-label">${gamePlanEscape(slot.label)}</span><span class="weekly-slot-avatar">${avatar}</span>${details}</div>`;
       }).join('');
       const subtitle = document.getElementById('weeklyLineupSubtitle'), count = document.getElementById('weeklyLineupVoteCount');
+      const manageButton = document.getElementById('weeklyLineupManageBtn'), editor = document.getElementById('weeklyLineupAdminEditor'), formationSelect = document.getElementById('weeklyLineupFormationSelect');
+      weeklyLineupFormation = String(data.formation || '3-2-1');
+      if (manageButton) manageButton.classList.toggle('hidden', !loggedUser?.isAdmin);
+      if (formationSelect && (!editor || editor.classList.contains('hidden'))) formationSelect.value = weeklyLineupFormation;
       const date = data.weekStart ? new Date(`${data.weekStart}T12:00:00`) : null;
       const period = date ? `Semana iniciada em ${date.toLocaleDateString('pt-BR')}.` : 'Destaques das votações desta semana.';
-      if (subtitle) subtitle.textContent = Number(data.votes) ? `${period} Escalação atualizada com as notas recebidas.` : `${period} Aguardando as primeiras votações.`;
+      const formationText = data.formationLabel ? `Formação ${data.formationLabel}. ` : '';
+      if (subtitle) subtitle.textContent = `${period} ${formationText}${Number(data.votes) ? 'Escalação atualizada com as notas recebidas.' : 'Aguardando as primeiras votações.'}`;
       if (count) count.textContent = Number(data.votes) ? `${Number(data.votes)} voto(s) na semana` : '';
     }
     async function loadWeeklyLineup(force = false) {
@@ -2856,6 +2868,32 @@
         weeklyLineupLoadedAt = Date.now(); renderWeeklyLineup(data);
       }).catch(error => console.warn('Craques da semana indisponíveis.', error)).finally(() => { weeklyLineupRequest = null; });
       return weeklyLineupRequest;
+    }
+    function toggleWeeklyLineupEditor() {
+      if (!loggedUser?.isAdmin) return;
+      const editor = document.getElementById('weeklyLineupAdminEditor'), button = document.getElementById('weeklyLineupManageBtn');
+      const opening = editor.classList.contains('hidden');
+      editor.classList.toggle('hidden', !opening);
+      button.textContent = opening ? 'Fechar formação' : 'Mudar formação';
+      button.setAttribute('aria-expanded', String(opening));
+      if (opening) document.getElementById('weeklyLineupFormationSelect').value = weeklyLineupFormation;
+    }
+    async function saveWeeklyLineupFormation() {
+      if (!loggedUser?.isAdmin) return;
+      const select = document.getElementById('weeklyLineupFormationSelect'), button = document.getElementById('weeklyLineupSaveFormationBtn'), status = document.getElementById('weeklyLineupAdminStatus');
+      button.disabled = true; status.textContent = 'Salvando formação…';
+      try {
+        await apiRequest('/admin/resenha/weekly-formation', { method: 'PUT', body: JSON.stringify({ formation: select.value }) });
+        weeklyLineupLoadedAt = 0;
+        if (weeklyLineupRequest) await weeklyLineupRequest;
+        weeklyLineupLoadedAt = 0;
+        await loadWeeklyLineup(true);
+        document.getElementById('weeklyLineupAdminEditor').classList.add('hidden');
+        document.getElementById('weeklyLineupManageBtn').textContent = 'Mudar formação';
+        document.getElementById('weeklyLineupManageBtn').setAttribute('aria-expanded', 'false');
+        status.textContent = 'Formação atualizada para todos.';
+      } catch (error) { status.textContent = error.message || 'Não foi possível atualizar a formação.'; }
+      finally { button.disabled = false; }
     }
     setInterval(() => { if (currentActiveTab === 'resenha') loadWeeklyLineup(true); }, 45000);
     function renderResenhaTab() {
@@ -4012,7 +4050,7 @@
       });
     }
     function auditActionLabel(action) {
-      return ({ billing_settings_updated: 'Configurações de cobrança alteradas', member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', baba_mode_changed: 'Etapa do baba alterada', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida' })[action] || action;
+      return ({ billing_settings_updated: 'Configurações de cobrança alteradas', member_payment_confirmed: 'Mensalidade confirmada', guest_payment_confirmed: 'Pix de convidado confirmado', match_result_recorded: 'Resultado registrado', match_result_corrected: 'Resultado corrigido', team_draw_created: 'Times sorteados', team_draw_redone: 'Sorteio refeito', baba_mode_changed: 'Etapa do baba alterada', voting_opened: 'Votação liberada', voting_closed: 'Votação encerrada', member_deleted: 'Associado excluído', guest_deleted: 'Convidado excluído', cash_transaction_deleted: 'Transação do caixa excluída', gallery_image_deleted: 'Imagem da galeria removida', weekly_lineup_formation_updated: 'Formação dos Craques da Semana alterada' })[action] || action;
     }
     function renderAdminAuditLog() {
       const box = document.getElementById('adminAuditLog'); if (!box) return;

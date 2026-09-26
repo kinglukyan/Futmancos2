@@ -22,6 +22,20 @@ if (pushEnabled) webpush.setVapidDetails(env('VAPID_SUBJECT', 'mailto:santosluca
 const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
+const WEEKLY_LINEUP_FORMATIONS = Object.freeze({
+  '2-3-1': { label: '2–3–1 · Equilibrada', def: 2, mid: 3, att: 1 },
+  '3-2-1': { label: '3–2–1 · Defesa reforçada', def: 3, mid: 2, att: 1 },
+  '2-2-2': { label: '2–2–2 · Duas linhas', def: 2, mid: 2, att: 2 },
+  '1-4-1': { label: '1–4–1 · Meio-campo forte', def: 1, mid: 4, att: 1 },
+  '1-3-2': { label: '1–3–2 · Ataque apoiado', def: 1, mid: 3, att: 2 },
+  '1-2-3': { label: '1–2–3 · Ofensiva', def: 1, mid: 2, att: 3 },
+  '2-1-3': { label: '2–1–3 · Pressão alta', def: 2, mid: 1, att: 3 },
+  '3-1-2': { label: '3–1–2 · Compacta', def: 3, mid: 1, att: 2 },
+  '4-1-1': { label: '4–1–1 · Defesa reforçada', def: 4, mid: 1, att: 1 },
+  '3-3-0': { label: '3–3–0 · Sem atacante fixo', def: 3, mid: 3, att: 0 },
+  '2-4-0': { label: '2–4–0 · Posse de bola', def: 2, mid: 4, att: 0 },
+  '0-3-3': { label: '0–3–3 · Ataque total', def: 0, mid: 3, att: 3 }
+});
 function guestCpfHash(cpf) { return createHmac('sha256', supabaseServiceKey || 'missing-server-secret').update(cpf).digest('hex'); }
 function encryptGuestCpf(cpf) {
   const key = createHash('sha256').update(`${supabaseServiceKey || 'missing-server-secret'}:futmancos-guest-cpf:v1`).digest();
@@ -890,8 +904,13 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
     const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
     const monday = new Date(`${today}T12:00:00Z`); monday.setUTCDate(monday.getUTCDate() - ((weekday + 6) % 7));
     const weekStart = monday.toISOString().slice(0, 10);
-    const { data: votes, error: votesError } = await supabase.from('baba_votes').select('player_email,stars').gte('game_day', weekStart).lte('game_day', today).limit(5000);
+    const [savedFormation, { data: votes, error: votesError }] = await Promise.all([
+      setting('weekly_lineup_formation'),
+      supabase.from('baba_votes').select('player_email,stars').gte('game_day', weekStart).lte('game_day', today).limit(5000)
+    ]);
     if (votesError) throw votesError;
+    const formation = WEEKLY_LINEUP_FORMATIONS[savedFormation] ? savedFormation : '3-2-1';
+    const shape = WEEKLY_LINEUP_FORMATIONS[formation];
     const voteMap = new Map();
     for (const vote of votes || []) {
       const email = String(vote.player_email || '').trim().toLowerCase();
@@ -920,20 +939,38 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
       if (!totals) return null;
       return { id: profile.id, name: profile.nickname || profile.name || 'Associado', position: profile.position || 'Meio-Campo', photo: /^https:\/\//i.test(profile.photo || '') ? profile.photo : '', ovr: Math.round(totals.total / totals.count), voteCount: totals.count, group: groupFor(profile.position) };
     }).filter(Boolean).sort((a, b) => b.ovr - a.ovr || b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'pt-BR'));
-    const slots = [
-      { id: 'gk', label: 'GOL', group: 'keeper' },
-      { id: 'cb1', label: 'ZAG', group: 'zagueiro' }, { id: 'cb2', label: 'ZAG', group: 'zagueiro' },
-      { id: 'fb', label: 'LAT', group: 'lateral' }, { id: 'dm', label: 'VOL', group: 'volante' }, { id: 'mid', label: 'MEI', group: 'midfield' },
-      { id: 'att', label: 'ATA', group: 'attack' }
-    ];
+    const spread = (count, index, min = 20, max = 80) => count <= 1 ? 50 : min + index * ((max - min) / (count - 1));
+    const slots = [{ id: 'gk', label: 'GOL', group: 'keeper', role: 'keeper', x: 8, y: 50, mobileX: 50, mobileY: 89 }];
+    for (let index = 0; index < shape.def; index++) {
+      const role = shape.def >= 3 && (index === 0 || index === shape.def - 1) ? 'lateral' : 'zagueiro';
+      const suffix = index + 1;
+      slots.push({ id: `${role === 'lateral' ? 'fb' : 'cb'}${suffix}`, label: role === 'lateral' ? 'LAT' : 'ZAG', group: role, role, x: 29, y: spread(shape.def, index, 18, 82), mobileX: spread(shape.def, index, 12, 88), mobileY: 72 });
+    }
+    for (let index = 0; index < shape.mid; index++) {
+      const role = shape.mid > 1 && index === 0 ? 'volante' : 'midfield';
+      const isVolante = role === 'volante';
+      slots.push({ id: isVolante ? 'dm' : `mid${index + 1}`, label: isVolante ? 'VOL' : 'MEI', group: role, role, x: isVolante ? 49 : 64, y: isVolante ? 50 : spread(Math.max(1, shape.mid - Number(shape.mid > 1)), Math.max(0, index - Number(shape.mid > 1)), 22, 78), mobileX: isVolante ? 50 : spread(Math.max(1, shape.mid - Number(shape.mid > 1)), Math.max(0, index - Number(shape.mid > 1)), 12, 88), mobileY: isVolante ? 58 : 47 });
+    }
+    for (let index = 0; index < shape.att; index++) {
+      slots.push({ id: `att${index + 1}`, label: 'ATA', group: 'attack', role: 'attack', x: 83, y: spread(shape.att, index, 28, 72), mobileX: spread(shape.att, index, 12, 88), mobileY: 27 });
+    }
     const used = new Set();
     const lineup = slots.map(slot => {
       const player = candidates.find(item => item.group === slot.group && !used.has(String(item.id)));
       if (player) used.add(String(player.id));
       return { ...slot, player: player ? { id: player.id, name: player.name, position: player.position, photo: player.photo, ovr: player.ovr } : null };
     });
-    res.set('Cache-Control', 'public, max-age=20, stale-while-revalidate=40');
-    res.json({ weekStart, votes: (votes || []).length, lineup });
+    res.set('Cache-Control', 'no-store');
+    res.json({ weekStart, votes: (votes || []).length, formation, formationLabel: shape.label, lineup });
+  } catch (error) { next(error); }
+});
+app.put('/api/admin/resenha/weekly-formation', authenticate, requireAdmin, requireDatabase, async (req, res, next) => {
+  const formation = String(req.body?.formation || '');
+  if (!WEEKLY_LINEUP_FORMATIONS[formation]) return res.status(400).json({ error: 'Escolha uma formação válida para os Craques da Semana.' });
+  try {
+    await saveSetting('weekly_lineup_formation', formation);
+    await auditAdminAction(req.user, 'weekly_lineup_formation_updated', 'weekly_lineup', formation, `Formação dos Craques da Semana alterada para ${formation}.`, { formation });
+    res.json({ ok: true, formation, formationLabel: WEEKLY_LINEUP_FORMATIONS[formation].label });
   } catch (error) { next(error); }
 });
 app.post('/api/baba/votes', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
