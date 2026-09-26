@@ -718,7 +718,6 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <button type="button" onclick="saveGamePlan()" class="flex-1 rounded-xl bg-brand-green px-4 py-3 text-xs font-bold text-black">Salvar plano</button>
-            <button type="button" onclick="downloadGamePlanImage()" class="flex-1 rounded-xl bg-amber-400 px-4 py-3 text-xs font-bold text-black">Baixar como imagem</button>
           </div>
           <button type="button" onclick="clearGamePlan()" class="w-full rounded-xl border border-gray-700 bg-black/30 px-4 py-2 text-xs font-bold text-gray-200">Limpar escalação</button>
         </div>
@@ -3894,40 +3893,6 @@
       try { await apiRequest('/profile/game-plan', { method: 'PUT', body: JSON.stringify({ plan }) }); status.innerText = 'Plano salvo na sua conta.'; }
       catch (error) { status.innerText = `Salvo neste aparelho · ${error.message}`; }
     }
-    async function downloadGamePlanImage() {
-      const usedPlayers = new Set(Object.values(gamePlanSlots).map(String));
-      const substitutes = players.filter(player => !isDemoPlayer(player) && !usedPlayers.has(String(player.id)));
-      const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-      const benchRows = Math.ceil(substitutes.length / 2);
-      canvas.width = 1200; canvas.height = Math.max(1480, 1285 + benchRows * 34 + 80);
-      const bg = ctx.createLinearGradient(0,0,1200,1480); bg.addColorStop(0,'#101914'); bg.addColorStop(1,'#050807'); ctx.fillStyle = bg; ctx.fillRect(0,0,1200,1480);
-      ctx.fillStyle = '#f5c400'; ctx.font = '900 54px Arial'; ctx.textAlign = 'center'; ctx.fillText('FUTMANCOS · PLANO DE JOGO',600,78);
-      const formationName = gamePlanFormation === 'custom' ? 'Personalizada' : gamePlanFormation;
-      const teamTotal = gamePlanRows().flatMap(group => group.slots).reduce((sum, slot) => { const player = gamePlanPlayer(gamePlanSlots[slot.id]); return sum + (player ? gamePlanEffectiveOvr(player, gamePlanSlotRole(slot)) : 0); }, 0);
-      ctx.fillStyle = '#d8e2dc'; ctx.font = 'bold 30px Arial'; ctx.fillText(`${loggedUser?.name || 'Meu time'}  ·  ${formationName}  ·  Soma OVR ${teamTotal}`,600,126);
-      const x0=70,y0=170,w=1060,h=950; ctx.fillStyle='#176b3a'; ctx.beginPath(); if(ctx.roundRect)ctx.roundRect(x0,y0,w,h,24);else ctx.rect(x0,y0,w,h); ctx.fill(); ctx.strokeStyle='rgba(255,255,255,.78)'; ctx.lineWidth=4; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x0,y0+h/2);ctx.lineTo(x0+w,y0+h/2);ctx.stroke();ctx.beginPath();ctx.arc(600,y0+h/2,92,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(600,y0+h/2,6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
-      ctx.strokeRect(370,y0,w-740,105);ctx.strokeRect(370,y0+h-105,w-740,105);ctx.strokeRect(470,y0,260,45);ctx.strokeRect(470,y0+h-45,260,45);
-      const rows=gamePlanRows(), posY={att:y0+170,mid:y0+390,def:y0+645,gk:y0+h-90};
-      const sources=[]; rows.forEach(group=>group.slots.forEach(slot=>{const player=gamePlanPlayer(gamePlanSlots[slot.id]);if(player){const src=gamePlanPhoto(player);if(src.startsWith('data:')) sources.push([slot,player,src]);else sources.push([slot,player,'']);}}));
-      const loaded=await Promise.all(sources.map(([, ,src])=>new Promise(resolve=>{if(!src)return resolve(null);const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=src;})));
-      let sourceIndex=0;
-      for (const group of rows) for (let i=0;i<group.slots.length;i++) {
-        const slot=group.slots[i], player=gamePlanPlayer(gamePlanSlots[slot.id]); if(!player)continue;
-        const customPosition = slot.id === 'gk' ? { x: 50, y: 88 } : gamePlanCustomPositions[slot.id];
-        const x=gamePlanFormation === 'custom' ? x0 + w * customPosition.x / 100 : x0+w*(i+1)/(group.slots.length+1), y=gamePlanFormation === 'custom' ? (slot.id === 'gk' ? y0+h-80 : y0 + h * customPosition.y / 100) : posY[group.role], role=gamePlanSlotRole(slot), label=gamePlanSlotLabel(slot), pic=loaded[sourceIndex++], positionPenalty=gamePlanPositionPenalty(player,role), mismatch=positionPenalty>0, tier=getCardRank(calcOVR(player));
-        ctx.beginPath();ctx.arc(x,y,58,0,Math.PI*2);ctx.fillStyle='#09120d';ctx.fill();ctx.save();ctx.beginPath();ctx.arc(x,y,52,0,Math.PI*2);ctx.clip();
-        if(pic)ctx.drawImage(pic,x-52,y-52,104,104);else{ctx.fillStyle=tier.className==='rank-scarlet'?'#9d2339':tier.className==='rank-gold'?'#916516':tier.className==='rank-silver'?'#607681':'#286b32';ctx.fillRect(x-52,y-52,104,104);ctx.fillStyle='#fff';ctx.font='bold 46px Arial';ctx.textAlign='center';ctx.fillText(playerCardName(player).slice(0,1).toUpperCase(),x,y+16);}ctx.restore();
-        ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 24px Arial';ctx.fillText(playerCardName(player).slice(0,20),x,y+87);ctx.fillStyle=mismatch?'#ff8790':'#ffe26b';ctx.font='bold 20px Arial';ctx.fillText(`${gamePlanEffectiveOvr(player,role)} OVR${mismatch?` · −${positionPenalty}%`:''}`,x,y+114);ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='16px Arial';ctx.fillText(label,x,y-70);
-      }
-      ctx.fillStyle='#f5c400';ctx.textAlign='left';ctx.font='900 30px Arial';ctx.fillText(`BANCO (${substitutes.length})`,80,1190);
-      ctx.fillStyle='#e8eeea';ctx.font='22px Arial';substitutes.forEach((player,index)=>{const column=index<benchRows?0:1,row=index%benchRows;ctx.fillText(`${index+1}. ${playerCardName(player).slice(0,25)} · ${calcOVR(player)} OVR`,90+column*540,1235+row*34);});
-      ctx.fillStyle='#89958e';ctx.textAlign='center';ctx.font='16px Arial';ctx.fillText('Futmancos · Seu plano de jogo',600,canvas.height-25);
-      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-      if(!blob)return alert('Não foi possível gerar a imagem neste aparelho.');
-      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`plano-de-jogo-${gamePlanFormation}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    }
-
     function renderEAFCCardsGrid() {
       const container = document.getElementById('eafcCardsGrid');
       if (!container) return;
