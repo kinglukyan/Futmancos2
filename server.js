@@ -870,6 +870,58 @@ app.get('/api/baba/votes', authenticate, requireBabaAccess, requireDatabase, asy
     res.json({ votes: rows.map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })), myVotes: rows.filter(row => row.voter_id === req.user.id).map(row => ({ playerEmail: row.player_email, attrKey: row.attr_key, stars: row.stars })) });
   } catch (error) { next(error); }
 });
+app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) => {
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+    const today = `${parts.find(part => part.type === 'year').value}-${parts.find(part => part.type === 'month').value}-${parts.find(part => part.type === 'day').value}`;
+    const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+    const monday = new Date(`${today}T12:00:00Z`); monday.setUTCDate(monday.getUTCDate() - ((weekday + 6) % 7));
+    const weekStart = monday.toISOString().slice(0, 10);
+    const { data: votes, error: votesError } = await supabase.from('baba_votes').select('player_email,stars').gte('game_day', weekStart).lte('game_day', today).limit(5000);
+    if (votesError) throw votesError;
+    const voteMap = new Map();
+    for (const vote of votes || []) {
+      const email = String(vote.player_email || '').trim().toLowerCase();
+      if (!email) continue;
+      const rating = ({ 1: 60, 2: 70, 3: 75, 4: 80, 5: 85 })[Number(vote.stars)];
+      if (!rating) continue;
+      const current = voteMap.get(email) || { total: 0, count: 0 };
+      current.total += rating; current.count += 1; voteMap.set(email, current);
+    }
+    const emails = [...voteMap.keys()];
+    const { data: profiles, error: profilesError } = emails.length
+      ? await supabase.from('profiles').select('id,email,name,nickname,position,photo').in('email', emails)
+      : { data: [], error: null };
+    if (profilesError) throw profilesError;
+    const groupFor = position => {
+      const value = String(position || '').toLocaleLowerCase('pt-BR');
+      if (value.includes('goleiro')) return 'keeper';
+      if (value.includes('zague') || value.includes('later') || value.includes('defens')) return 'defense';
+      if (value.includes('atac') || value.includes('ponta') || value.includes('centroav')) return 'attack';
+      return 'midfield';
+    };
+    const candidates = (profiles || []).map(profile => {
+      const totals = voteMap.get(String(profile.email || '').toLowerCase());
+      if (!totals) return null;
+      return { id: profile.id, name: profile.nickname || profile.name || 'Associado', position: profile.position || 'Meio-Campo', photo: /^https:\/\//i.test(profile.photo || '') ? profile.photo : '', ovr: Math.round(totals.total / totals.count), voteCount: totals.count, group: groupFor(profile.position) };
+    }).filter(Boolean).sort((a, b) => b.ovr - a.ovr || b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'pt-BR'));
+    const slots = [
+      { id: 'gk', label: 'GOL', group: 'keeper' },
+      { id: 'def1', label: 'DEF', group: 'defense' }, { id: 'def2', label: 'DEF', group: 'defense' },
+      { id: 'mid1', label: 'MEI', group: 'midfield' }, { id: 'mid2', label: 'MEI', group: 'midfield' }, { id: 'mid3', label: 'MEI', group: 'midfield' },
+      { id: 'att', label: 'ATA', group: 'attack' }
+    ];
+    const used = new Set();
+    const lineup = slots.map(slot => {
+      const player = candidates.find(item => item.group === slot.group && !used.has(String(item.id)));
+      if (player) used.add(String(player.id));
+      return { ...slot, player: player ? { id: player.id, name: player.name, position: player.position, photo: player.photo, ovr: player.ovr } : null };
+    });
+    res.set('Cache-Control', 'public, max-age=20, stale-while-revalidate=40');
+    res.json({ weekStart, votes: (votes || []).length, lineup });
+  } catch (error) { next(error); }
+});
 app.post('/api/baba/votes', authenticate, requireBabaAccess, requireDatabase, async (req, res, next) => {
   const day = String(req.body?.date || ''), playerEmail = String(req.body?.playerEmail || '').trim().toLowerCase();
   const attrKey = String(req.body?.attrKey || ''), stars = Number(req.body?.stars);

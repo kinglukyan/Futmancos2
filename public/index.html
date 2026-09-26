@@ -61,6 +61,34 @@
     button:disabled { cursor: not-allowed; }
     .instagram-media { width: 100% !important; max-width: 540px !important; min-width: 0 !important; margin: 0 auto 12px !important; }
     #youtubeVideoBox iframe { width: 100%; height: 100%; }
+    .weekly-field { position:relative; isolation:isolate; overflow:hidden; width:100%; aspect-ratio:16/8; min-height:300px; max-height:480px; border:2px solid #74b99d; border-radius:18px; background:radial-gradient(ellipse at center,#087c5c 0%,#056348 62%,#064d3e 100%); box-shadow:inset 0 0 35px #031c1670; }
+    .weekly-field-lines { position:absolute; inset:12px; border:1px solid #c5f5e280; border-radius:11px; }
+    .weekly-field-lines::before { content:""; position:absolute; left:50%; top:0; bottom:0; border-left:1px solid #c5f5e280; }
+    .weekly-field-lines::after { content:""; position:absolute; width:17%; aspect-ratio:1; left:50%; top:50%; border:1px solid #c5f5e280; border-radius:50%; transform:translate(-50%,-50%); }
+    .weekly-field-box { position:absolute; left:0; top:31%; width:9%; height:38%; border:1px solid #c5f5e280; }
+    .weekly-field-box.away { left:auto; right:0; }
+    .weekly-slot { position:absolute; left:var(--slot-x); top:var(--slot-y); transform:translate(-50%,-50%); width:clamp(78px,10%,110px); min-height:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:5px 4px; border:1px solid #a7ead1a8; border-radius:12px; background:#06120de8; box-shadow:0 5px 16px #00150f66; color:white; text-align:center; }
+    .weekly-slot-avatar { width:34px; height:34px; flex:none; display:grid; place-items:center; overflow:hidden; border:1px solid #d7f8ec99; border-radius:50%; background:#0a3428; color:#fcd34d; font-weight:800; }
+    .weekly-slot-avatar img { width:100%; height:100%; object-fit:cover; }
+    .weekly-slot-label { color:#b9f5dc; font-size:9px; line-height:1; font-weight:900; letter-spacing:.05em; }
+    .weekly-slot-name { width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; line-height:1.1; font-weight:800; }
+    .weekly-slot-ovr { color:#fcd34d; font:700 14px/1 Teko,sans-serif; }
+    @media(max-width:767px) {
+      .weekly-field { aspect-ratio:8/13; min-height:460px; max-height:620px; }
+      .weekly-field-lines::before { left:0; right:0; top:50%; bottom:auto; border-left:0; border-top:1px solid #c5f5e280; }
+      .weekly-field-lines::after { width:24%; }
+      .weekly-field-box { left:31%; top:0; width:38%; height:9%; }
+      .weekly-field-box.away { left:31%; right:auto; top:auto; bottom:0; }
+      .weekly-slot { width:clamp(82px,27%,108px); min-height:72px; }
+      .weekly-slot-avatar { width:32px; height:32px; }
+      .weekly-slot[data-slot="gk"] { left:50%; top:88%; }
+      .weekly-slot[data-slot="def1"] { left:27%; top:70%; }
+      .weekly-slot[data-slot="def2"] { left:73%; top:70%; }
+      .weekly-slot[data-slot="mid1"] { left:19%; top:50%; }
+      .weekly-slot[data-slot="mid2"] { left:50%; top:50%; }
+      .weekly-slot[data-slot="mid3"] { left:81%; top:50%; }
+      .weekly-slot[data-slot="att"] { left:50%; top:27%; }
+    }
     @media (max-width: 767px) {
       body { padding-top: 0; }
       header { top: 0 !important; padding-top: env(safe-area-inset-top, 0px); }
@@ -347,6 +375,18 @@
           <span id="resenhaPresenceCount" class="font-teko text-3xl text-brand-lightGreen font-bold">0</span>
         </div>
       </div>
+
+      <!-- CRAQUES DA SEMANA: escalação derivada das votações pós-baba -->
+      <section class="rounded-2xl border border-emerald-900/70 bg-brand-cardBg p-4 sm:p-5 space-y-3" aria-labelledby="weeklyLineupTitle">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <div><h3 id="weeklyLineupTitle" class="font-teko text-3xl text-brand-lightGreen tracking-wide">CRAQUES DA SEMANA</h3><p id="weeklyLineupSubtitle" class="text-xs text-gray-400">Os destaques aparecem depois das votações da semana.</p></div>
+          <span id="weeklyLineupVoteCount" class="text-[10px] font-bold uppercase tracking-wider text-emerald-200/80"></span>
+        </div>
+        <div id="weeklyLineupField" class="weekly-field" aria-label="Escalação dos melhores da semana">
+          <div class="weekly-field-lines" aria-hidden="true"></div><div class="weekly-field-box" aria-hidden="true"></div><div class="weekly-field-box away" aria-hidden="true"></div>
+          <div class="weekly-slots"></div>
+        </div>
+      </section>
 
       <!-- TOP 3 JOGADORES -->
       <div class="space-y-3">
@@ -2779,8 +2819,37 @@
       await saveMyCardImage();
     }
 
+    let weeklyLineupLoadedAt = 0, weeklyLineupRequest = null;
+    function renderWeeklyLineup(data = {}) {
+      const field = document.getElementById('weeklyLineupField');
+      if (!field) return;
+      const lineup = Array.isArray(data.lineup) ? data.lineup : [];
+      const container = field.querySelector('.weekly-slots');
+      const positions = { gk:[8,50], def1:[27,31], def2:[27,69], mid1:[50,20], mid2:[50,50], mid3:[50,80], att:[76,50] };
+      container.innerHTML = lineup.map(slot => {
+        const [x,y] = positions[slot.id] || [50,50], player = slot.player;
+        const avatar = player?.photo ? `<img src="${gamePlanEscape(player.photo)}" alt="">` : (player ? gamePlanEscape(String(player.name || '?').slice(0,1).toUpperCase()) : '<span aria-hidden="true">＋</span>');
+        const details = player ? `<span class="weekly-slot-name" title="${gamePlanEscape(player.name)}">${gamePlanEscape(player.name)}</span><span class="weekly-slot-ovr">OVR ${Number(player.ovr) || 0}</span>` : '<span class="weekly-slot-name text-gray-300">Aguardando Craque</span>';
+        return `<div class="weekly-slot" data-slot="${gamePlanEscape(slot.id)}" style="--slot-x:${x}%;--slot-y:${y}%" aria-label="${gamePlanEscape(slot.label)}: ${gamePlanEscape(player?.name || 'Aguardando Craque')}"><span class="weekly-slot-label">${gamePlanEscape(slot.label)}</span><span class="weekly-slot-avatar">${avatar}</span>${details}</div>`;
+      }).join('');
+      const subtitle = document.getElementById('weeklyLineupSubtitle'), count = document.getElementById('weeklyLineupVoteCount');
+      const date = data.weekStart ? new Date(`${data.weekStart}T12:00:00`) : null;
+      const period = date ? `Semana iniciada em ${date.toLocaleDateString('pt-BR')}.` : 'Destaques das votações desta semana.';
+      if (subtitle) subtitle.textContent = Number(data.votes) ? `${period} Escalação atualizada com as notas recebidas.` : `${period} Aguardando as primeiras votações.`;
+      if (count) count.textContent = Number(data.votes) ? `${Number(data.votes)} voto(s) na semana` : '';
+    }
+    async function loadWeeklyLineup(force = false) {
+      if (weeklyLineupRequest) return weeklyLineupRequest;
+      if (!force && Date.now() - weeklyLineupLoadedAt < 20000) return;
+      weeklyLineupRequest = apiRequest('/resenha/weekly-lineup').then(data => {
+        weeklyLineupLoadedAt = Date.now(); renderWeeklyLineup(data);
+      }).catch(error => console.warn('Craques da semana indisponíveis.', error)).finally(() => { weeklyLineupRequest = null; });
+      return weeklyLineupRequest;
+    }
+    setInterval(() => { if (currentActiveTab === 'resenha') loadWeeklyLineup(true); }, 45000);
     function renderResenhaTab() {
       document.getElementById('resenhaPresenceCount').innerText = presentPlayers.length;
+      loadWeeklyLineup();
 
       const containerTop3 = document.getElementById('top3CardsGrid');
       containerTop3.innerHTML = '';
@@ -3237,6 +3306,7 @@
       sharedBabaMode = 'voting'; applyBabaModeUi();
       games.forEach(match => { match.votingOpen = true; });
       saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory();
+      await loadWeeklyLineup(true);
       const status = document.getElementById('adminMatchStatus');
       if (status) status.innerText = `Dia encerrado: ${games.length} jogo(s) salvo(s). A votação compartilhada foi liberada no servidor.`;
       alert(`Dia encerrado. Os ${games.length} jogos foram mantidos e a votação compartilhada foi liberada.`);
@@ -3252,6 +3322,7 @@
         const closed = await apiRequest(`/admin/baba/matches/${encodeURIComponent(date)}/finish-voting`, { method: 'PUT', body: '{}' });
         matchHistory.filter(match => match.gameDay === date).forEach(match => { match.votingOpen = false; });
         saveState(); updateAdminBabaDayControls(); await refreshSharedVotes(date); renderVotingSection(); renderMatchHistory(); applyBabaModeUi();
+        await loadWeeklyLineup(true);
         const status = document.getElementById('adminMatchStatus'); if (status) status.textContent = `Votação encerrada para ${games.length} jogo(s) do dia ${date}.`;
         alert(`Votação encerrada. ${closed.evaluations} avaliações de ${closed.voters} jogadores foram mantidas.`);
       } catch (error) { alert(`Não foi possível encerrar a votação: ${error.message}`); }
@@ -3343,6 +3414,7 @@
       p[votesKey].push(val);
       p.voteRecords.push({ voterId: voterKey, matchId, attrKey, stars, date: new Date().toISOString() });
       await refreshSharedVotes(matchId); saveState(); renderVotingSection();
+      await loadWeeklyLineup(true);
       renderEAFCCardsGrid();
       if (loggedUser.isAdmin) updateAdmPerformanceChart();
     }
