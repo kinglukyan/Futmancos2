@@ -350,8 +350,8 @@
 
       <!-- TOP 3 JOGADORES -->
       <div class="space-y-3">
-        <h3 class="font-teko text-3xl text-brand-gold text-center sm:text-left flex items-center gap-2">
-          <i data-lucide="trophy" class="w-6 h-6 text-brand-gold"></i> OS TOP 3 CRAQUES DA ASSOCIAÇÃO
+        <h3 class="font-teko text-3xl text-brand-gold text-center sm:text-left flex items-start sm:items-center gap-2">
+          <i data-lucide="trophy" class="w-6 h-6 shrink-0 text-brand-gold"></i><span>OS TOP 3 CRAQUES DA ASSOCIAÇÃO</span>
         </h3>
         <div id="top3CardsGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center"></div>
       </div>
@@ -849,7 +849,7 @@
         </label>
         <label class="text-[11px] text-gray-400">Posição em campo
           <select id="regPos" required class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
-            <option value="Goleiro">Goleiro</option><option value="Zagueiro">Zagueiro</option><option value="Lateral">Lateral</option><option value="Meio-Campo">Meio-campo</option><option value="Volante">Volante</option><option value="Atacante">Atacante</option>
+            <option value="" disabled selected>Selecione sua posição</option><option value="Goleiro">Goleiro</option><option value="Zagueiro">Zagueiro</option><option value="Lateral">Lateral</option><option value="Meio-Campo">Meio-campo</option><option value="Volante">Volante</option><option value="Atacante">Atacante</option>
           </select>
         </label>
         <label class="text-[11px] text-gray-400">Perna dominante
@@ -1490,7 +1490,7 @@
         }
         sharedAttendanceInitialized = true;
         await refreshGuestAttendance();
-        saveState(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderTeamDraws(); updatePresenceButton(); renderResenhaTab();
+        saveState(); renderPresence(); renderCheckInList();  renderTeamDraws(); updatePresenceButton(); renderResenhaTab();
       } catch (error) { console.warn('Presença compartilhada indisponível.', error); }
     }
     function babaModeDate() { return activeBabaDate || localDateKey(); }
@@ -1534,7 +1534,7 @@
         sharedBabaMode = result.mode;
         const dateInput = document.getElementById('adminMatchDate'); if (dateInput) dateInput.value = date;
         applyBabaModeUi();
-        if (mode === 'game') { await loadBabaDraws(date); await loadSharedMatchHistory(); renderMatchHistory(); renderAdminMatchPlayers(); }
+        if (mode === 'game') { await loadBabaDraws(date); await loadSharedMatchHistory(); renderMatchHistory();  }
       } catch (error) { alert(`Não foi possível alterar a etapa da Central Baba: ${error.message}`); await refreshSharedBabaMode(); }
     }
     function formatGuestCpf(input) {
@@ -1652,7 +1652,7 @@
         await loadSharedAppState(false); await loadSharedMatchHistory(); await refreshSharedAttendance(); await refreshSharedBabaMode(); await loadBabaDraws();
         await refreshSharedVotes(matchesForLatestDay()[0]?.gameDay); await refreshPaymentStatus();
         if (loggedUser.isAdmin) { await refreshAdminMembers(); await refreshAdminGuests(); }
-        renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); updatePresenceButton();
+        renderPresence(); renderCheckInList();  updatePresenceButton();
         renderVotingSection(); renderRanking(); renderEAFCCardsGrid(); renderMatchHistory(); renderResenhaTab();
         if (currentActiveTab === 'adm' && loggedUser.isAdmin) { renderMemberList(); renderFinanceModule(); }
       }, 20000);
@@ -1740,7 +1740,6 @@
       }
       const matchDateInput = document.getElementById('adminMatchDate'); if (matchDateInput && !matchDateInput.value) matchDateInput.value = activeBabaDate || localDateKey();
       populateShirts();
-      populateKeeperSelectors();
       renderPresence();
       renderCheckInList();
       renderRanking();
@@ -1794,20 +1793,6 @@
         }
         select.value = selected ? String(selected) : '';
       });
-    }
-
-    function populateKeeperSelectors() {
-      const selA = document.getElementById('manualKeeperSelectA');
-      const selB = document.getElementById('manualKeeperSelectB');
-      if (!selA || !selB) return;
-
-      let optionsHTML = '<option value="">Nenhum (Usar do Sorteio)</option>';
-      players.forEach(p => {
-        optionsHTML += `<option value="${p.id}">${p.name} (${p.pos})</option>`;
-      });
-
-      selA.innerHTML = optionsHTML;
-      selB.innerHTML = optionsHTML;
     }
 
     function handleLogoClick() { navigate('resenha'); }
@@ -2006,7 +1991,6 @@
       renderRanking();
       renderEAFCCardsGrid();
       populateShirts();
-      populateKeeperSelectors();
       populateAdmPerformanceSelect();
       alert('Dados atualizados com sucesso!');
     }
@@ -2380,7 +2364,7 @@
 
       if (secId === 'resenha') renderResenhaTab();
       if (secId === 'ranking') { loadGamePlan(); loadLeague(); }
-      if (secId === 'baba') { refreshSharedBabaMode(); renderPresence(); renderCheckInList(); refreshGuestAttendance(); renderAdminMatchPlayers(); renderVotingSection(); renderTeamDraws(); renderMatchHistory(); updateAdminBabaDayControls(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
+      if (secId === 'baba') { refreshSharedBabaMode(); renderPresence(); renderCheckInList(); refreshGuestAttendance();  renderVotingSection(); renderTeamDraws(); renderMatchHistory(); updateAdminBabaDayControls(); loadBabaDraws(activeBabaDate); updatePresenceButton(); }
       if (secId === 'perfil') { renderProfile(); loadMyGuestCode(); loadNotificationPreferences(); loadLeague(); }
       if (secId === 'eafc') renderEAFCCardsGrid();
       if (secId === 'adm') { renderMemberList(); renderFinanceModule(); populateAdmPerformanceSelect(); refreshAdminMembers(); refreshAdminGuests(); refreshAdminAuditLog(); }
@@ -3273,81 +3257,6 @@
       } catch (error) { alert(`Não foi possível encerrar a votação: ${error.message}`); }
     }
 
-    function renderAdminMatchPlayers() {
-      const box = document.getElementById('adminMatchPlayers');
-      if (!box) return;
-      if (!checkedInPlayers.length) {
-        box.innerHTML = '<p class="text-xs text-gray-500">Ainda não há jogadores com check-in.</p>';
-        return;
-      }
-      box.innerHTML = checkedInPlayers.map(id => {
-        const p = players.find(x => String(x.id) === String(id));
-        if (!p) return '';
-        return `<div class="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end bg-black/40 border border-gray-800 rounded-xl p-2">
-          <span class="text-xs text-white font-semibold sm:col-span-1">${p.name}</span>
-          <label class="text-[9px] text-gray-400">Time<select id="postTeam_${p.id}" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-1.5 text-xs text-white"><option value="">Não jogou</option><option value="A">Verde</option><option value="B">Preto</option></select></label>
-          <label class="text-[9px] text-gray-400">Gols<input id="postGoals_${p.id}" type="number" min="0" value="0" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-1.5 text-xs text-white"></label>
-          <label class="text-[9px] text-gray-400">Assistências<input id="postAssists_${p.id}" type="number" min="0" value="0" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-1.5 text-xs text-white"></label>
-          <label class="text-[9px] text-gray-400">Defesas<input id="postSaves_${p.id}" type="number" min="0" value="0" class="mt-1 w-full bg-black border border-gray-700 rounded-lg p-1.5 text-xs text-white"></label>
-        </div>`;
-      }).join('');
-    }
-
-    async function adminSubmitMatch(e) {
-      e.preventDefault();
-      if (!loggedUser?.isAdmin) return alert('Apenas administradores podem registrar o resultado.');
-      if (!checkedInPlayers.length) return alert('Não há jogadores com check-in para incluir na partida.');
-      const participants = checkedInPlayers.map(id => {
-        const p = players.find(x => String(x.id) === String(id));
-        const team = document.getElementById(`postTeam_${id}`)?.value || '';
-        const goals = Math.max(0, parseInt(document.getElementById(`postGoals_${id}`)?.value, 10) || 0);
-        const assists = Math.max(0, parseInt(document.getElementById(`postAssists_${id}`)?.value, 10) || 0);
-        const saves = Math.max(0, parseInt(document.getElementById(`postSaves_${id}`)?.value, 10) || 0);
-        return p ? { p, team, goals, assists, saves } : null;
-      }).filter(Boolean);
-      const teamA = participants.filter(x => x.team === 'A');
-      const teamB = participants.filter(x => x.team === 'B');
-      if (!teamA.length || !teamB.length) return alert('Escolha pelo menos um jogador para cada time.');
-      const scoreA = Math.max(0, parseInt(document.getElementById('matchScoreA').value, 10) || 0);
-      const scoreB = Math.max(0, parseInt(document.getElementById('matchScoreB').value, 10) || 0);
-      if (teamA.reduce((sum, x) => sum + x.goals, 0) !== scoreA || teamB.reduce((sum, x) => sum + x.goals, 0) !== scoreB) return alert('A soma dos gols atribuídos aos jogadores precisa corresponder ao placar de cada time.');
-      const checkedIds = checkedInPlayers.slice();
-      for (const item of participants) {
-        if (!item.team) continue;
-        item.p.goals = (item.p.goals || 0) + item.goals;
-        item.p.assists = (item.p.assists || 0) + item.assists;
-        item.p.saves = (item.p.saves || 0) + item.saves;
-        item.p.matches = (item.p.matches || 0) + 1;
-        item.p.days = (item.p.days || 0) + 1;
-      }
-      const gameDay = document.getElementById('adminMatchDate')?.value || localDateKey();
-      const result = {
-        id: Date.now(), gameDay, votingOpen: false, date: new Date(`${gameDay}T12:00:00`).toLocaleDateString('pt-BR'), scoreA, scoreB,
-        checkedInIds: checkedIds,
-        checkedInEmails: checkedIds.map(id => players.find(player => String(player.id) === String(id))?.email).filter(Boolean),
-        checkedInPlayersData: checkedIds.map(id => { const player = players.find(item => String(item.id) === String(id)); return player ? { email: player.email || '', name: player.name, pos: player.pos } : null; }).filter(Boolean),
-        teamA: teamA.map(x => x.p.name), teamB: teamB.map(x => x.p.name),
-        stats: participants.filter(x => x.team).map(x => ({ playerId: x.p.id, email: x.p.email || '', name: x.p.name, team: x.team, goals: x.goals, assists: x.assists, saves: x.saves }))
-      };
-      try { await apiRequest('/admin/baba/matches', { method: 'POST', body: JSON.stringify({ match: result }) }); }
-      catch (error) {
-        participants.filter(item => item.team).forEach(item => {
-          item.p.goals = Math.max(0, (item.p.goals || 0) - item.goals);
-          item.p.assists = Math.max(0, (item.p.assists || 0) - item.assists);
-          item.p.saves = Math.max(0, (item.p.saves || 0) - item.saves);
-          item.p.matches = Math.max(0, (item.p.matches || 0) - 1);
-          item.p.days = Math.max(0, (item.p.days || 0) - 1);
-        });
-        document.getElementById('adminMatchStatus').innerText = `O resultado não foi salvo porque o servidor não respondeu: ${error.message}`;
-        return alert(`O resultado não foi salvo. Confira sua conexão com o servidor e tente novamente. ${error.message}`);
-      }
-      matchHistory.unshift(result);
-      saveState();
-      renderRanking(); renderEAFCCardsGrid(); renderProfile(); renderMemberList(); renderVotingSection(); renderMatchHistory();
-      document.getElementById('adminMatchStatus').innerText = `Jogo salvo e compartilhado (${gameDay}). ${matchHistory.filter(match => match.gameDay === gameDay).length} jogo(s) registrado(s) nessa data. Salve os demais e encerre o dia para liberar a votação.`;
-      document.getElementById('matchScoreA').value = '0'; document.getElementById('matchScoreB').value = '0'; renderAdminMatchPlayers();
-      alert('Jogo salvo e compartilhado. Você pode registrar os outros jogos do dia antes de liberar a votação.');
-    }
     function renderVotingSection() {
       const container = document.getElementById('votingContainer');
       if (!container) return;
@@ -4067,7 +3976,7 @@
         presentPlayers = presentPlayers.filter(id => !removedIds.has(String(id)));
         checkedInPlayers = checkedInPlayers.filter(id => !removedIds.has(String(id)));
         if (result.deletedSelf || isSelf) { await handleLogout(); window.location.reload(); return; }
-        saveState(); renderMemberList(); renderPresence(); renderCheckInList(); renderAdminMatchPlayers(); renderRanking(); renderEAFCCardsGrid();
+        saveState(); renderMemberList(); renderPresence(); renderCheckInList();  renderRanking(); renderEAFCCardsGrid();
         if (member?.email) await refreshSharedAttendance();
         alert('A conta do associado foi excluída.');
       } catch (error) {
