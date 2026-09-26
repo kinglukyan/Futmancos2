@@ -4294,9 +4294,9 @@
       try {
         const guestFee = Number(document.getElementById('admGuestFeeInput').value);
         const custoGoFee = Number(document.getElementById('admCustoGoFeeInput').value);
-        const custoGoDescription = document.getElementById('admCustoGoDescription').value.trim();
-        const custoGoEnabled = document.getElementById('admCustoGoEnabled').checked;
-        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee, custoGoFee, custoGoDescription, custoGoEnabled }) });
+        const nextCustoGoDescription = document.getElementById('admCustoGoDescription').value.trim();
+        const nextCustoGoEnabled = document.getElementById('admCustoGoEnabled').checked;
+        const data = await apiRequest('/admin/monthly-fee', { method: 'PUT', body: JSON.stringify({ amount, guestFee, custoGoFee, custoGoDescription: nextCustoGoDescription, custoGoEnabled: nextCustoGoEnabled }) });
         globalMonthlyFee = Number(data.monthlyFee); globalGuestFee = Number(data.guestFee);
         globalCustoGoFee = Number(data.custoGoFee); custoGoDescription = String(data.custoGoDescription || ''); custoGoEnabled = data.custoGoEnabled === true;
         renderCustoGoPage(); updateBillingNavigation();
