@@ -1,11 +1,8 @@
--- Shared venue and regular playing hours shown in the public home and Resenha.
-insert into public.settings (key, value) values
-  ('home_arena_name', 'Arena Fraga Maia'),
-  ('home_arena_address', 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232'),
-  ('home_game_schedule', 'Sábados, das 6h30 às 8h30')
+-- Update the shared arena address without changing scheduled game dates/times.
+insert into public.settings (key, value)
+values ('home_arena_address', 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232')
 on conflict (key) do update set value = excluded.value;
 
--- Replace the previous default venue in already-saved association data.
 do $$
 declare
   shared_state jsonb;
@@ -22,7 +19,7 @@ begin
   if jsonb_typeof(shared_state->'arenas') = 'array' then
     select coalesce(jsonb_agg(
       case
-        when lower(coalesce(arena->>'name', '')) = 'arena futmancos' then
+        when lower(coalesce(arena->>'name', '')) in ('arena futmancos', 'arena fraga maia') then
           arena || jsonb_build_object(
             'name', 'Arena Fraga Maia',
             'address', 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232'
@@ -37,7 +34,7 @@ begin
   end if;
 
   if jsonb_typeof(shared_state->'nextGame') = 'object'
-     and lower(coalesce(shared_state #>> '{nextGame,name}', '')) = 'arena futmancos' then
+     and lower(coalesce(shared_state #>> '{nextGame,name}', '')) in ('arena futmancos', 'arena fraga maia') then
     shared_state := jsonb_set(
       shared_state,
       '{nextGame}',

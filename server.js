@@ -1582,7 +1582,7 @@ app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, 
 app.get('/api/config', requireDatabase, async (_req, res, next) => {
   try {
     const [monthlyFee, guestFee, custoGoFee, custoGoEnabled, custoGoDescription, pixKey, pixQrDataUrl, arenaName, arenaAddress, gameSchedule] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('custo_go_enabled'), setting('custo_go_description'), setting('pix_key'), setting('pix_qr_data_url'), setting('home_arena_name'), setting('home_arena_address'), setting('home_game_schedule')]);
-    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, custoGoFee: Number(custoGoFee) || 0, custoGoEnabled: String(custoGoEnabled || 'false').toLowerCase() === 'true', custoGoDescription: custoGoDescription || '', whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '', arenaName: arenaName || 'Arena Fraga Maia', arenaAddress: arenaAddress || 'Fraga Maia - Feira de Santana/BA', gameSchedule: gameSchedule || 'Sábados, das 6h30 às 8h30' });
+    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, custoGoFee: Number(custoGoFee) || 0, custoGoEnabled: String(custoGoEnabled || 'false').toLowerCase() === 'true', custoGoDescription: custoGoDescription || '', whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '', arenaName: arenaName || 'Arena Fraga Maia', arenaAddress: arenaAddress || 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232', gameSchedule: gameSchedule || 'Sábados, das 6h30 às 8h30' });
   } catch (error) { next(error); }
 });
 

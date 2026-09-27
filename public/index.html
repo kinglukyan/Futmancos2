@@ -373,7 +373,7 @@
             <i data-lucide="calendar" class="w-4 h-4"></i> PRÓXIMO BABA CONFIRMADO
           </span>
           <h3 id="resenhaBabaTitle" class="font-teko text-3xl text-white">ARENA FRAGA MAIA - SÁBADOS, 6H30 ÀS 8H30</h3>
-          <p id="resenhaBabaAddress" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
+          <p id="resenhaBabaAddress" class="text-xs text-gray-400">Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232</p>
         </div>
         <div class="bg-black/60 px-5 py-3 rounded-xl border border-gray-800 text-center">
           <span class="text-[10px] text-gray-400 block uppercase font-bold">Confirmados</span>
@@ -473,7 +473,7 @@
             <h3 class="font-teko text-2xl text-white">ONDE JOGAMOS</h3>
           </div>
           <p id="homeArenaName" class="text-sm font-bold text-gray-200">Arena Fraga Maia</p>
-          <p id="homeArenaAddress" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
+          <p id="homeArenaAddress" class="text-xs text-gray-400">Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232</p>
         </div>
 
         <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-2">
@@ -524,7 +524,7 @@
         <div>
           <span class="text-xs text-brand-lightGreen font-bold tracking-widest uppercase">Próximo Baba</span>
           <h2 id="nextGameTitle" class="font-teko text-2xl md:text-3xl text-white leading-tight">ARENA FRAGA MAIA - SÁBADOS, DAS 6H30 ÀS 8H30</h2>
-          <p id="nextGameSub" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
+          <p id="nextGameSub" class="text-xs text-gray-400">Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 w-full md:w-auto gap-2">
           <button onclick="togglePresence()" id="btnTogglePresence" class="bg-emerald-600 active:bg-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition">Marcar Presença</button>
@@ -881,10 +881,6 @@
         <label class="text-[11px] text-gray-400">Apelido (usado na cartinha)
           <input type="text" id="regNickname" required maxlength="24" autocomplete="nickname" placeholder="Como quer ser chamado" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
-        <label class="text-[11px] text-gray-400 sm:col-span-2">Foto de perfil (opcional)
-          <input type="file" id="regPhoto" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white file:mr-2 file:rounded-lg file:border-0 file:bg-gray-800 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white">
-          <span class="mt-1 block text-[10px] text-gray-500">PNG, JPG ou WebP de até 350 KB. Você também pode adicionar depois no perfil.</span>
-        </label>
         <label class="text-[11px] text-gray-400">Senha (mínimo 10 caracteres)
           <input type="password" id="regPassword" required minlength="10" autocomplete="new-password" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
@@ -902,9 +898,6 @@
         </label>
         <label class="text-[11px] text-gray-400">Telefone do contato de emergência
           <input type="tel" id="regEmergencyPhone" required maxlength="20" autocomplete="off" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
-        </label>
-        <label class="text-[11px] text-gray-400 sm:col-span-2">Pergunta para confirmar sua ligação com o baba: Quem foi o primeiro banido do baba?
-          <input type="text" id="regAssociationAnswer" required maxlength="40" autocomplete="off" placeholder="Sua resposta" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
         <label class="text-[11px] text-gray-400">Idade
           <input type="number" id="regAge" required min="10" max="100" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
@@ -929,6 +922,13 @@
           <select id="regAccountRole" onchange="toggleRegistrationRole()" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white"><option value="member">Jogador / associado</option><option value="admin">Conta de administrador (com código)</option></select>
         </label>
         <div id="adminInviteBox" class="hidden sm:col-span-2 bg-black/40 border border-amber-500/30 rounded-xl p-3 space-y-2"><p class="text-[10px] text-gray-300">Digite o código ADM fornecido pelo responsável da associação. Não compartilhe esse código publicamente.</p><label class="block text-[10px] text-gray-400">Código de administrador<input id="regAdminCode" inputmode="numeric" maxlength="4" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2 text-xs text-white"></label><p id="adminInviteMessage" class="text-[10px] text-amber-200"></p></div>
+        <label class="text-[11px] text-gray-400 sm:col-span-2">Pergunta para confirmar sua ligação com o baba: Quem foi o primeiro banido do baba?
+          <input type="text" id="regAssociationAnswer" required maxlength="40" autocomplete="off" placeholder="Sua resposta" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
+        </label>
+        <label class="text-[11px] text-gray-400 sm:col-span-2">Foto de perfil (opcional)
+          <input type="file" id="regPhoto" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white file:mr-2 file:rounded-lg file:border-0 file:bg-gray-800 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white">
+          <span class="mt-1 block text-[10px] text-gray-500">PNG, JPG ou WebP de até 350 KB. Você também pode adicionar depois no perfil.</span>
+        </label>
         <div class="sm:col-span-2 flex flex-col sm:flex-row gap-2 pt-2">
           <button type="submit" class="flex-1 bg-brand-green text-black font-bold py-3 rounded-xl text-xs">CRIAR CONTA</button>
           <button type="button" onclick="navigate('home')" class="bg-gray-800 border border-gray-700 text-white font-bold px-5 py-3 rounded-xl text-xs">Voltar</button>
@@ -963,7 +963,7 @@
             </div>
             <div>
               <label class="text-[10px] text-gray-400">Endereço Completo</label>
-              <input type="text" id="arenaAddress" placeholder="Ex: Fraga Maia - Feira de Santana/BA" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+              <input type="text" id="arenaAddress" placeholder="Ex: Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
             </div>
             <div class="grid grid-cols-2 gap-2">
               <label class="text-[10px] text-gray-400">Latitude<input type="number" step="any" id="arenaLatitude" placeholder="-12.25" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
@@ -1350,7 +1350,7 @@
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
-      { id: 1, name: 'Arena Fraga Maia', address: 'Fraga Maia - Feira de Santana/BA' }
+      { id: 1, name: 'Arena Fraga Maia', address: 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232' }
     ];
 
     let transactions = JSON.parse(localStorage.getItem('futmancos_finances')) || [];
@@ -2078,7 +2078,7 @@
     let associationPixQrDataUrl = '';
     function applyVenueConfig(config = {}) {
       const name = String(config.arenaName || 'Arena Fraga Maia');
-      const address = String(config.arenaAddress || 'Fraga Maia - Feira de Santana/BA');
+      const address = String(config.arenaAddress || 'Av. Francisco Fraga Maia, 6700 - Mangabeira, Feira de Santana - BA, 44056-232');
       const schedule = String(config.gameSchedule || 'Sábados, das 6h30 às 8h30');
       const nameNode = document.getElementById('homeArenaName'), addressNode = document.getElementById('homeArenaAddress'), scheduleNode = document.getElementById('homeGameSchedule');
       if (nameNode) nameNode.textContent = name;
