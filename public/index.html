@@ -68,6 +68,9 @@
     .weekly-field-box { position:absolute; left:0; top:31%; width:9%; height:38%; border:1px solid #c5f5e280; }
     .weekly-field-box.away { left:auto; right:0; }
     .weekly-slot { position:absolute; left:var(--slot-x); top:var(--slot-y); transform:translate(-50%,-50%); width:clamp(78px,10%,110px); min-height:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:5px 4px; border:1px solid #a7ead1a8; border-radius:12px; background:#06120de8; box-shadow:0 5px 16px #00150f66; color:white; text-align:center; }
+    .weekly-slot.is-interactive { cursor:pointer; transition:transform .16s ease,box-shadow .16s ease; }
+    .weekly-slot.is-interactive:hover { transform:translate(-50%,-50%) scale(1.07); box-shadow:0 8px 24px #00150f99,0 0 14px #a7ead155; }
+    .weekly-slot.is-interactive:focus-visible { outline:3px solid #fde68a; outline-offset:3px; }
     .weekly-slot-avatar { width:34px; height:34px; flex:none; display:grid; place-items:center; overflow:hidden; border:1px solid #d7f8ec99; border-radius:50%; background:#0a3428; color:#fcd34d; font-weight:800; }
     .weekly-slot-avatar img { width:100%; height:100%; object-fit:cover; }
     .weekly-slot-label { color:#b9f5dc; font-size:9px; line-height:1; font-weight:900; letter-spacing:.05em; }
@@ -404,6 +407,13 @@
           <div class="weekly-slots"></div>
         </div>
       </section>
+
+      <div id="weeklyCraqueModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/85 px-4 py-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="weeklyCraqueModalTitle" onclick="if(event.target===this)closeWeeklyCraqueCard()">
+        <div class="relative max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-emerald-300/30 bg-brand-cardBg p-4 shadow-2xl">
+          <button type="button" onclick="closeWeeklyCraqueCard()" class="absolute right-3 top-3 z-10 rounded-lg bg-black/60 p-2 text-gray-300 hover:text-white" aria-label="Fechar cartinha"><i data-lucide="x" class="h-5 w-5"></i></button>
+          <div id="weeklyCraqueModalContent"></div>
+        </div>
+      </div>
 
       <!-- TOP 3 JOGADORES -->
       <div class="space-y-3">
@@ -2876,18 +2886,24 @@
       await saveMyCardImage();
     }
 
-    let weeklyLineupLoadedAt = 0, weeklyLineupRequest = null, weeklyLineupFormation = '3-2-1';
+    let weeklyLineupLoadedAt = 0, weeklyLineupRequest = null, weeklyLineupFormation = '3-2-1', weeklyCraquePreviousFocus = null;
+    const weeklyLineupPlayerDetails = new Map();
     function renderWeeklyLineup(data = {}) {
       const field = document.getElementById('weeklyLineupField');
       if (!field) return;
       const lineup = Array.isArray(data.lineup) ? data.lineup : [];
       const container = field.querySelector('.weekly-slots');
+      weeklyLineupPlayerDetails.clear();
       container.innerHTML = lineup.map(slot => {
         const player = slot.player, x = Number.isFinite(Number(slot.x)) ? Number(slot.x) : 50, y = Number.isFinite(Number(slot.y)) ? Number(slot.y) : 50;
         const mobileX = Number.isFinite(Number(slot.mobileX)) ? Number(slot.mobileX) : x, mobileY = Number.isFinite(Number(slot.mobileY)) ? Number(slot.mobileY) : y;
+        const playerId = player ? String(player.id) : '';
+        if (player) weeklyLineupPlayerDetails.set(playerId, player);
         const avatar = player?.photo ? `<img src="${gamePlanEscape(player.photo)}" alt="">` : (player ? gamePlanEscape(String(player.name || '?').slice(0,1).toUpperCase()) : '<span aria-hidden="true">＋</span>');
         const details = player ? `<span class="weekly-slot-name" title="${gamePlanEscape(player.name)}">${gamePlanEscape(player.name)}</span><span class="weekly-slot-ovr">OVR ${Number(player.ovr) || 0}</span>` : '<span class="weekly-slot-name text-gray-300">Aguardando Craque</span>';
-        return `<div class="weekly-slot" data-slot="${gamePlanEscape(slot.id)}" data-role="${gamePlanEscape(slot.role || '')}" style="--slot-x:${x}%;--slot-y:${y}%;--slot-mobile-x:${mobileX}%;--slot-mobile-y:${mobileY}%" aria-label="${gamePlanEscape(slot.label)}: ${gamePlanEscape(player?.name || 'Aguardando Craque')}"><span class="weekly-slot-label">${gamePlanEscape(slot.label)}</span><span class="weekly-slot-avatar">${avatar}</span>${details}</div>`;
+        const tag = player ? 'button' : 'div', interactive = player ? 'is-interactive' : '';
+        const open = player ? `type="button" onclick="openWeeklyCraqueCard('${encodeURIComponent(playerId)}')" title="Abrir cartinha de ${gamePlanEscape(player.name)}" aria-haspopup="dialog"` : '';
+        return `<${tag} ${open} class="weekly-slot ${interactive}" data-slot="${gamePlanEscape(slot.id)}" data-role="${gamePlanEscape(slot.role || '')}" style="--slot-x:${x}%;--slot-y:${y}%;--slot-mobile-x:${mobileX}%;--slot-mobile-y:${mobileY}%" aria-label="${gamePlanEscape(slot.label)}: ${gamePlanEscape(player?.name || 'Aguardando Craque')}${player ? ', abrir cartinha' : ''}"><span class="weekly-slot-label">${gamePlanEscape(slot.label)}</span><span class="weekly-slot-avatar">${avatar}</span>${details}</${tag}>`;
       }).join('');
       const subtitle = document.getElementById('weeklyLineupSubtitle'), count = document.getElementById('weeklyLineupVoteCount');
       const manageButton = document.getElementById('weeklyLineupManageBtn'), editor = document.getElementById('weeklyLineupAdminEditor'), formationSelect = document.getElementById('weeklyLineupFormationSelect');
@@ -2900,6 +2916,34 @@
       if (subtitle) subtitle.textContent = `${period} ${formationText}${Number(data.votes) ? 'Escalação atualizada com as notas recebidas.' : 'Aguardando as primeiras votações.'}`;
       if (count) count.textContent = Number(data.votes) ? `${Number(data.votes)} voto(s) na semana` : '';
     }
+    function openWeeklyCraqueCard(encodedId) {
+      let id = '';
+      try { id = decodeURIComponent(String(encodedId || '')); } catch { return; }
+      const player = weeklyLineupPlayerDetails.get(id);
+      if (!player) return;
+      const modal = document.getElementById('weeklyCraqueModal'), content = document.getElementById('weeklyCraqueModalContent');
+      if (!modal || !content) return;
+      weeklyCraquePreviousFocus = document.activeElement;
+      const rank = getCardRank(Number(player.ovr) || 60), attributes = player.attributes || {};
+      const labels = { rit: 'RIT', dri: 'DRI', chu: 'CHU', def: 'DEF', pas: 'PAS', fis: 'FIS' };
+      const stats = Object.entries(labels).map(([key, label]) => {
+        const item = attributes[key] || {}, value = item.value != null && Number.isFinite(Number(item.value)) ? Number(item.value) : '—', votes = Number(item.votes) || 0;
+        return `<div class="rounded-lg border border-white/10 bg-black/35 p-2 text-center"><span class="block text-[9px] font-black tracking-wider text-gray-300">${label}</span><strong class="block font-teko text-2xl leading-tight rank-accent">${value}</strong><small class="text-[9px] text-gray-400">${votes} ${votes === 1 ? 'voto' : 'votos'}</small></div>`;
+      }).join('');
+      const photo = player.photo ? `<img src="${gamePlanEscape(player.photo)}" alt="Foto de ${gamePlanEscape(player.name)}" class="h-full w-full object-cover">` : `<span class="font-teko text-5xl text-amber-300">${gamePlanEscape(String(player.name || '?').slice(0,1).toUpperCase())}</span>`;
+      content.innerHTML = `<article class="rank-card ${rank.className} relative overflow-hidden rounded-2xl border p-4 text-white"><img class="rank-card-background" src="${FUTMANCOS_CARD_LOGO}" alt="" aria-hidden="true"><img class="rank-card-texture" src="${FUTMANCOS_CARD_TEXTURE}" alt="" aria-hidden="true"><div class="relative z-10 space-y-3"><div class="flex items-start justify-between gap-3 pr-9"><div><p class="text-[9px] font-black tracking-[.2em] rank-accent">${rank.label}</p><strong class="block font-teko text-6xl leading-none rank-accent">${Number(player.ovr) || 0}</strong><span class="text-[10px] font-black uppercase tracking-wider text-gray-200">${gamePlanEscape(player.position || 'Posição não informada')}</span></div><div class="h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-white/25 bg-black/45">${photo}</div></div><div class="rounded-lg border border-white/10 bg-black/55 px-3 py-2"><h2 id="weeklyCraqueModalTitle" class="truncate font-teko text-3xl font-bold uppercase tracking-wide">${gamePlanEscape(player.name || 'Craque da Semana')}</h2></div><div class="grid grid-cols-3 gap-2">${stats}</div><div class="flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-3 text-[10px] text-gray-300"><span><strong class="rank-accent">${Number(player.voteCount) || 0}</strong> avaliações recebidas</span><span><strong class="rank-accent">${Number(player.voterCount) || 0}</strong> associados votaram</span></div></div></article>`;
+      modal.classList.remove('hidden'); document.body.classList.add('overflow-hidden');
+      modal.querySelector('button[aria-label="Fechar cartinha"]')?.focus();
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function closeWeeklyCraqueCard() {
+      const modal = document.getElementById('weeklyCraqueModal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      modal.classList.add('hidden'); document.body.classList.remove('overflow-hidden');
+      if (weeklyCraquePreviousFocus?.isConnected) weeklyCraquePreviousFocus.focus();
+      weeklyCraquePreviousFocus = null;
+    }
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeWeeklyCraqueCard(); });
     async function loadWeeklyLineup(force = false) {
       if (weeklyLineupRequest) return weeklyLineupRequest;
       if (!force && Date.now() - weeklyLineupLoadedAt < 20000) return;

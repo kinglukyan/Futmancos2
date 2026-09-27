@@ -923,7 +923,7 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
     const weekStart = monday.toISOString().slice(0, 10);
     const [savedFormation, { data: votes, error: votesError }] = await Promise.all([
       setting('weekly_lineup_formation'),
-      supabase.from('baba_votes').select('player_email,stars').gte('game_day', weekStart).lte('game_day', today).limit(5000)
+      supabase.from('baba_votes').select('player_email,attr_key,stars,voter_id').gte('game_day', weekStart).lte('game_day', today).limit(5000)
     ]);
     if (votesError) throw votesError;
     const formation = WEEKLY_LINEUP_FORMATIONS[savedFormation] ? savedFormation : '3-2-1';
@@ -934,8 +934,15 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
       if (!email) continue;
       const rating = ({ 1: 60, 2: 70, 3: 75, 4: 80, 5: 85 })[Number(vote.stars)];
       if (!rating) continue;
-      const current = voteMap.get(email) || { total: 0, count: 0 };
-      current.total += rating; current.count += 1; voteMap.set(email, current);
+      const current = voteMap.get(email) || { total: 0, count: 0, voters: new Set(), attributes: {} };
+      current.total += rating; current.count += 1;
+      if (vote.voter_id) current.voters.add(String(vote.voter_id));
+      const attr = String(vote.attr_key || '');
+      if (['rit', 'dri', 'chu', 'def', 'pas', 'fis'].includes(attr)) {
+        const values = current.attributes[attr] || (current.attributes[attr] = { total: 0, count: 0 });
+        values.total += rating; values.count += 1;
+      }
+      voteMap.set(email, current);
     }
     const emails = [...voteMap.keys()];
     const { data: profiles, error: profilesError } = emails.length
@@ -954,7 +961,11 @@ app.get('/api/resenha/weekly-lineup', requireDatabase, async (_req, res, next) =
     const candidates = (profiles || []).map(profile => {
       const totals = voteMap.get(String(profile.email || '').toLowerCase());
       if (!totals) return null;
-      return { id: profile.id, name: profile.nickname || profile.name || 'Associado', position: profile.position || 'Meio-Campo', photo: /^https:\/\//i.test(profile.photo || '') ? profile.photo : '', ovr: Math.round(totals.total / totals.count), voteCount: totals.count, group: groupFor(profile.position) };
+      const attributes = Object.fromEntries(['rit', 'dri', 'chu', 'def', 'pas', 'fis'].map(key => {
+        const values = totals.attributes[key];
+        return [key, values ? { value: Math.round(values.total / values.count), votes: values.count } : { value: null, votes: 0 }];
+      }));
+      return { id: profile.id, name: profile.nickname || profile.name || 'Associado', position: profile.position || 'Meio-Campo', photo: /^https:\/\//i.test(profile.photo || '') ? profile.photo : '', ovr: Math.round(totals.total / totals.count), voteCount: totals.count, voterCount: totals.voters.size, attributes, group: groupFor(profile.position) };
     }).filter(Boolean).sort((a, b) => b.ovr - a.ovr || b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'pt-BR'));
     const spread = (count, index, min = 20, max = 80) => count <= 1 ? 50 : min + index * ((max - min) / (count - 1));
     const slots = [{ id: 'gk', label: 'GOL', group: 'keeper', role: 'keeper', x: 8, y: 50, mobileX: 50, mobileY: 89 }];
