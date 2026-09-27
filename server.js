@@ -461,6 +461,15 @@ app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
       if (nicknameError) throw nicknameError;
       profile = updatedProfile;
     }
+    if (metadata.photo) {
+      const signupPhoto = String(metadata.photo);
+      if (!validatePhoto(signupPhoto)) return res.status(400).json({ error: 'A foto de perfil deve ser PNG, JPG ou WebP e ter até 350 KB.' });
+      if (profile.photo !== signupPhoto) {
+        const { data: updatedProfile, error: photoError } = await supabase.from('profiles').update({ photo: signupPhoto }).eq('id', profile.id).select('*').single();
+        if (photoError) throw photoError;
+        profile = updatedProfile;
+      }
+    }
     const rawCpf = String(metadata.cpf || '').replace(/\D/g, '');
     if (!profile.cpf_hash && (rawCpf || metadata.emergency_contact_name || metadata.emergency_contact_phone || metadata.association_answer)) {
       if (String(metadata.association_answer || '').trim().toLocaleLowerCase('pt-BR') !== 'isaac') return res.status(403).json({ error: 'Resposta de validação da associação inválida.' });
@@ -472,8 +481,10 @@ app.post('/api/auth/sync', requireDatabase, async (req, res, next) => {
       const { data: updatedProfile, error: saveError } = await supabase.from('profiles').update({ cpf_hash: guestCpfHash(rawCpf), cpf_encrypted: encryptGuestCpf(rawCpf), cpf_last4: rawCpf.slice(-4), emergency_contact_name: String(metadata.emergency_contact_name).trim(), emergency_contact_phone: String(metadata.emergency_contact_phone).trim() }).eq('id', profile.id).select('*').single();
       if (saveError) throw saveError;
       profile = updatedProfile;
+    }
+    if (['cpf', 'emergency_contact_name', 'emergency_contact_phone', 'association_answer', 'photo'].some(key => metadata[key])) {
       const safeMetadata = { ...metadata };
-      delete safeMetadata.cpf; delete safeMetadata.emergency_contact_name; delete safeMetadata.emergency_contact_phone; delete safeMetadata.association_answer;
+      delete safeMetadata.cpf; delete safeMetadata.emergency_contact_name; delete safeMetadata.emergency_contact_phone; delete safeMetadata.association_answer; delete safeMetadata.photo;
       const { error: cleanupError } = await supabase.auth.admin.updateUserById(authData.user.id, { user_metadata: safeMetadata });
       if (cleanupError) throw cleanupError;
     }
@@ -1570,8 +1581,8 @@ app.put('/api/admin/payment-info', authenticate, requireAdmin, requireDatabase, 
 });
 app.get('/api/config', requireDatabase, async (_req, res, next) => {
   try {
-    const [monthlyFee, guestFee, custoGoFee, custoGoEnabled, custoGoDescription, pixKey, pixQrDataUrl] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('custo_go_enabled'), setting('custo_go_description'), setting('pix_key'), setting('pix_qr_data_url')]);
-    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, custoGoFee: Number(custoGoFee) || 0, custoGoEnabled: String(custoGoEnabled || 'false').toLowerCase() === 'true', custoGoDescription: custoGoDescription || '', whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '' });
+    const [monthlyFee, guestFee, custoGoFee, custoGoEnabled, custoGoDescription, pixKey, pixQrDataUrl, arenaName, arenaAddress, gameSchedule] = await Promise.all([getFee(), setting('guest_daily_fee'), setting('keeper_event_fee'), setting('custo_go_enabled'), setting('custo_go_description'), setting('pix_key'), setting('pix_qr_data_url'), setting('home_arena_name'), setting('home_arena_address'), setting('home_game_schedule')]);
+    res.json({ monthlyFee, guestFee: Number(guestFee) || 0, custoGoFee: Number(custoGoFee) || 0, custoGoEnabled: String(custoGoEnabled || 'false').toLowerCase() === 'true', custoGoDescription: custoGoDescription || '', whatsapp: env('WHATSAPP_ADMIN', '5575998572594'), pixKey: pixKey || '', pixQrDataUrl: pixQrDataUrl || '', arenaName: arenaName || 'Arena Fraga Maia', arenaAddress: arenaAddress || 'Fraga Maia - Feira de Santana/BA', gameSchedule: gameSchedule || 'Sábados, das 6h30 às 8h30' });
   } catch (error) { next(error); }
 });
 

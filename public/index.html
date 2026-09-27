@@ -372,8 +372,8 @@
           <span class="text-xs text-brand-gold font-bold uppercase tracking-widest flex items-center gap-1 justify-center md:justify-start">
             <i data-lucide="calendar" class="w-4 h-4"></i> PRÓXIMO BABA CONFIRMADO
           </span>
-          <h3 id="resenhaBabaTitle" class="font-teko text-3xl text-white">ARENA FUTMANCOS - SÁBADO, 16:00H</h3>
-          <p id="resenhaBabaAddress" class="text-xs text-gray-400">Rua dos Atletas, 100 - Feira de Santana</p>
+          <h3 id="resenhaBabaTitle" class="font-teko text-3xl text-white">ARENA FRAGA MAIA - SÁBADOS, 6H30 ÀS 8H30</h3>
+          <p id="resenhaBabaAddress" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
         </div>
         <div class="bg-black/60 px-5 py-3 rounded-xl border border-gray-800 text-center">
           <span class="text-[10px] text-gray-400 block uppercase font-bold">Confirmados</span>
@@ -472,8 +472,8 @@
             <i data-lucide="map-pin" class="w-5 h-5"></i>
             <h3 class="font-teko text-2xl text-white">ONDE JOGAMOS</h3>
           </div>
-          <p id="homeArenaName" class="text-sm font-bold text-gray-200">Arena Futmancos</p>
-          <p id="homeArenaAddress" class="text-xs text-gray-400">Rua dos Atletas, 100 - Feira de Santana</p>
+          <p id="homeArenaName" class="text-sm font-bold text-gray-200">Arena Fraga Maia</p>
+          <p id="homeArenaAddress" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
         </div>
 
         <div class="bg-brand-cardBg border border-gray-800 p-5 rounded-2xl space-y-2">
@@ -481,7 +481,7 @@
             <i data-lucide="clock" class="w-5 h-5"></i>
             <h3 class="font-teko text-2xl text-white">HORÁRIOS DOS JOGOS</h3>
           </div>
-          <p id="homeGameSchedule" class="text-sm font-bold text-gray-200">Sábados a partir das 16:00h</p>
+          <p id="homeGameSchedule" class="text-sm font-bold text-gray-200">Sábados, das 6h30 às 8h30</p>
           <p class="text-xs text-gray-400">Confirme presença e check-in; a administração registra os resultados depois do jogo.</p>
         </div>
       </div>
@@ -523,8 +523,8 @@
       <div class="bg-brand-cardBg border border-gray-800 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="text-xs text-brand-lightGreen font-bold tracking-widest uppercase">Próximo Baba</span>
-          <h2 id="nextGameTitle" class="font-teko text-2xl md:text-3xl text-white leading-tight">ARENA FUTMANCOS - SÁBADO, 16:00H</h2>
-          <p id="nextGameSub" class="text-xs text-gray-400">Rua dos Atletas, 100 - Feira de Santana</p>
+          <h2 id="nextGameTitle" class="font-teko text-2xl md:text-3xl text-white leading-tight">ARENA FRAGA MAIA - SÁBADOS, DAS 6H30 ÀS 8H30</h2>
+          <p id="nextGameSub" class="text-xs text-gray-400">Fraga Maia - Feira de Santana/BA</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 w-full md:w-auto gap-2">
           <button onclick="togglePresence()" id="btnTogglePresence" class="bg-emerald-600 active:bg-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition">Marcar Presença</button>
@@ -881,6 +881,10 @@
         <label class="text-[11px] text-gray-400">Apelido (usado na cartinha)
           <input type="text" id="regNickname" required maxlength="24" autocomplete="nickname" placeholder="Como quer ser chamado" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
+        <label class="text-[11px] text-gray-400 sm:col-span-2">Foto de perfil (opcional)
+          <input type="file" id="regPhoto" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white file:mr-2 file:rounded-lg file:border-0 file:bg-gray-800 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white">
+          <span class="mt-1 block text-[10px] text-gray-500">PNG, JPG ou WebP de até 350 KB. Você também pode adicionar depois no perfil.</span>
+        </label>
         <label class="text-[11px] text-gray-400">Senha (mínimo 10 caracteres)
           <input type="password" id="regPassword" required minlength="10" autocomplete="new-password" class="mt-1 w-full bg-black border border-gray-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-lightGreen">
         </label>
@@ -955,11 +959,11 @@
             <input type="hidden" id="arenaEditId">
             <div>
               <label class="text-[10px] text-gray-400">Nome da Arena / Campo</label>
-              <input type="text" id="arenaName" placeholder="Ex: Arena Futmancos" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+              <input type="text" id="arenaName" placeholder="Ex: Arena Fraga Maia" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
             </div>
             <div>
               <label class="text-[10px] text-gray-400">Endereço Completo</label>
-              <input type="text" id="arenaAddress" placeholder="Ex: Rua dos Atletas, 100" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
+              <input type="text" id="arenaAddress" placeholder="Ex: Fraga Maia - Feira de Santana/BA" required class="w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none">
             </div>
             <div class="grid grid-cols-2 gap-2">
               <label class="text-[10px] text-gray-400">Latitude<input type="number" step="any" id="arenaLatitude" placeholder="-12.25" class="mt-1 w-full bg-black border border-gray-800 p-2 text-xs text-white rounded-xl outline-none"></label>
@@ -1346,7 +1350,7 @@
     let cardImageAdjustments = JSON.parse(localStorage.getItem('futmancos_card_image_adjustments') || '{}');
 
     let arenas = JSON.parse(localStorage.getItem('futmancos_arenas')) || [
-      { id: 1, name: 'Arena Futmancos', address: 'Rua dos Atletas, 100 - Feira de Santana' }
+      { id: 1, name: 'Arena Fraga Maia', address: 'Fraga Maia - Feira de Santana/BA' }
     ];
 
     let transactions = JSON.parse(localStorage.getItem('futmancos_finances')) || [];
@@ -2072,9 +2076,27 @@
     let adminWhatsapp = '5575998572594';
     let associationPixKey = '';
     let associationPixQrDataUrl = '';
+    function applyVenueConfig(config = {}) {
+      const name = String(config.arenaName || 'Arena Fraga Maia');
+      const address = String(config.arenaAddress || 'Fraga Maia - Feira de Santana/BA');
+      const schedule = String(config.gameSchedule || 'Sábados, das 6h30 às 8h30');
+      const nameNode = document.getElementById('homeArenaName'), addressNode = document.getElementById('homeArenaAddress'), scheduleNode = document.getElementById('homeGameSchedule');
+      if (nameNode) nameNode.textContent = name;
+      if (addressNode) addressNode.textContent = address;
+      if (scheduleNode) scheduleNode.textContent = schedule;
+      if (!localStorage.getItem('futmancos_next_game')) {
+        const title = document.getElementById('resenhaBabaTitle'), sub = document.getElementById('resenhaBabaAddress');
+        if (title) title.textContent = `${name} · ${schedule}`.toLocaleUpperCase('pt-BR');
+        if (sub) sub.textContent = address;
+        const nextTitle = document.getElementById('nextGameTitle'), nextSub = document.getElementById('nextGameSub');
+        if (nextTitle) nextTitle.textContent = `${name} · ${schedule}`.toLocaleUpperCase('pt-BR');
+        if (nextSub) nextSub.textContent = address;
+      }
+    }
     async function syncCustoGoConfig() {
       try {
         const config = await apiRequest('/config');
+        applyVenueConfig(config);
         globalCustoGoFee = Number(config.custoGoFee) || 0;
         custoGoDescription = String(config.custoGoDescription || '');
         custoGoEnabled = config.custoGoEnabled === true;
@@ -2094,6 +2116,7 @@
     async function loadAppConfig() {
       try {
         const config = await apiRequest('/config');
+        applyVenueConfig(config);
         globalMonthlyFee = Number(config.monthlyFee) || globalMonthlyFee;
         globalGuestFee = Number(config.guestFee) || 0;
         globalCustoGoFee = Number(config.custoGoFee) || 0;
@@ -2200,14 +2223,14 @@
       const { data: authData, error: authError } = await supabaseClient.auth.getUser();
       if (authError || !authData?.user) throw new Error('Faça login novamente para carregar seu perfil.');
       const { data: profile, error } = await supabaseClient.from('profiles')
-        .select('id,email,name,nickname,phone,age,position,foot,height,shirt_number,is_admin')
+        .select('id,email,name,nickname,phone,age,position,foot,height,shirt_number,photo,is_admin')
         .eq('id', authData.user.id).single();
       if (error || !profile) throw new Error(error?.message || 'Perfil não encontrado no Supabase.');
       return {
         id: profile.id, name: profile.name, nickname: profile.nickname || '', email: profile.email || authData.user.email,
         phone: profile.phone || '', age: profile.age || 0, pos: profile.position || 'Meio-Campo',
         foot: profile.foot || 'Direita', height: Number(profile.height) || 1.7, shirt: Number(profile.shirt_number) || 0,
-        isAdmin: !!profile.is_admin
+        isAdmin: !!profile.is_admin, photo: profile.photo || ''
       };
     }
 
@@ -2952,7 +2975,7 @@
             <div class="rank-player-stage my-2 relative flex h-48 justify-center">${playerPhotoMarkup}</div>
 
             <div class="rank-player-name text-center border-b border-gray-700/80 bg-black/30 pb-1 mb-2">
-              <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${p.name}</h3>
+              <h3 class="font-teko text-2xl font-bold tracking-wider text-white uppercase truncate">${gamePlanEscape(playerCardName(p))}</h3>
             </div>
 
             <div class="rank-player-stats grid grid-cols-2 gap-1 text-[11px] font-bold px-1">
@@ -4382,13 +4405,19 @@
       if (payload.associationAnswer.toLocaleLowerCase('pt-BR') !== 'isaac') return alert('Resposta incorreta. O cadastro é exclusivo para pessoas ligadas à associação.');
       if (payload.shirt && players.some(player => Number(player.shirt) === payload.shirt)) return alert('Esse número de camisa já está atribuído a outro jogador. Escolha outro número.');
       try {
+        const photoFile = document.getElementById('regPhoto').files?.[0];
+        if (photoFile) {
+          if (!['image/png', 'image/jpeg', 'image/webp'].includes(photoFile.type)) throw new Error('A foto deve estar em PNG, JPG ou WebP.');
+          if (photoFile.size > 350 * 1024) throw new Error('A foto de perfil deve ter até 350 KB.');
+          payload.photo = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(new Error('Não foi possível ler a foto selecionada.')); reader.readAsDataURL(photoFile); });
+        }
         await apiRequest('/auth/registration-check', { method: 'POST', body: JSON.stringify({ cpf: payload.cpf, associationAnswer: payload.associationAnswer }) });
         const { data: authData, error } = await supabaseClient.auth.signUp({
           email: payload.email,
           password: payload.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name: payload.name, nickname: payload.nickname, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt, cpf: payload.cpf, emergency_contact_name: payload.emergencyContactName, emergency_contact_phone: payload.emergencyContactPhone, association_answer: payload.associationAnswer }
+            data: { name: payload.name, nickname: payload.nickname, phone: payload.phone, age: payload.age, position: payload.pos, foot: payload.foot, height: payload.height, shirt_number: payload.shirt, ...(payload.photo ? { photo: payload.photo } : {}), cpf: payload.cpf, emergency_contact_name: payload.emergencyContactName, emergency_contact_phone: payload.emergencyContactPhone, association_answer: payload.associationAnswer }
           }
         });
         if (error) throw error;
@@ -4582,7 +4611,7 @@
     function renderNextGameInfo(info) {
       if (!info) return;
       const arena = arenas.find(item => String(item.id) === String(info.arenaId));
-      const name = info.name || arena?.name || 'Arena Futmancos';
+      const name = info.name || arena?.name || 'Arena Fraga Maia';
       const dateText = info.date ? new Date(`${info.date}T12:00:00`).toLocaleDateString('pt-BR') : '';
       const timeText = info.time || '';
       const title = `${name.toUpperCase()}${dateText ? ` - ${dateText}` : ''}${timeText ? `, ${timeText}H` : ''}`;
